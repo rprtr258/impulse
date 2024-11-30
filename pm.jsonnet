@@ -5,6 +5,7 @@
     args: ["run", "cmd/main.go"],
     autorestart: false,
     watch: "\\.go$",
+    cwd: "backend",
     tags: ["impulse"],
   },
   {

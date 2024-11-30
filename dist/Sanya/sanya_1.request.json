@@ -1,7 +1,0 @@
-{
-  "kind": "http",
-  "url": "http://google.com",
-  "method": "GET",
-  "body": "",
-  "headers": []
-}

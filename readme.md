@@ -1,6 +1,7 @@
 ## Run backend
 
 ```bash
+cd backend
 make run
 ```
 
