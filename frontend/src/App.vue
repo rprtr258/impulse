@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref, useTemplateRef, watch} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect, SelectInst} from 'naive-ui';
 import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL} from './api';
 import Request from './Request.vue';
@@ -125,6 +125,7 @@ const openCollections = reactive(['Sanya']); // TODO: save to/load from local st
 </script>
 
 <template>
+
 <NConfigProvider :theme='darkTheme' class="h100">
   <div class="h100" style="display: grid; grid-template-columns: 1fr 6fr;">
     <!-- TODO: highlight selected item -->

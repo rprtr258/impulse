@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {h, ref} from 'vue';
-import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NSelect, NSplit, NTooltip} from 'naive-ui';
+import Button from './components/Button.vue'
+import {NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NSelect, NSplit, NTooltip} from 'naive-ui';
 import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from '@vicons/antd'
 import {api, Database, RequestSQL, ResponseSQL} from './api';
 
@@ -65,7 +66,7 @@ const data = ref(response.value.rows.map(row => Object.fromEntries(row.map((v, i
         style="width: 10%;"
       />
       <NInput :value="request.dsn"/>
-      <NButton type="primary" v-on:click="send()">Run</NButton>
+      <Button type="primary" @click="send()">Run</Button>
     </NInputGroup>
   </NLayoutHeader>
   <NLayoutContent style="height: 90%;">

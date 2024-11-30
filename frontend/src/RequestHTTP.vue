@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import {} from 'vue';
-import {NTag, NCode, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from 'naive-ui';
+import Button from './components/Button.vue'
+import {NTag, NCode, NTabs, NTabPane, NInput, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from 'naive-ui';
 import {api, Method as Methods, RequestHTTP, ResponseHTTP} from './api';
 
 import hljs from 'highlight.js/lib/core';
 import json from 'highlight.js/lib/languages/json';
 import xml from 'highlight.js/lib/languages/xml';
+
 hljs.registerLanguage('json', json);
 hljs.registerLanguage('html', xml);
+
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
     "application/json;": "json",
@@ -56,7 +59,7 @@ function send() {
       style="width: 10%; min-width: 8em;"
     />
     <NInput :value="request.url"/>
-    <NButton type="primary" v-on:click="send()">Send</NButton>
+    <Button type="primary" @click="send()">Send</Button>
   </NInputGroup>
   <NTabs
     type="card"
@@ -138,12 +141,14 @@ function send() {
             <col style="width: 50%" />
             <col style="width: 50%" />
           </colgroup>
+
           <thead>
             <tr>
               <th>NAME</th>
               <th>VALUE</th>
             </tr>
           </thead>
+
           <tr v-for="header in response.headers" :key="header.key">
             <td>{{header.key}}</td>
             <td>{{header.value}}</td>
