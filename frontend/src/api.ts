@@ -43,26 +43,24 @@ export interface ResponseHTTP {
 }
 
 export type RequestData =
-  {kind: "http"} & RequestHTTP |
-  {kind: "sql"} & RequestSQL;
+  | {kind: "http"} & RequestHTTP
+  | {kind: "sql"} & RequestSQL;
 
 export interface ResponseSQL {
   columns: string[],
-  types: ("number"|"string"|"time"|"bool")[],
+  types: ("number" | "string" | "time" | "bool")[],
   rows: unknown[][],
 }
 
 export type ResponseData =
-  {kind: "http"} & ResponseHTTP |
-  {kind: "sql"} & ResponseSQL;
+  | {kind: "http"} & ResponseHTTP
+  | {kind: "sql"} & ResponseSQL;
 
-
-type HistoryEntryCommon = {
+export type HistoryEntry = {
   request_id: string,
   sent_at: Date,
   received_at: Date,
-}
-export type HistoryEntry = HistoryEntryCommon & ({
+} & ({
   kind: "http",
   request: RequestHTTP,
   response: ResponseHTTP,
@@ -125,16 +123,39 @@ export const api = {
     return x;
   },
 
-  async requestCreate(name: string, kind: "http" | "sql"): Promise<unknown> {
-    return apiCall("/requests/create", {name: name, kind: kind});
+  async requestCreate(
+    name: string,
+    kind: "http" | "sql",
+  ): Promise<unknown> {
+    return apiCall("/requests/create", {
+      name: name,
+      kind: kind,
+    });
   },
 
-  async requestUpdate(colId: string, reqId: string, kind: 'http' | 'sql', req: RequestHTTP | RequestSQL): Promise<void> {
+  async requestUpdate(
+    colId: string,
+    reqId: string,
+    kind: 'http' | 'sql',
+    req: RequestHTTP | RequestSQL,
+  ): Promise<void> {
     // TODO: remove name
-    return await apiCall("/requests/update", {id: colId, n: reqId, kind: kind, name: reqId, request: req});
+    return await apiCall("/requests/update", {
+      id: colId,
+      n: reqId,
+      kind: kind,
+      name: reqId,
+      request: req,
+    });
   },
 
-  async requestPerform(colId: string, reqId: string): Promise<ResponseData> {
-    return await apiCall("/requests/perform", {id: colId, n: reqId});
-  }
+  async requestPerform(
+    colId: string,
+    reqId: string,
+  ): Promise<ResponseData> {
+    return await apiCall("/requests/perform", {
+      id: colId,
+      n: reqId,
+    });
+  },
 };
