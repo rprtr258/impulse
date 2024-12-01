@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import {} from 'vue';
-import {NTag} from 'naive-ui';
-import {Method as Methods} from './api';
+import {} from "vue";
+import {NTag} from "naive-ui";
+import {Method as Methods} from "./api";
 
 const {collapsible = false, collapsed = false, method, id} = defineProps<{
   id: string,

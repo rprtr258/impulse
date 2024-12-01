@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import {} from 'vue';
-import {NTag, NCode, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from 'naive-ui';
-import {api, Method as Methods, RequestHTTP, ResponseHTTP} from './api';
+import {} from "vue";
+import {NTag, NCode, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from "naive-ui";
+import {api, Method as Methods, RequestHTTP, ResponseHTTP} from "./api";
 
-import hljs from 'highlight.js/lib/core';
-import json from 'highlight.js/lib/languages/json';
-import xml from 'highlight.js/lib/languages/xml';
-hljs.registerLanguage('json', json);
-hljs.registerLanguage('html', xml);
+import hljs from "highlight.js/lib/core";
+import json from "highlight.js/lib/languages/json";
+import xml from "highlight.js/lib/languages/xml";
+hljs.registerLanguage("json", json);
+hljs.registerLanguage("html", xml);
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
     "application/json;": "json",

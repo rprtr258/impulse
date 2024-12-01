@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import {h, ref} from 'vue';
-import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NSelect, NSplit, NTooltip} from 'naive-ui';
-import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from '@vicons/antd'
-import {api, Database, RequestSQL, ResponseSQL} from './api';
+import {h, ref} from "vue";
+import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NSelect, NSplit, NTooltip} from "naive-ui";
+import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
+import {api, Database, RequestSQL, ResponseSQL} from "./api";
 
 const {id, collectionID} = defineProps<{
   id: string,

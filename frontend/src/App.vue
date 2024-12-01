@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref, watch} from 'vue';
-import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect} from 'naive-ui';
-import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL} from './api';
-import Request from './Request.vue';
-import RequestHTTP from './RequestHTTP.vue';
-import RequestSQL from './RequestSQL.vue';
+import {computed, onMounted, reactive, ref, watch} from "vue";
+import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect} from "naive-ui";
+import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL} from "./api";
+import Request from "./Request.vue";
+import RequestHTTP from "./RequestHTTP.vue";
+import RequestSQL from "./RequestSQL.vue";
 
 function fromNow(date: Date): string {
   const now = new Date();

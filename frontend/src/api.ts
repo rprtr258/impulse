@@ -6,11 +6,11 @@ export interface Parameter {
 }
 
 export const Method = {
-  GET: "GET",
-  POST: "POST",
-  PUT: "PUT",
-  DELETE: "DELETE",
-  PATCH: "PATCH",
+  GET:     "GET",
+  POST:    "POST",
+  PUT:     "PUT",
+  DELETE:  "DELETE",
+  PATCH:   "PATCH",
   OPTIONS: "OPTIONS",
 };
 export type Method = keyof typeof Method;
@@ -23,9 +23,9 @@ export interface RequestHTTP {
 }
 
 export const Database = {
-  postgres: "PG",
-  mysql: "MY",
-  sqlite: "LITE",
+  postgres:   "PG",
+  mysql:      "MY",
+  sqlite:     "LITE",
   clickhouse: "CH",
 };
 export type Database = keyof typeof Database;
@@ -72,8 +72,8 @@ export type HistoryEntry = {
 
 export type Request = {
   id: string,
-} & (RequestHTTP & {kind: 'http'} |
-  RequestSQL & {kind: 'sql'})
+} & (RequestHTTP & {kind: "http"} |
+  RequestSQL & {kind: "sql"})
 
 interface Collection {
   id: string,
@@ -136,7 +136,7 @@ export const api = {
   async requestUpdate(
     colId: string,
     reqId: string,
-    kind: 'http' | 'sql',
+    kind: "http" | "sql",
     req: RequestHTTP | RequestSQL,
   ): Promise<void> {
     // TODO: remove name
