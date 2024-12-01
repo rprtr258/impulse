@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/pkg/errors"
 	"github.com/rprtr258/fun"
@@ -27,7 +28,7 @@ func handlerWrapper[In, Out any](handler func(context.Context, In) (Out, error))
 
 		response, err := handler(c.Context(), request)
 		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+			return err
 		}
 
 		return c.JSON(response)
@@ -94,21 +95,25 @@ func New(dbFs afero.Fs) (*fiber.App, func()) {
 			},
 		}),
 	)
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed,
+	}))
 	app.Static("/", "./frontend/dist")
 
 	app.Post("/api", handler(map[string]func(*fiber.Ctx) error{
-		// collections
-		"/create": handlerWrapper(s.HandlerCollectionCreate),
-		"/list":   handlerWrapper(s.HandlerCollectionList),
-		"/read":   handlerWrapper(s.HandlerCollectionGet),
-		"/update": handlerWrapper(s.HandlerCollectionUpdate),
-		"/delete": handlerWrapper(s.HandlerCollectionDelete),
-		// requests
-		"/requests/create":  handlerWrapper(s.HandlerRequestNew),
-		"/requests/read":    handlerWrapper(s.HandlerRequestGet),
-		"/requests/update":  handlerWrapper(s.HandlerRequestUpdate),
-		"/requests/delete":  handlerWrapper(s.HandlerRequestDelete),
-		"/requests/perform": handlerWrapper(s.HandlerRequestSend),
+		"/list": handlerWrapper(s.HandlerList),
+		// TODO: support operating on dirs also
+		"/create":    handlerWrapper(s.HandlerNew),
+		"/read":      handlerWrapper(s.HandlerGet),
+		"/update":    handlerWrapper(s.HandlerUpdate),
+		"/delete":    handlerWrapper(s.HandlerDelete),
+		"/perform":   handlerWrapper(s.HandlerSend),
+		"/duplicate": handlerWrapper(s.HandlerDuplicate),
+		"/jq":        handlerWrapper(s.HandlerJQ), // run jq query on given json
+		// grpc
+		"/grpc/methods":        handlerWrapper(s.HandlerGRPCMethods),       // list grpc methods using grpc reflection
+		"/grpc/query/fake":     handlerWrapper(s.HandlerGRPCQueryFake),     // generate fake query for grpc method
+		"/grpc/query/validate": handlerWrapper(s.HandlerGRPCQueryValidate), // validate query for grpc method
 	}))
 
 	return app, func() {

@@ -2,6 +2,6 @@
   "body": "",
   "headers": null,
   "kind": "http",
-  "method": "POST",
-  "url": "http://google.com"
+  "method": "GET",
+  "url": ""
 }

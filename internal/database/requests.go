@@ -6,9 +6,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/pkg/errors"
+	json2 "github.com/rprtr258/fun/exp/json"
 	"github.com/spf13/afero"
+	"go.nhat.io/aferocopy/v2"
 )
 
 const (
@@ -16,20 +21,59 @@ const (
 	_historySuffix = ".history.jsonl"
 )
 
-func RequestGet(
+type Tree struct {
+	RequestIDs []RequestID
+	Dirs       map[string]Tree
+}
+
+func list(fs afero.Fs, prefix string) (Tree, error) {
+	infos, err := afero.ReadDir(fs, prefix)
+	if err != nil {
+		return Tree{}, errors.Wrapf(err, "read dir")
+	}
+
+	res := Tree{
+		[]RequestID{},
+		map[string]Tree{},
+	}
+	for _, info := range infos {
+		if info.IsDir() {
+			dir := prefix + info.Name()
+			subdir, err := list(fs, dir+"/")
+			if err != nil {
+				return Tree{}, errors.Wrapf(err, "list dir %q", info.Name())
+			}
+			res.Dirs[dir] = subdir
+		} else {
+			baseRequestID, isRequest := strings.CutSuffix(info.Name(), _requestSuffix)
+			if !isRequest {
+				continue
+			}
+
+			res.RequestIDs = append(res.RequestIDs, RequestID(prefix+baseRequestID))
+		}
+	}
+	return res, nil
+}
+
+func List(_ context.Context, db *DB) (Tree, error) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	return list(db.fs, "")
+}
+
+func Get(
 	_ context.Context,
 	db *DB,
-	collectionID CollectionID,
 	id RequestID,
 ) (Request, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	fs := afero.NewBasePathFs(db.fs, string(collectionID))
-
 	var request Request
 	if err := func() error {
-		requestFile, err := fs.Open(string(id) + _requestSuffix)
+		requestFile, err := db.fs.Open(string(id) + _requestSuffix)
 		if err != nil {
 			return errors.Wrap(err, "open request file")
 		}
@@ -51,7 +95,7 @@ func RequestGet(
 
 	var historyPre []any
 	if err := func() error {
-		f, err := fs.Open(string(id) + _historySuffix)
+		f, err := db.fs.Open(string(id) + _historySuffix)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil
@@ -82,56 +126,62 @@ func RequestGet(
 		if err != nil {
 			panic(err)
 		}
-		switch history := request.History.(type) {
-		case []HistoryEntry[HTTPRequest, HTTPResponse]:
-			if err := json.Unmarshal(b, &history); err != nil {
-				panic(err)
-			}
-			request.History = history
-		case []HistoryEntry[SQLRequest, SQLResponse]:
-			if err := json.Unmarshal(b, &history); err != nil {
-				panic(err)
-			}
-			request.History = history
-		default:
-			panic("unknown history type")
+		if string(b) == "null" {
+			return
 		}
+
+		kind := request.Data.isRequestData()
+		decoderHistory := json2.List(json2.Map4(
+			func(sentAt, receivedAt time.Time, request RequestData, response ResponseData) HistoryEntry {
+				return HistoryEntry{sentAt, receivedAt, request, response}
+			},
+			json2.Required("sent_at", json2.Time),
+			json2.Required("received_at", json2.Time),
+			json2.Required("request", decodersRequest[kind]),
+			json2.Required("response", decodersResponse[kind]),
+		))
+		history, err := decoderHistory.ParseBytes(b)
+		if err != nil {
+			panic("unknown history type: " + err.Error())
+		}
+		request.History = history
 	}() // TODO: ganvnische
 
 	return request, nil
 }
 
 type PayloadRequestCreate struct {
-	Name        string
-	HTTPRequest HTTPRequest
+	ID          RequestID
+	RequestData RequestData
 }
 
-func RequestCreate(
+func Create(
 	ctx context.Context,
 	db *DB,
-	collectionID CollectionID,
 	payload PayloadRequestCreate,
 ) (RequestID, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	fs := afero.NewBasePathFs(db.fs, string(collectionID))
-
 	request := Request{
-		RequestID(payload.Name),
-		payload.HTTPRequest,
-		[]HistoryEntry[HTTPRequest, HTTPResponse]{},
+		RequestID(payload.ID),
+		payload.RequestData,
+		nil,
 	}
 
 	if err := func() error {
-		requestFile, err := fs.OpenFile(string(request.ID)+_requestSuffix, os.O_RDWR|os.O_CREATE, os.ModePerm)
+		requestFile, err := db.fs.OpenFile(string(request.ID)+_requestSuffix, os.O_WRONLY|os.O_CREATE, 0o644)
 		if err != nil {
-			return errors.Wrapf(err, "create request %q", request.ID)
+			return errors.Wrap(err, "open request file")
 		}
 		defer requestFile.Close()
 
-		if err := json.NewEncoder(requestFile).Encode(request); err != nil {
-			return errors.Wrapf(err, "write request %q", request.ID)
+		b, err := request.MarshalJSON2()
+		if err != nil {
+			return errors.Wrap(err, "marshal request")
+		}
+		if _, err := requestFile.Write(b); err != nil {
+			return errors.Wrap(err, "write request")
 		}
 		return nil
 	}(); err != nil {
@@ -139,49 +189,99 @@ func RequestCreate(
 	}
 
 	if err := func() error {
-		historyFile, err := fs.OpenFile(string(request.ID)+_historySuffix, os.O_RDWR|os.O_CREATE, os.ModePerm)
+		historyFile, err := db.fs.OpenFile(string(request.ID)+_historySuffix, os.O_WRONLY|os.O_CREATE, 0o644)
 		if err != nil {
-			return errors.Wrapf(err, "create request %q", request.ID)
+			return errors.Wrap(err, "open history file")
 		}
 		defer historyFile.Close()
 
-		if err := json.NewEncoder(historyFile).Encode([]any{}); err != nil {
-			return errors.Wrapf(err, "write request %q", request.ID)
-		}
 		return nil
 	}(); err != nil {
 		return "", errors.Wrapf(err, "create history for request %q", request.ID)
 	}
 
-	return RequestID(payload.Name), nil
+	return RequestID(payload.ID), nil
 }
 
-func RequestDelete(
+func Duplicate(
 	ctx context.Context,
 	db *DB,
-	collectionID CollectionID,
-	id RequestID,
+	id string,
 ) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	fs := afero.NewBasePathFs(db.fs, string(collectionID))
+	if _, err := db.fs.Stat(string(id) + _requestSuffix); err == nil { // it is request file, duplicate
+		n := 1
+		for {
+			if _, err := db.fs.Stat(string(id) + " (" + strconv.Itoa(n) + ")" + _requestSuffix); err == nil {
+				n++
+			} else {
+				break
+			}
+		}
 
-	if err := fs.Remove(string(id) + _requestSuffix); err != nil {
-		return errors.Wrapf(err, "delete request %q", id)
-	}
+		if err := aferocopy.Copy(string(id)+_requestSuffix, string(id)+" ("+strconv.Itoa(n)+")"+_requestSuffix, aferocopy.Options{
+			SrcFs:  db.fs,
+			DestFs: db.fs,
+			Sync:   true,
+		}); err != nil {
+			return errors.Wrapf(err, "duplicate request %q", id)
+		}
+	} else if stat, err := db.fs.Stat(string(id)); err == nil && stat.IsDir() { // it is dir, duplicate
+		n := 1
+		for {
+			if _, err := db.fs.Stat(string(id) + " (" + strconv.Itoa(n) + ")"); err == nil {
+				n++
+			} else {
+				break
+			}
+		}
 
-	if err := fs.Remove(string(id) + _requestSuffix); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "delete history %q", id)
+		if err := aferocopy.Copy(string(id), string(id)+" ("+strconv.Itoa(n)+")", aferocopy.Options{
+			SrcFs:  db.fs,
+			DestFs: db.fs,
+			Sync:   true,
+		}); err != nil {
+			return errors.Wrapf(err, "duplicate dir %q", id)
+		}
+	} else {
+		return errors.Errorf("unknown request/dir %q", id)
 	}
 
 	return nil
 }
 
-func RequestUpdate(
+func Delete(
 	ctx context.Context,
 	db *DB,
-	collectionID CollectionID,
+	id RequestID,
+) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if _, err := db.fs.Stat(string(id) + _requestSuffix); err == nil { // it is request file, remove
+		if err := db.fs.Remove(string(id) + _requestSuffix); err != nil {
+			return errors.Wrapf(err, "delete request %q", id)
+		}
+
+		if err := db.fs.Remove(string(id) + _historySuffix); err != nil && !os.IsNotExist(err) {
+			return errors.Wrapf(err, "delete history %q", id)
+		}
+	} else if stat, err := db.fs.Stat(string(id)); err == nil && stat.IsDir() { // it is dir, remove
+		if err := db.fs.RemoveAll(string(id)); err != nil {
+			return errors.Wrapf(err, "delete request %q", id)
+		}
+	} else {
+		return errors.Errorf("unknown request/dir %q", id)
+	}
+
+	return nil
+}
+
+func Update(
+	ctx context.Context,
+	db *DB,
 	id RequestID,
 	kind Kind,
 	newID RequestID,
@@ -190,17 +290,36 @@ func RequestUpdate(
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	// TODO: check kind did not change
-
-	if id != newID {
-		oldName := filepath.Join(string(collectionID), string(id)+_requestSuffix)
-		newName := filepath.Join(string(collectionID), string(newID)+_requestSuffix)
-		if err := db.fs.Rename(oldName, newName); err != nil { // TODO: rename history items also
-			return errors.Wrapf(err, "rename request %q", id)
-		}
+	if kind != newData.isRequestData() {
+		return errors.Errorf("kind mismatch: %q != %q", kind, newData.isRequestData())
 	}
 
-	requestFile, err := db.fs.OpenFile(filepath.Join(string(collectionID), string(id)+_requestSuffix), os.O_RDWR|os.O_TRUNC, os.ModePerm)
+	if id != newID {
+		if dir := filepath.Dir(string(newID)); dir != "." {
+			if err := db.fs.MkdirAll(dir, 0o755); err != nil {
+				return errors.Wrapf(err, "create dir %q", dir)
+			}
+		}
+
+		if err := db.fs.Rename(
+			string(id)+_requestSuffix,
+			string(newID)+_requestSuffix,
+		); err != nil {
+			return errors.Wrapf(err, "rename request %q", id)
+		}
+		if err := db.fs.Rename(
+			string(id)+_historySuffix,
+			string(newID)+_historySuffix,
+		); err != nil {
+			if !os.IsNotExist(err) { // NOTE: history might not exist
+				return errors.Wrapf(err, "rename history %q", id)
+			}
+		}
+
+		id = newID
+	}
+
+	requestFile, err := db.fs.OpenFile(string(id)+_requestSuffix, os.O_RDWR|os.O_TRUNC, 0o644)
 	if err != nil {
 		return errors.Wrapf(err, "open request %q", id)
 	}
@@ -217,30 +336,32 @@ func RequestUpdate(
 	}
 	m["kind"] = kind
 
-	if err := json.NewEncoder(requestFile).Encode(m); err != nil {
+	enc := json.NewEncoder(requestFile)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(m); err != nil {
 		return errors.Wrapf(err, "write request %q", id)
 	}
 
 	return nil
 }
 
-func HistoryEntryCreate[I RequestData, O ResponseData](
+func CreateHistoryEntry(
 	ctx context.Context,
 	db *DB,
-	collectionID CollectionID,
 	id RequestID,
-	item HistoryEntry[I, O],
+	SentAt time.Time,
+	ReceivedAt time.Time,
+	Request RequestData,
+	Response ResponseData,
 ) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	fs := afero.NewBasePathFs(db.fs, string(collectionID))
+	entryFilename := string(id) + _historySuffix
 
-	entryFilename := filepath.Join(string(id) + _historySuffix)
-
-	entryFile, err := fs.OpenFile(entryFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	entryFile, err := db.fs.OpenFile(entryFilename, os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
-		return errors.Wrapf(err, "create history entry for request %q/%q", collectionID, id)
+		return errors.Wrapf(err, "create history entry for request %q", id)
 	}
 	defer entryFile.Close()
 
@@ -248,8 +369,9 @@ func HistoryEntryCreate[I RequestData, O ResponseData](
 		return errors.Wrap(err, "seek to end")
 	}
 
-	if err := json.NewEncoder(entryFile).Encode(item); err != nil {
-		return errors.Wrapf(err, "write history entry for request %q/%q", collectionID, id)
+	historyEntry := HistoryEntry{SentAt, ReceivedAt, Request, Response}
+	if err := json.NewEncoder(entryFile).Encode(historyEntry); err != nil {
+		return errors.Wrapf(err, "write history entry for request %q", id)
 	}
 
 	return nil

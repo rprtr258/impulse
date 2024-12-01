@@ -1,5 +1,5 @@
-import { createApp } from 'vue';
-import App from './App.vue';
+import {createApp} from "vue";
+import AppOuter from "./AppOuter.vue";
 
-createApp(App)
-  .mount('#app');
+createApp(AppOuter)
+  .mount("#app");

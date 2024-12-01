@@ -1,39 +1,55 @@
 <script setup lang="ts">
-import {h, ref} from 'vue';
-import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NSelect, NSplit, NTooltip} from 'naive-ui';
-import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from '@vicons/antd'
-import {api, Database, RequestSQL, ResponseSQL} from './api';
+import {computed, h, ref, watch} from "vue";
+import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NScrollbar, NSelect, NSplit, NTooltip} from "naive-ui";
+import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
+import {Database, RequestSQL, ResponseSQL} from "./api";
+import EditorSQL from "./EditorSQL.vue";
+import { store } from "./store";
 
-const {id, collectionID} = defineProps<{
-  id: string,
-  collectionID: string,
+const {request, response = null} = defineProps<{
+  request: RequestSQL,
+  response?: ResponseSQL | undefined | null, // TODO: optional govno is ignored in typing
 }>();
-
-let request = defineModel<RequestSQL>("request");
-let response = defineModel<ResponseSQL>("response");
-
-function send() {
-  api
-    .requestPerform(collectionID, id)
-    .then(v => {
-      if (v.kind === "sql") {
-        response.value = {
-          columns: v.columns,
-          types: v.types,
-          rows: v.rows,
-        }
-      } else {
-        // TODO: fail
-        throw new Error("Unexpected response kind: " + v.kind);
-      }
-    })
-    .catch((err) => alert(`Could not perform request: ${err}`));
+const emit = defineEmits<{
+  send: [],
+  update: [request: RequestSQL],
+}>();
+function updateRequest(patch: Partial<RequestSQL>) {
+  emit("update", {...request, ...patch});
 }
-const columns = ref(response.value.columns.map(c => {
+
+const dsn = ref(request.dsn);
+function onInputChange(newValue: string) {
+  dsn.value = newValue;
+  updateRequest({dsn: newValue});
+}
+
+const query = ref(request.query);
+function onQueryChange(newValue: string) {
+  query.value = newValue;
+  updateRequest({query: newValue});
+}
+
+const buttonDisabled = ref(false);
+function onButtonClick() {
+  emit("send");
+  buttonDisabled.value = true;
+}
+watch(() => response, () => {
+  buttonDisabled.value = false;
+});
+
+watch(() => store.requestID, () => {
+  dsn.value = request.dsn;
+  query.value = request.query;
+  buttonDisabled.value = false;
+});
+
+const columns = computed(() => (response?.columns ?? []).map(c => {
   return {
     key: c,
     title: _ => {
-      const type = response.value.types[response.value.columns.indexOf(c)];
+      const type = response.types[response.columns.indexOf(c)];
       return h(NTooltip, {trigger: "hover", placement: "bottom-start"}, {
         trigger: () => h("div", {}, [
           h(NIcon, {size: "15", color: "grey"}, () => [
@@ -50,32 +66,58 @@ const columns = ref(response.value.columns.map(c => {
         default: () => type,
       });
     },
+    render: (rowData: any, rowIndex: number) => {
+      const v = rowData[c];
+      switch (true) {
+      case v === null:
+        return "(NULL)"; // TODO: faded
+      case typeof v == "boolean":
+        return v ? "true" : "false";
+      case typeof v == "number" || typeof v == "string":
+        return v;
+      default:
+        console.log(rowData, rowData[c], rowIndex);
+        return rowData[c];
+      }
+    },
   }
 }));
-const data = ref(response.value.rows.map(row => Object.fromEntries(row.map((v, i) => [response.value.columns[i], v]))));
+// TODO: fix duplicate column names
+const data = computed(() => (response?.rows ?? []).map(row => Object.fromEntries(row.map((v, i) => [response.columns[i], v]))));
 </script>
 
 <template>
-<NLayout class="h100">
+<NLayout
+  class="h100"
+  id="gavno"
+>
   <NLayoutHeader>
     <NInputGroup>
       <NSelect
         :options="Object.keys(Database).map(db => ({label: Database[db], value: db}))"
-        v-model:value="request.database"
+        :value="request.database"
+        v-on:update:value="(database: Database) => updateRequest({database: database})"
         style="width: 10%;"
       />
-      <NInput :value="request.dsn"/>
-      <NButton type="primary" v-on:click="send()">Run</NButton>
+      <NInput
+        placeholder="DSN"
+        :value="dsn"
+        v-on:input="onInputChange"
+      />
+      <NButton
+        type="primary"
+        v-on:click='onButtonClick'
+        :disabled="buttonDisabled"
+      >Run</NButton>
     </NInputGroup>
   </NLayoutHeader>
-  <NLayoutContent style="height: 90%;">
-    <NSplit class="h100">
+  <NLayoutContent class="h100">
+    <NSplit class="h100" direction="vertical">
       <template #1>
-        <NInput
-          type="textarea"
+        <EditorSQL
+          :value="query"
+          v-on:update="onQueryChange"
           class="h100"
-          v-model:value='request.query'
-          @update:value="value => request.query = value"
         />
       </template>
       <template #2>
@@ -87,12 +129,16 @@ const data = ref(response.value.rows.map(row => Object.fromEntries(row.map((v, i
           />
         </template>
         <template v-else>
-          <NDataTable
-            :columns="columns"
-            :data="data"
-            :single-line="false"
-            resizable
-          />
+          <NScrollbar>
+            <NDataTable
+              :columns="columns"
+              :data="data"
+              :single-line="false"
+              size="small"
+              resizable
+              :scroll-x="response?.columns.length * 200"
+            />
+          </NScrollbar>
         </template>
       </template>
     </NSplit>
@@ -101,4 +147,16 @@ const data = ref(response.value.rows.map(row => Object.fromEntries(row.map((v, i
 </template>
 
 <style lang="css" scoped>
+.n-tab-pane {
+  height: 100% !important;
+}
+</style>
+<style lang="css">
+/* TODO: как же я ненавижу ебаный цсс блять господи за что */
+#gavno > .n-layout-scroll-container {
+  overflow: hidden;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 34px 1fr;
+}
 </style>

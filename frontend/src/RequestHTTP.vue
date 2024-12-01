@@ -1,13 +1,22 @@
 <script setup lang="ts">
-import {} from 'vue';
-import {NTag, NCode, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from 'naive-ui';
-import {api, Method as Methods, RequestHTTP, ResponseHTTP} from './api';
+import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NEmpty} from "naive-ui";
+import {Method as Methods, Parameter, RequestHTTP, ResponseHTTP} from "./api";
+import ViewJSON from "./ViewJSON.vue";
+import EditorJSON from "./EditorJSON.vue";
+import ParamsList from "./ParamsList.vue";
 
-import hljs from 'highlight.js/lib/core';
-import json from 'highlight.js/lib/languages/json';
-import xml from 'highlight.js/lib/languages/xml';
-hljs.registerLanguage('json', json);
-hljs.registerLanguage('html', xml);
+const {request, response = null} = defineProps<{
+  request: RequestHTTP,
+  response?: ResponseHTTP | undefined | null, // TODO: optional govno is ignored in typing
+}>();
+const emit = defineEmits<{
+  send: [],
+  update: [request: RequestHTTP],
+}>();
+function updateRequest(patch: Partial<RequestHTTP>) {
+  emit("update", {...request, ...patch});
+}
+
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
     "application/json;": "json",
@@ -20,30 +29,10 @@ function responseBodyLanguage(contentType: string): string {
   return "text";
 };
 
-const {id, collectionID} = defineProps<{
-  id: string,
-  collectionID: string,
-}>();
-
-let request = defineModel<RequestHTTP>("request");
-let response = defineModel<ResponseHTTP | null>("response");
-
-function send() {
-  api
-    .requestPerform(collectionID, id)
-    .then(v => {
-      if (v.kind === "http") {
-        response.value = {
-          code: v.code,
-          body: v.body,
-          headers: v.headers,
-        };
-      } else {
-        // TODO: fail
-        throw new Error("Unexpected response kind: " + v.kind);
-      }
-    })
-    .catch((err) => alert(`Could not perform request: ${err}`));
+function updateHeaders(value: Parameter[]){
+  updateRequest({
+    headers: value.filter(({key, value}) => key!=="" || value!==""),
+  })
 }
 </script>
 
@@ -52,11 +41,16 @@ function send() {
   <NInputGroup style="grid-column: span 2;">
     <NSelect
       :options="Object.keys(Methods).map(method => ({label: method, value: method}))"
-      v-model:value="request.method"
+      :value="request.method"
+      v-on:update:value="method => updateRequest({method: method})"
       style="width: 10%; min-width: 8em;"
     />
-    <NInput :value="request.url"/>
-    <NButton type="primary" v-on:click="send()">Send</NButton>
+    <NInput
+      placeholder="URL"
+      :value="request.url"
+      v-on:update:value="url => updateRequest({url: url})"
+    />
+    <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
   </NInputGroup>
   <NTabs
     type="card"
@@ -67,40 +61,24 @@ function send() {
       name="tab-req-request"
       tab='Request'
       class="h100"
+      display-directive="show"
     >
-      <NInput
-        type="textarea"
+      <EditorJSON
         class="h100"
-        :value='request.body'
-        @update:value="value => request.body = value"
+        :value="request.body"
+        v-on:update="(value: string) => updateRequest({body: value})"
       />
     </NTabPane>
     <NTabPane
       name="tab-req-headers"
       tab='Headers'
       style="display: flex; flex-direction: column; flex: 1;"
+      display-directive="show"
     >
-      <NDynamicInput
-        :value='request.headers'
-        @update:value='value => request.headers=value.filter(({key, value}) => key!=="" || value!=="").concat([{key: "", value: ""}])'
-        preset="pair"
-        key-placeholder="Header"
-        value-placeholder="Value"
+      <ParamsList
+        :value="request.headers"
+        v-on:update="(value: Parameter[]) => updateHeaders(value)"
       />
-      <!-- <div
-        style="display: flex; flex-direction: row;"
-        v-for="(obj, i) in request.headers"
-        :key="i"
-      >
-        <NInput type="text" :value="obj.key" style="flex: 1;" />
-        <NInput type="text" :value="obj.value" style="flex: 1;" />
-      </div>
-      <div
-        style="display: flex; flex-direction: row;"
-      >
-        <NInput type="text" ref="key" :value="pending.key" style="flex: 1;" />
-        <NInput type="text" ref="value" :value="pending.value" style="flex: 1;" />
-      </div> -->
     </NTabPane>
   </NTabs>
   <template v-if="response === null">
@@ -117,22 +95,31 @@ function send() {
       default-value="tab-resp-body"
       style="overflow-y: auto;"
     >
-      <NTabPane name="tab-resp-code" disabled><template #tab>
+      <NTabPane
+        name="tab-resp-code"
+        disabled
+        display-directive="show"
+      ><template #tab>
         <NTag
           :type='response.code < 300 ? "success" : response.code < 500 ? "warning" : "error"'
           size="small"
           round
         >{{response.code ?? "N/A"}}</Ntag>
       </template></NTabPane>
-      <NTabPane name="tab-resp-body" tab="Body" style="overflow-y: auto;">
-        <NCode
-          :hljs='hljs'
-          :code='response.body'
-          :language='responseBodyLanguage(response.headers.find(h => h.key === "Content-Type")?.value ?? "")'
-          word-wrap
-        />
+      <NTabPane
+        name="tab-resp-body"
+        tab="Body"
+        style="overflow-y: auto;"
+        display-directive="show"
+      >
+        <ViewJSON :value="response.body" />
       </NTabPane>
-      <NTabPane name="tab-resp-headers" tab="Headers" style="flex: 1;">
+      <NTabPane
+        name="tab-resp-headers"
+        tab="Headers"
+        style="flex: 1;"
+        display-directive="show"
+      >
         <NTable striped size="small" single-column :single-line="false">
           <colgroup>
             <col style="width: 50%" />
@@ -156,4 +143,7 @@ function send() {
 </template>
 
 <style lang="css" scoped>
+.n-tab-pane {
+  height: 100% !important;
+}
 </style>

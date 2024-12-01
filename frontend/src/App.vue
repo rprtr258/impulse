@@ -1,10 +1,100 @@
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref, useTemplateRef, watch} from 'vue';
-import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect, SelectInst} from 'naive-ui';
-import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL} from './api';
-import Request from './Request.vue';
-import RequestHTTP from './RequestHTTP.vue';
-import RequestSQL from './RequestSQL.vue';
+import {computed, h, onMounted, ref, VNodeChild, watch} from "vue";
+import {useBrowserLocation, useLocalStorage} from "@vueuse/core";
+import {
+  NTag, NTabs, NTabPane,
+  NList, NListItem,
+  NResult, NSelect, NIcon,
+  NSpace, NScrollbar,
+  NInput, NModal, NDropdown, NButton,
+  NTree, TreeOption,
+  useNotification,
+} from "naive-ui";
+import {DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined, DownOutlined} from "@vicons/antd";
+import {ContentCopyFilled} from "@vicons/material";
+import {CopySharp} from "@vicons/ionicons5";
+import {store, setNotify} from "./store";
+import {
+  Method as Methods, RequestData, Kinds, Database, Tree,
+  ResponseHTTP, RequestHTTP as RequestHTTPT,
+  ResponseSQL,  RequestSQL  as RequestSQLT,
+  ResponseGRPC, RequestGRPC as RequestGRPCT,
+  ResponseJQ,   RequestJQ   as RequestJQT,
+} from "./api";
+import RequestHTTP from "./RequestHTTP.vue";
+import RequestSQL from "./RequestSQL.vue";
+import RequestGRPC from "./RequestGRPC.vue";
+import RequestJQ from "./RequestJQ.vue";
+
+onMounted(() => {
+  const notification = useNotification();
+  setNotify((...args) => notification.error({title: "Error", content: args.map(arg => arg.toString()).join("\n")}));
+});
+
+function dirname(id: string): string {
+  return id.split("/").slice(0, -1).join("/");
+}
+function basename(id: string): string {
+  return id.split("/").pop();
+}
+const treeData = computed(() => {
+  const mapper = (tree: Tree) =>
+    Object.entries(tree.dirs ?? {}).map(([k, v]) => ({
+      key: k,
+      label: basename(k),
+      children: mapper(v),
+    })).concat((tree.ids ?? []).map(id => {
+      return {
+        key: id,
+        label: basename(id),
+      };
+    }));
+  return mapper(store.requestsTree);
+});
+function renameRequest(id: string, newID: string) {
+  const selectedID = store.requestID;
+  store.rename(id, newID);
+  if (selectedID !== null && id === selectedID) {
+    selectRequest(newID);
+  }
+}
+function drag({node, dragNode, dropPosition}: {
+  node: TreeOption,
+  dragNode: TreeOption,
+  dropPosition: "before" | "inside" | "after",
+}): void	{
+  const dir = (d: string): string => d === "" ? "" : d + "/";
+  const oldID = dragNode.key as string;
+  const into = node.key as string;
+  switch (dropPosition) {
+    case "before":
+    case "after":
+      renameRequest(oldID, dir(dirname(into)) + basename(oldID));
+      break;
+    case "inside":
+      renameRequest(oldID, dir(into) + basename(oldID));
+      break;
+  }
+}
+
+const location = useBrowserLocation();
+function selectRequest(id: string) {
+  store.selectRequest(id);
+  location.value.hash = id;
+}
+onMounted(() => {
+  store.fetch().then(() => {
+    if (location.value.hash !== "#") {
+      const id = decodeURI(location.value.hash.slice(1)); // remove '#'
+      if (store.requests[id] === undefined) {
+        location.value.hash = "";
+        return;
+      }
+
+      selectRequest(id);
+    }
+  });
+});
 
 function fromNow(date: Date): string {
   const now = new Date();
@@ -35,192 +125,296 @@ function fromNow(date: Date): string {
   }
 }
 
-let requests = ref({} as {[id: string]: RequestData}); // TODO: tree
-let history = ref([] as HistoryEntry[]);
-
-const request = reactive({box: null} as {
-  box: {
-    id: string,
-  } & ({
-    kind: "http",
-    request: RequestHTTPT,
-  } | {
-    kind: "sql",
-    request: RequestSQLT,
-  }) | null,
-});
-const request_history = computed(() => {
-  if (request.box === null) {
-    return [];
-  }
-
-  return history.value.filter(h => h.request_id === request.box.id);
-});
-
-function updateRequest() { // TODO: replace with event
-  api
-    .requestUpdate(collectionID.value, request.box.id, request.box.kind, request.box.request)
-    .then(() => { fetch(collectionID.value); })
-    .catch((err) => alert(`Could not save current request: ${err}`));
-}
-watch(request, updateRequest, { deep: true });
-
-function fetch(collectionID: string): void {
-  api
-    .collectionRequests(collectionID)
-    .then((json) => {
-      requests.value = Object.fromEntries(json.requests.map(r => [r.id, r as RequestHTTPT & {kind: 'http'} | RequestSQLT & {kind: 'sql'}]));
-      history.value = json.history;
-    })
-    .catch((err) => { throw err; }); // TODO: handle error
-}
-
-// const collapsed = reactive({});// ref<{ [i: number]: boolean }>({});
-// TODO: remove collections altogether, use tree instead
-const collectionID = ref("Sanya"); // TODO: default collection must be <unknown>
-
-function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
-  const kind = requests.value[id].kind;
-  switch (kind) {
-    case "http":
-      request.box = {
-        id: id,
-        kind: kind,
-        request: req as RequestHTTPT,
-      };
-      break;
-    case "sql":
-      request.box = {
-        id: id,
-        kind: kind,
-        request: req as RequestSQLT,
-      };
-      break;
+const treeNodeProps = ({ option }: { option: TreeOption }) => {
+  return {
+    onClick() {
+      if (!option.children && !option.disabled) {
+        const id = option.key as string;
+        selectRequest(id);
+      }
+    }
   }
 }
 
-function selectHistoryRequest(req: HistoryEntry) {
-  selectRequest(req.request_id, req.request);
-}
+const expandedKeys = useLocalStorage<string[]>("expanded-keys", []);
 
-const newRequestKind = ref<"http" | "sql" | null>(null);
-watch(newRequestKind, function() {
+const newRequestKind = ref<typeof Kinds[number] | null>(null);
+watch(newRequestKind, async () => {
   if (newRequestKind.value === null) {
     return;
   }
 
-  api
-    .collectionCreate("test-create")
-    .then(() => {
-      fetch(collectionID.value);
-    }); // TODO: add name // TODO: add kind
+  const kind = newRequestKind.value;
+  newRequestKind.value = null;
+  const id = new Date().toUTCString();
+  store.createRequest(id, kind);
+  // TODO: add name
 });
 
 // TODO: fix editing request headers
 
-onMounted(() => {
-  fetch(collectionID.value);
-});
-const openCollections = reactive(['Sanya']); // TODO: save to/load from local storage
+const renameID = ref(null as string | null);
+const renameValue = ref(null as string | null);
+function renameCancel() {
+  renameID.value = null;
+  renameValue.value = null;
+}
+function rename() {
+  renameRequest(renameID.value, renameValue.value);
+  renameCancel();
+}
+
+function badge(req: RequestData): [string, string] {
+  switch (req.kind) {
+  case "http": return [Methods[req.method], "lime"];
+  case "sql": return [Database[req.database], "bluewhite"];
+  case "grpc": return ["GRPC", "cyan"];
+  case "jq": return ["JQ", "violet"];
+  }
+}
+function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boolean}): VNodeChild {
+  const option = info.option;
+  const req = store.requests[option.key];
+  if (req === undefined) {
+    return null;
+  }
+  const [method, color] = badge(req);
+  return h(NTag, {
+    type: Methods[method] ? "success" : "info",
+    class: 'method',
+    style: `width: 4em; justify-content: center; color: ${color};`,
+    size: "small",
+  }, () => method)
+}
+function renderSuffix(info: {option: TreeOption}): VNodeChild {
+  const option = info.option;
+  const id = option.key as string;
+  return h(NDropdown, {
+    trigger: "hover",
+    options: [
+      {
+        label: "Rename",
+        key: "rename",
+        icon: () => h(NIcon, {component: EditOutlined}),
+        props: {
+          onClick: () => {
+            renameID.value = id;
+            renameValue.value = id;
+          }
+        }
+      },
+      {
+        label: "Duplicate",
+        key: "duplicate",
+        icon: () => h(NIcon, {component: CopySharp}),
+        props: {
+          onClick: () => {
+            store.duplicate(id);
+          }
+        }
+      },
+      {
+        label: "Copy as curl",
+        key: "copy-as-curl",
+        icon: () => h(NIcon, {component: ContentCopyFilled}),
+        show: store.requests[id]?.kind === "http",
+        props: {
+          onClick: () => {
+            const req = store.requests[id];
+            if (!req) {
+              return;
+            }
+            const httpToCurl = ({url, method, body, headers}: RequestHTTPT) => {
+              return `curl -X ${method} ${url}` +
+                (headers.length > 0 ? " " + headers.map(({key, value}) => `-H "${key}: ${value}"`).join(" ") : "") +
+                ((body) ? ` -d '${body}'` : "");
+            };
+            console.log(req);
+            navigator.clipboard.writeText(httpToCurl(req as RequestHTTPT));
+          }
+        }
+      },
+      {
+        label: "Delete",
+        key: "delete",
+        icon: () => h(NIcon, {color: "red", component: DeleteOutlined}),
+        props: {
+          onClick: () => {
+            store.deleteRequest(id);
+          },
+        },
+      },
+    ],
+    "v-on:select": (key: string | number) => {
+      // message.info(String(key))
+    },
+  }, () => [h(NIcon, {component: DownOutlined})]);
+}
+
+const sidebarHidden = ref(false);
 </script>
 
 <template>
-<NConfigProvider :theme='darkTheme' class="h100">
-  <div class="h100" style="display: grid; grid-template-columns: 1fr 6fr;">
-    <!-- TODO: highlight selected item -->
-    <aside style="width: 272px; overflow: auto; color: rgba(255, 255, 255, 0.82); background-color: rgb(24, 24, 28);">
-      <NTabs
-        type="card"
-        size="small"
+<div
+  class="h100"
+  :style='{
+    display: "grid",
+    "grid-template-columns": `${sidebarHidden ? "3em" : "300px"} 6fr`,
+  }'
+>
+  <aside
+    style="
+      overflow: auto;
+      color: rgba(255, 255, 255, 0.82);
+      background-color: rgb(24, 24, 28);
+      display: grid;
+      grid-template-rows: auto 3em;
+      height: 100%;
+    "
+  >
+    <NTabs
+      type="card"
+      size="small"
+      v-if="!sidebarHidden"
+    >
+      <NTabPane
+        name="tab-nav-collection"
+        tab="Collection"
+        display-directive="show"
+        style="
+          overflow: auto;
+          display: grid;
+          padding-top: 0px;
+          grid-template-rows: 2.5em auto;
+          height: 100%;
+        "
       >
-        <NTabPane
-          name="tab-nav-collection"
-          tab="Collection"
-          style="flex: 1;"
+        <NModal
+          :show="renameID !== null"
+          v-on:update-show="(show) => {if (!show) { renameCancel(); }}"
+          preset="dialog"
+          title="Rename request"
+          positive-text="Rename"
+          negative-text="Cancel"
+          v-on:positive-click="rename"
+          v-on:negative-click="renameCancel"
         >
-          <NSelect
-            v-model:value="newRequestKind"
-            placeholder="New"
-            clearable
-            :options='[{label:"HTTP", value:"http"}, {label:"SQL", value:"sql"}]'
+          <NInput v-model:value="renameValue" />
+        </NModal>
+        <NSelect
+          v-model:value="newRequestKind"
+          placeholder="New"
+          clearable
+          :options="Kinds.map(kind => ({label: kind.toUpperCase(), value: kind}))"
+        />
+        <NScrollbar trigger="none">
+          <NTree
+            block-line
+            expand-on-click
+            :selected-keys='[(store.requestID ?? "")]'
+            :show-line="true"
+            :data="treeData"
+            :draggable="true"
+            :default-expanded-keys="expandedKeys as unknown as string[]"
+            v-on:update:expanded-keys="(keys: string[]) => expandedKeys = keys"
+            v-on:drop="drag"
+            :node-props="treeNodeProps"
+            :render-prefix="renderPrefix"
+            :render-suffix="renderSuffix"
           />
-          <NCollapse :default-expanded-names="openCollections" >
-            <NCollapseItem name="Sanya" title="Sanya">
-              <NList hoverable :border="false">
-                <NListItem
-                  v-for="(req, id) in requests"
-                  :key="id"
-                  :animated="false"
-                >
-                  <Request
-                    :id="id"
-                    :method='req.kind=="http" ? Methods[req.method] : Database[req.database]'
-                    v-on:click="() => selectRequest(id, req)"
-                  />
-                </NListItem>
-              </NList>
-            </NCollapseItem>
-          </NCollapse>
-        </NTabPane>
-        <NTabPane
-          name="tab-nav-history"
-          tab="History"
-          style="flex: 1;"
-        >
-          <NList hoverable :border="false">
-            <NListItem
-              v-for='r, i in history'
-              :key='i'
-              v-on:click='selectHistoryRequest(r)'
-              class='history-card card'
-            >
-              <div class='headline'>
-                <NTag
-                  type='info'
-                  class='method'
-                  size="small"
-                  style="width: 4em; justify-content: center;"
-                >{{(() => {
-                  const tmp = requests[r.request_id];
-                  return tmp.kind == "http" ? Methods[tmp.method] : Database[tmp.database];
-                })()}}</Ntag>
-                <span class='url' style="padding-left: .5em;">{{r.request_id}}</span>
-              </div>
-              <div class='footer'>
-                <span style='color: grey;' class='date'>{{fromNow(r.sent_at)}}</span>
-              </div>
-            </NListItem>
-          </NList>
-        </NTabPane>
-      </NTabs>
-    </aside>
-    <div style="color: rgba(255, 255, 255, 0.82); background-color: rgb(16, 16, 20); overflow: hidden;">
-      <template v-if="request.box === null">
-        <NResult
-          status="info"
-          title="Pick request"
-          description="Pick request to see it, edit and send and do other fun things."
-          class="h100"
-          style="align-content: center;"
-        />
-      </template><template v-else-if='request.box.kind === "http"'>
-        <RequestHTTP
-          :id="request.box.id"
-          :collectionID="collectionID"
-          :request="request.box.request"
-          :response='request_history[0]?.response as ResponseHTTP ?? null'
-        />
-      </template><template v-else-if='request.box.kind === "sql"'>
-        <RequestSQL
-          :collectionID="collectionID"
-          :id="request.box.id"
-          :request="request.box.request"
-          :response='request_history[0]?.response as ResponseSQL ?? null'
-        />
-      </template>
-    </div>
+        </NScrollbar>
+      </NTabPane>
+      <NTabPane
+        name="tab-nav-history"
+        tab="History"
+        style="flex: 1;"
+        display-directive="show"
+      >
+        <NList hoverable :border="false">
+          <NListItem
+            v-for="r, i in store.history"
+            :key="i"
+            v-on:click="selectRequest(r.request_id)"
+            class="history-card card"
+          >
+            <div class="headline">
+              <NTag
+                class="method"
+                size="small"
+                :style="`width: 4em; justify-content: center; color: ${badge(store.requests[r.request_id])[1]}`"
+              >{{badge(store.requests[r.request_id])[0]}}</Ntag>
+              <span class='url' style="padding-left: .5em;">{{r.request_id}}</span>
+            </div>
+            <div class='footer'>
+              <span style='color: grey;' class='date'>{{fromNow(r.sent_at)}}</span>
+            </div>
+          </NListItem>
+        </NList>
+      </NTabPane>
+    </NTabs>
+    <div v-else></div>
+    <NButton
+      class="h100"
+      v-on:click="sidebarHidden = !sidebarHidden"
+      style="display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;"
+      v-if="!sidebarHidden"
+    >
+      <NSpace>
+        <NIcon :component="DoubleLeftOutlined" />
+        hide
+      </NSpace>
+    </NButton>
+    <NButton
+      class="h100"
+      v-on:click="sidebarHidden = !sidebarHidden"
+      style="display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;"
+      v-else
+    >
+      <NSpace>
+        <NIcon :component="DoubleRightOutlined" />
+      </NSpace>
+    </NButton>
+  </aside>
+  <div style="color: rgba(255, 255, 255, 0.82); background-color: rgb(16, 16, 20); overflow: hidden;">
+    <template v-if="store.request() === null">
+      <NResult
+        status="info"
+        title="Pick request"
+        description="Pick request to see it, edit and send and do other fun things."
+        class="h100"
+        style="align-content: center;"
+      />
+    </template><template v-else-if='store.request().kind === "http"'>
+      <RequestHTTP
+        :request="store.request() as RequestHTTPT"
+        :response="store.response as ResponseHTTP | null"
+        v-on:send="() => store.send(store.requestID)"
+        v-on:update="(request) => store.update(store.requestID, request)"
+      />
+    </template><template v-else-if='store.request().kind === "sql"'>
+      <RequestSQL
+        :request="store.request() as RequestSQLT"
+        :response="store.response as ResponseSQL | null"
+        v-on:send="() => store.send(store.requestID)"
+        v-on:update="(request) => store.update(store.requestID, request)"
+      />
+    </template><template v-else-if='store.request().kind === "grpc"'>
+      <RequestGRPC
+        :request="store.request() as RequestGRPCT"
+        :response="store.response as ResponseGRPC | null"
+        v-on:send="() => store.send(store.requestID)"
+        v-on:update="(request) => store.update(store.requestID, request)"
+      />
+    </template><template v-else-if='store.request().kind === "jq"'>
+      <RequestJQ
+        :request="store.request() as RequestJQT"
+        :response="store.response as ResponseJQ | null"
+        v-on:send="() => store.send(store.requestID)"
+        v-on:update="(request) => store.update(store.requestID, request)"
+      />
+    </template>
   </div>
-</NConfigProvider>
+</div>
 </template>
 
 <style scoped>

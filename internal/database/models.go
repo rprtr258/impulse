@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/rprtr258/fun"
 	json2 "github.com/rprtr258/fun/exp/json"
 )
 
@@ -14,241 +14,138 @@ type KV struct {
 	Value string `json:"value"`
 }
 
-var decoderKVs = json2.Map(json2.Nullable(json2.List(json2.Map2(
+var decoderKVs = json2.Map(func(m fun.Option[[]KV]) []KV {
+	return m.Value
+}, json2.Nullable(json2.List(json2.Map2(
 	func(key string, value string) KV {
 		return KV{key, value}
 	},
 	json2.Field("key", json2.String),
 	json2.Field("value", json2.String),
-))), func(m json2.Maybe[[]KV]) []KV {
-	return m.Value
-})
+))))
 
 type Kind string
-
-const (
-	KindHTTP Kind = "http"
-	KindSQL  Kind = "sql"
-)
 
 type RequestData interface {
 	isRequestData() Kind
 }
 
-var decoderRequestHTTP = json2.Map4(
-	func(url string, method string, body string, headers []KV) HTTPRequest {
-		return HTTPRequest{url, method, body, headers}
-	},
-	json2.Optional("url", json2.String, ""),
-	json2.Optional("method", json2.String, "GET"),
-	json2.Optional("body", json2.String, ""),
-	json2.Optional("headers", decoderKVs, nil),
-)
+var decoderKind = json2.Map(func(kind string) Kind {
+	return Kind(kind)
+}, json2.Field("kind", json2.String))
 
-var decoderRequestSQL = json2.Map3(
-	func(dsn string, database Database, query string) SQLRequest {
-		return SQLRequest{dsn, database, query}
-	},
-	json2.Optional("dsn", json2.String, ""),
-	json2.Map(
-		json2.Optional("database", json2.String, ""),
-		func(s string) Database {
-			return Database(s)
-		}),
-	json2.Field("query", json2.String),
-)
+func decoderRequestMap[T RequestData](dest T) RequestData    { return dest }
+func decoderResponseMap[T ResponseData](dest T) ResponseData { return dest }
 
-var decoderKind = json2.Map(
-	json2.Field("kind", json2.String),
-	func(kind string) Kind {
-		return Kind(kind)
-	})
-
+var decodersRequest = map[Kind]json2.Decoder[RequestData]{}
+var decodersResponse = map[Kind]json2.Decoder[ResponseData]{}
 var decoderRequestData = json2.AndThen(
 	decoderKind,
 	func(kind Kind) json2.Decoder[RequestData] {
-		switch kind {
-		case KindHTTP:
-			return json2.Map(decoderRequestHTTP, func(dest HTTPRequest) RequestData { return dest })
-		case KindSQL:
-			return json2.Map(decoderRequestSQL, func(dest SQLRequest) RequestData { return dest })
-		default:
+		decoder, ok := decodersRequest[kind]
+		if !ok {
 			return json2.Fail[RequestData](fmt.Sprintf("unknown request kind %q", kind))
 		}
+		return decoder
 	})
 
 type ResponseData interface {
 	isResponseData() Kind
 }
 
-func ResponseDataWithKind(resp ResponseData) (map[string]any, error) {
-	b, err := json.Marshal(resp)
-	if err != nil {
-		return nil, err
-	}
-	var m map[string]any
-	if err = json.Unmarshal(b, &m); err != nil {
-		return nil, err
-	}
-	m["kind"] = resp.isResponseData()
-	return m, nil
-}
-
-type HTTPRequest struct {
-	URL     string `json:"url"`
-	Method  string `json:"method"`
-	Body    string `json:"body"`
-	Headers []KV   `json:"headers"`
-}
-
-func (HTTPRequest) isRequestData() Kind { return KindHTTP }
-
-type HTTPResponse struct {
-	Code    int    `json:"code"`
-	Body    string `json:"body"`
-	Headers []KV   `json:"headers"`
-}
-
-func (HTTPResponse) isResponseData() Kind { return KindHTTP }
-
-type Database string
-
-const (
-	Postgres   Database = "postgres"
-	MySQL      Database = "mysql"
-	SQLite     Database = "sqlite"
-	Clickhouse Database = "clickhouse"
-)
-
-type SQLRequest struct {
-	DSN      string   `json:"dsn"`
-	Database Database `json:"database"`
-	Query    string   `json:"query"`
-}
-
-func (SQLRequest) isRequestData() Kind { return KindSQL }
-
-type ColumnType string
-
-const (
-	ColumnTypeString  ColumnType = "string"
-	ColumnTypeNumber  ColumnType = "number"
-	ColumnTypeTime    ColumnType = "time"
-	ColumnTypeBoolean ColumnType = "boolean"
-)
-
-type SQLResponse struct { // TODO: last inserted id on insert
-	Columns []string     `json:"columns"`
-	Types   []ColumnType `json:"types"`
-	Rows    [][]any      `json:"rows"`
-}
-
-func (SQLResponse) isResponseData() Kind { return KindSQL }
-
-type HistoryEntry[I RequestData, O ResponseData] struct {
-	SentAt     time.Time `json:"sent_at"`
-	ReceivedAt time.Time `json:"received_at"`
-	Request    I         `json:"request"`
-	Response   O         `json:"response"`
+type HistoryEntry struct {
+	SentAt     time.Time    `json:"sent_at"`
+	ReceivedAt time.Time    `json:"received_at"`
+	Request    RequestData  `json:"request"`
+	Response   ResponseData `json:"response"`
 }
 
 type RequestID string
 
-type RequestHTTP struct {
-	Request HTTPRequest                               `json:"request"`
-	History []HistoryEntry[HTTPRequest, HTTPResponse] `json:"history"`
-}
-
-type RequestSQL struct {
-	Request SQLRequest                              `json:"request"`
-	History []HistoryEntry[SQLRequest, SQLResponse] `json:"history"`
-}
-
 type Request struct {
 	ID      RequestID
 	Data    RequestData
-	History any // TODO: []HistoryEntry[HTTPRequest, HTTPResponse] | []HistoryEntry[SQLRequest, SQLResponse] aligned w/ Data field
+	History []HistoryEntry // TODO: []HistoryEntry[HTTPRequest, HTTPResponse] | []HistoryEntry[SQLRequest, SQLResponse] aligned w/ Data field
 }
 
+var decoderRequest = json2.AndThen(
+	decoderKind,
+	func(kind Kind) json2.Decoder[Request] {
+		decoderRequest, ok := decodersRequest[kind]
+		if !ok {
+			return json2.Fail[Request](fmt.Sprintf("unknown kind %q", kind))
+		}
+
+		return json2.Map(func(req RequestData) Request {
+			return Request{"", req, nil}
+		}, decoderRequest)
+	})
+
 func (e *Request) UnmarshalJSON(b []byte) error {
-	var decoderHistoryEntry = json2.AndThen(
-		decoderKind,
-		func(kind Kind) json2.Decoder[Request] {
-			var decoderRequest json2.Decoder[RequestData]
-			var history any
-			switch kind {
-			case KindHTTP:
-				decoderRequest = json2.Map(decoderRequestHTTP, func(dest HTTPRequest) RequestData { return dest })
-				history = []HistoryEntry[HTTPRequest, HTTPResponse]{}
-				// decoderResponse = json2.Map(json2.Map3(
-				// 	func(code int, body string, headers []KV) HTTPResponse {
-				// 		return HTTPResponse{code, body, headers}
-				// 	},
-				// 	json2.Field("code", json2.Int),
-				// 	json2.Optional("body", json2.String, ""),
-				// 	json2.Optional("headers", decoderKVs, nil),
-				// ), func(dest HTTPResponse) ResponseData { return dest })
-			case KindSQL:
-				decoderRequest = json2.Map(decoderRequestSQL, func(dest SQLRequest) RequestData { return dest })
-				history = []HistoryEntry[SQLRequest, SQLResponse]{}
-				// decoderResponse = json2.Map(json2.Map3(
-				// 	func(columns []string, types []ColumnType, rows [][]any) SQLResponse {
-				// 		return SQLResponse{columns, types, rows}
-				// 	},
-				// 	json2.Field("columns", json2.List(json2.String)),
-				// 	json2.Field("types", json2.List(json2.Map(json2.String, func(s string) ColumnType {
-				// 		return ColumnType(s)
-				// 	}))),
-				// 	json2.Field("rows", json2.List(json2.List(func(v any, t *any) error {
-				// 		*t = v
-				// 		return nil
-				// 	}))),
-				// ), func(dest SQLResponse) ResponseData { return dest })
-			default:
-				return json2.Fail[Request](fmt.Sprintf("unknown kind %q", kind))
-			}
-
-			return json2.Map(
-				decoderRequest,
-				func(req RequestData) Request {
-					return Request{"", req, history}
-				},
-			)
-		})
-
 	var err error
-	*e, err = decoderHistoryEntry.ParseBytes(b)
+	*e, err = decoderRequest.ParseBytes(b)
 	return err
 }
 
-func (e Request) MarshalJSON() ([]byte, error) {
-	switch req := e.Data.(type) {
-	case HTTPRequest:
-		return json.Marshal(map[string]any{
-			"kind":    "http",
-			"id":      e.ID,
-			"url":     req.URL,
-			"method":  req.Method,
-			"body":    req.Body,
-			"headers": req.Headers,
-		})
-	case SQLRequest:
-		return json.Marshal(map[string]any{
-			"kind":     "sql",
-			"id":       e.ID,
-			"dsn":      req.DSN,
-			"database": req.Database,
-			"query":    req.Query,
-		})
-	default:
-		return nil, errors.Errorf("unsupported request type %T", req)
+func gavnischtsche(x any) (map[string]any, error) {
+	b, err := json.Marshal(x)
+	if err != nil {
+		return nil, err
 	}
+
+	var m map[string]any
+	if err = json.Unmarshal(b, &m); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
-type CollectionID string
+func (e Request) MarshalJSON() ([]byte, error) {
+	m, err := gavnischtsche(e.Data)
+	if err != nil {
+		return nil, err
+	}
 
-type Collection struct {
-	ID         CollectionID `json:"id"`
-	Name       string       `json:"name"` // TODO: remove, just use id
-	RequestIDs []RequestID  `json:"requests"`
+	m["id"] = e.ID
+	m["kind"] = e.Data.isRequestData()
+
+	return json.Marshal(m)
+}
+
+func (e Request) MarshalJSON2() ([]byte, error) {
+	m, err := gavnischtsche(e.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	m["kind"] = e.Data.isRequestData()
+
+	return json.Marshal(m)
+}
+
+func ResponseDataWithKind(resp ResponseData) (map[string]any, error) {
+	m, err := gavnischtsche(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	m["kind"] = resp.isResponseData()
+
+	return m, nil
+}
+
+func DecodeHistory(req RequestData, b []byte) (map[string]any, error) {
+	kind := req.isRequestData()
+	decoderHistory := json2.Map4(
+		func(sentAt, receivedAt time.Time, request RequestData, response ResponseData) map[string]any {
+			res, _ := gavnischtsche(HistoryEntry{sentAt, receivedAt, request, response})
+			return res
+		},
+		json2.Required("sent_at", json2.Time),
+		json2.Required("received_at", json2.Time),
+		json2.Required("request", decodersRequest[kind]),
+		json2.Required("response", decodersResponse[kind]),
+	)
+	return decoderHistory.ParseBytes(b)
 }
