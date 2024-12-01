@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, onMounted, reactive, ref, watch} from 'vue';
-import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect, SelectInst} from 'naive-ui';
+import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect} from 'naive-ui';
 import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL} from './api';
 import Request from './Request.vue';
 import RequestHTTP from './RequestHTTP.vue';

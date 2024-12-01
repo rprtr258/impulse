@@ -127,15 +127,21 @@ export const api = {
     return x;
   },
 
-  async requestCreate(name: string, kind: "http" | "sql"): Promise<unknown> {
-    return apiCall("/requests/create", { name: name, kind: kind });
+  async requestCreate(
+    name: string,
+    kind: "http" | "sql",
+  ): Promise<unknown> {
+    return apiCall("/requests/create", {
+      name: name,
+      kind: kind,
+    });
   },
 
   async requestUpdate(
     colId: string,
     reqId: string,
     kind: "http" | "sql",
-    req: RequestHTTP | RequestSQL
+    req: RequestHTTP | RequestSQL,
   ): Promise<void> {
     // TODO: remove name
     return await apiCall("/requests/update", {
@@ -147,7 +153,13 @@ export const api = {
     });
   },
 
-  async requestPerform(colId: string, reqId: string): Promise<ResponseData> {
-    return await apiCall("/requests/perform", { id: colId, n: reqId });
+  async requestPerform(
+    colId: string,
+    reqId: string,
+  ): Promise<ResponseData> {
+    return await apiCall("/requests/perform", {
+      id: colId,
+      n: reqId,
+    });
   },
 };
