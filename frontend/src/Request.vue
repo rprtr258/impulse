@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {} from "vue";
-import {NTag} from "naive-ui";
+import {NButton, NIcon, NTag} from "naive-ui";
+import {EditOutlined} from "@vicons/antd"
 import {Method as Methods} from "./api";
 
 const {collapsible = false, collapsed = false, method, id} = defineProps<{
@@ -10,7 +10,8 @@ const {collapsible = false, collapsed = false, method, id} = defineProps<{
   method: string,
 }>();
 const emit = defineEmits<{
-  (e: 'click'): void
+  (e: 'click'): void,
+  (e: 'rename'): void,
 }>();
 </script>
 
@@ -30,6 +31,7 @@ const emit = defineEmits<{
       size="small"
     >{{method}}</Ntag>
     <span style="padding-left: .5em;">{{id}}</span>
+    <NButton size="small" @click='emit("rename")'><NIcon :component="EditOutlined"></NIcon></NButton>
   </div>
 </template>
 

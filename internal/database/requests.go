@@ -193,10 +193,17 @@ func RequestUpdate(
 	// TODO: check kind did not change
 
 	if id != newID {
-		oldName := filepath.Join(string(collectionID), string(id)+_requestSuffix)
-		newName := filepath.Join(string(collectionID), string(newID)+_requestSuffix)
-		if err := db.fs.Rename(oldName, newName); err != nil { // TODO: rename history items also
+		if err := db.fs.Rename(
+			filepath.Join(string(collectionID), string(id)+_requestSuffix),
+			filepath.Join(string(collectionID), string(newID)+_requestSuffix),
+		); err != nil {
 			return errors.Wrapf(err, "rename request %q", id)
+		}
+		if err := db.fs.Rename(
+			filepath.Join(string(collectionID), string(id)+_historySuffix),
+			filepath.Join(string(collectionID), string(newID)+_historySuffix),
+		); err != nil {
+			return errors.Wrapf(err, "rename history %q", id)
 		}
 	}
 
@@ -217,7 +224,9 @@ func RequestUpdate(
 	}
 	m["kind"] = kind
 
-	if err := json.NewEncoder(requestFile).Encode(m); err != nil {
+	enc := json.NewEncoder(requestFile)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(m); err != nil {
 		return errors.Wrapf(err, "write request %q", id)
 	}
 

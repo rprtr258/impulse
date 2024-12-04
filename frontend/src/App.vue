@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, onMounted, reactive, ref, watch} from "vue";
-import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect} from "naive-ui";
+import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect, NInput, NModal} from "naive-ui";
 import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL} from "./api";
 import Request from "./Request.vue";
 import RequestHTTP from "./RequestHTTP.vue";
@@ -35,7 +35,7 @@ function fromNow(date: Date): string {
   }
 }
 
-let requests = ref({} as {[id: string]: RequestData}); // TODO: tree
+let requests = ref({} as Record<string, RequestData>); // TODO: tree
 let history = ref([] as HistoryEntry[]);
 
 const request = reactive({box: null} as {
@@ -122,6 +122,25 @@ onMounted(() => {
   fetch(collectionID.value);
 });
 const openCollections = reactive(['Sanya']); // TODO: save to/load from local storage
+
+const renameID = ref(null as string | null);
+const renameValue = ref(null as string | null);
+function renameCancel() {
+  renameID.value = null;
+  renameValue.value = null;
+}
+function rename() {
+  const req = requests.value[renameID.value];
+  api.requestUpdate(
+    collectionID.value,
+    renameID.value,
+    req.kind,
+    req,
+    renameValue.value,
+  ).catch((err) => alert(`Could not rename request: ${err}`));
+  renameCancel();
+  fetch(collectionID.value);
+}
 </script>
 
 <template>
@@ -138,6 +157,18 @@ const openCollections = reactive(['Sanya']); // TODO: save to/load from local st
           tab="Collection"
           style="flex: 1;"
         >
+          <NModal
+            :show="renameID !== null"
+            v-on:update-show="(show) => {if (!show) { renameCancel(); }}"
+            preset="dialog"
+            title="Rename request"
+            positive-text="Rename"
+            negative-text="Cancel"
+            @positive-click="rename"
+            @negative-click="renameCancel"
+          >
+            <NInput v-model:value="renameValue" />
+          </NModal>
           <NSelect
             v-model:value="newRequestKind"
             placeholder="New"
@@ -156,6 +187,7 @@ const openCollections = reactive(['Sanya']); // TODO: save to/load from local st
                     :id="id"
                     :method='req.kind=="http" ? Methods[req.method] : Database[req.database]'
                     v-on:click="() => selectRequest(id, req)"
+                    v-on:rename="() => {renameID = id; renameValue = id;}"
                   />
                 </NListItem>
               </NList>

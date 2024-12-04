@@ -138,13 +138,14 @@ export const api = {
     reqId: string,
     kind: "http" | "sql",
     req: RequestHTTP | RequestSQL,
+    name: string | null = null,
   ): Promise<void> {
     // TODO: remove name
     return await apiCall("/requests/update", {
       id: colId,
       n: reqId,
       kind: kind,
-      name: reqId,
+      name: name ?? reqId,
       request: req,
     });
   },

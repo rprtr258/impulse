@@ -1,1 +1,12 @@
-{"body":"{\n  \"title\": \"foo\",\n  \"body\": \"bsdafdafar\",\n  \"userId\": 1\n}\n","headers":[{"key":"Content-type","value":"application/json; charset=UTF-8"}],"kind":"http","method":"GET","url":"https://jsonplaceholder.typicode.com/posts"}
+{
+  "body": "{\n  \"title\": \"foo\",\n  \"body\": \"bsdafdafar\",\n  \"userId\": 1\n}\n",
+  "headers": [
+    {
+      "key": "Content-type",
+      "value": "application/json; charset=UTF-8"
+    }
+  ],
+  "kind": "http",
+  "method": "GET",
+  "url": "https://jsonplaceholder.typicode.com/posts"
+}
