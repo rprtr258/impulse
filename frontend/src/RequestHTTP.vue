@@ -14,22 +14,6 @@ let response = defineModel<ResponseHTTP | null>("response");
 const codeRef = ref(null);
 let editor = null as monaco.editor.IStandaloneCodeEditor | null;
 onMounted(() => {
-  monaco.editor.defineTheme("material-ocean", {
-    base: "vs-dark",
-    inherit: true,
-    rules: [
-      {token: "number",            foreground: "F78C6C"},
-      {token: "string.key.json",   foreground: "49C1AE"},
-      {token: "string.value.json", foreground: "BEE28A"},
-      {token: "keyword.json",      foreground: "C792EA"},
-    ],
-    colors: {
-      'editor.background': '#0F111A',
-      'editor.foreground': '#8F93A2',
-      'editor.lineHighlightBackground': '#00000050',
-      'editor.selectionBackground': '#717CB450',
-    },
-  });
   editor = monaco.editor.create(codeRef.value, {
     value: "",
     language: "json",
