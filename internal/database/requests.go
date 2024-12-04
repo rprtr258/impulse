@@ -124,14 +124,14 @@ func RequestCreate(
 	}
 
 	if err := func() error {
-		requestFile, err := fs.OpenFile(string(request.ID)+_requestSuffix, os.O_RDWR|os.O_CREATE, os.ModePerm)
+		requestFile, err := fs.OpenFile(string(request.ID)+_requestSuffix, os.O_WRONLY|os.O_CREATE, 0o644)
 		if err != nil {
-			return errors.Wrapf(err, "create request %q", request.ID)
+			return errors.Wrap(err, "open request file")
 		}
 		defer requestFile.Close()
 
 		if err := json.NewEncoder(requestFile).Encode(request); err != nil {
-			return errors.Wrapf(err, "write request %q", request.ID)
+			return errors.Wrap(err, "write request")
 		}
 		return nil
 	}(); err != nil {
@@ -139,15 +139,12 @@ func RequestCreate(
 	}
 
 	if err := func() error {
-		historyFile, err := fs.OpenFile(string(request.ID)+_historySuffix, os.O_RDWR|os.O_CREATE, os.ModePerm)
+		historyFile, err := fs.OpenFile(string(request.ID)+_historySuffix, os.O_WRONLY|os.O_CREATE, 0o644)
 		if err != nil {
-			return errors.Wrapf(err, "create request %q", request.ID)
+			return errors.Wrap(err, "open history file")
 		}
 		defer historyFile.Close()
 
-		if err := json.NewEncoder(historyFile).Encode([]any{}); err != nil {
-			return errors.Wrapf(err, "write request %q", request.ID)
-		}
 		return nil
 	}(); err != nil {
 		return "", errors.Wrapf(err, "create history for request %q", request.ID)
@@ -207,7 +204,7 @@ func RequestUpdate(
 		}
 	}
 
-	requestFile, err := db.fs.OpenFile(filepath.Join(string(collectionID), string(id)+_requestSuffix), os.O_RDWR|os.O_TRUNC, os.ModePerm)
+	requestFile, err := db.fs.OpenFile(filepath.Join(string(collectionID), string(id)+_requestSuffix), os.O_RDWR|os.O_TRUNC, 0o644)
 	if err != nil {
 		return errors.Wrapf(err, "open request %q", id)
 	}
@@ -247,7 +244,7 @@ func HistoryEntryCreate[I RequestData, O ResponseData](
 
 	entryFilename := filepath.Join(string(id) + _historySuffix)
 
-	entryFile, err := fs.OpenFile(entryFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	entryFile, err := fs.OpenFile(entryFilename, os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
 		return errors.Wrapf(err, "create history entry for request %q/%q", collectionID, id)
 	}

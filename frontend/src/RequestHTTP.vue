@@ -55,7 +55,7 @@ function send() {
       v-model:value="request.method"
       style="width: 10%; min-width: 8em;"
     />
-    <NInput :value="request.url"/>
+    <NInput v-model:value="request.url"/>
     <NButton type="primary" v-on:click="send()">Send</NButton>
   </NInputGroup>
   <NTabs

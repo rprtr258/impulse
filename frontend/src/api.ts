@@ -103,7 +103,7 @@ interface CollectionGetResponse {
 }
 
 export const api = {
-  async collectionCreate(name: string): Promise<{id: string}> {
+  async collectionCreate(name: string): Promise<void> {
     return apiCall("/create", {name: name});
   },
 
@@ -124,10 +124,12 @@ export const api = {
   },
 
   async requestCreate(
+    colId: string,
     name: string,
     kind: "http" | "sql",
-  ): Promise<unknown> {
+  ): Promise<void> {
     return apiCall("/requests/create", {
+      id: colId,
       name: name,
       kind: kind,
     });

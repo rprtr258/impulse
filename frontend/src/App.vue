@@ -110,10 +110,10 @@ watch(newRequestKind, function() {
   }
 
   api
-    .collectionCreate("test-create")
+    .requestCreate(collectionID.value, "test-create", newRequestKind.value)
     .then(() => {
       fetch(collectionID.value);
-    }); // TODO: add name // TODO: add kind
+    }); // TODO: add name
 });
 
 // TODO: fix editing request headers

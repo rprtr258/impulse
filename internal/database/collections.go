@@ -15,7 +15,7 @@ func CollectionCreate(ctx context.Context, db *DB, name string) (Collection, err
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if err := db.fs.Mkdir(name, os.ModePerm); err != nil {
+	if err := db.fs.Mkdir(name, os.ModePerm); err != nil && !os.IsExist(err) {
 		return Collection{}, errors.Wrap(err, "create collection")
 	}
 
