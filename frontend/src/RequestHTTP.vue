@@ -38,7 +38,7 @@ onMounted(() => {
     folding: true,
     minimap: {enabled: false},
     wordWrap: "on",
-    lineNumbersMinChars: 3,
+    lineNumbers: "off",
   });
 });
 watch(response, () => {
