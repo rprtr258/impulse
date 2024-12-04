@@ -168,7 +168,7 @@ func RequestDelete(
 		return errors.Wrapf(err, "delete request %q", id)
 	}
 
-	if err := fs.Remove(string(id) + _requestSuffix); err != nil && !os.IsNotExist(err) {
+	if err := fs.Remove(string(id) + _historySuffix); err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "delete history %q", id)
 	}
 

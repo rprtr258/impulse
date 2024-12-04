@@ -142,7 +142,6 @@ export const api = {
     req: RequestHTTP | RequestSQL,
     name: string | null = null,
   ): Promise<void> {
-    // TODO: remove name
     return await apiCall("/requests/update", {
       id: colId,
       n: reqId,
@@ -157,6 +156,16 @@ export const api = {
     reqId: string,
   ): Promise<ResponseData> {
     return await apiCall("/requests/perform", {
+      id: colId,
+      n: reqId,
+    });
+  },
+
+  async requestDelete(
+    colId: string,
+    reqId: string,
+  ): Promise<void> {
+    return await apiCall("/requests/delete", {
       id: colId,
       n: reqId,
     });

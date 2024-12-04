@@ -63,7 +63,7 @@ function updateRequest() { // TODO: replace with event
     .then(() => { fetch(collectionID.value); })
     .catch((err) => alert(`Could not save current request: ${err}`));
 }
-watch(request, updateRequest, { deep: true });
+watch(request, updateRequest, { deep: true }); // TODO: replace with events & handler
 
 function fetch(collectionID: string): void {
   api
@@ -97,6 +97,15 @@ function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
       };
       break;
   }
+}
+function deleteRequest(id: string) {
+  api
+    .requestDelete(collectionID.value, id)
+    .then(() => {
+      delete requests.value[id];
+      fetch(collectionID.value);
+    })
+    .catch((err) => alert(`Could not delete request: ${err}`));
 }
 
 function selectHistoryRequest(req: HistoryEntry) {
@@ -188,6 +197,7 @@ function rename() {
                     :method='req.kind=="http" ? Methods[req.method] : Database[req.database]'
                     v-on:click="() => selectRequest(id, req)"
                     v-on:rename="() => {renameID = id; renameValue = id;}"
+                    v-on:delete="() => deleteRequest(id)"
                   />
                 </NListItem>
               </NList>
