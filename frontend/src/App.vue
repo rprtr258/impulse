@@ -57,7 +57,11 @@ const treeNodeProps = ({ option }: { option: TreeOption }) => {
 }
 const treeData = computed(() => { // TODO: drag and drop
   const mapper = (tree: Tree) =>
-    (tree.ids ?? []).map(id => {
+    Object.entries(tree.dirs ?? {}).map(([k, v]) => ({
+      key: k,
+      label: k,
+      children: mapper(v),
+    })).concat((tree.ids ?? []).map(id => {
       const req = requests.value[id];
       const method = req.kind=="http" ? Methods[req.method] : Database[req.database];
       return {
@@ -82,11 +86,7 @@ const treeData = computed(() => { // TODO: drag and drop
           }, () => [h(NIcon, {color: "red", component: DeleteOutlined})]),
         ]),
       };
-    }).concat((Object.entries(tree.dirs ?? {})).map(([k, v]) => ({
-      key: k,
-      label: k,
-      children: mapper(v),
-    })));
+    }));
   return mapper(requestsTree.value);
 });
 const expandedKeys = ref(["Sanya", "subdir"]); // TODO: restore from local storage
