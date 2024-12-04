@@ -1,7 +1,7 @@
 {
-  "body": "{}",
+  "body": "axaxa",
   "headers": [],
   "kind": "http",
-  "method": "GET",
+  "method": "PATCH",
   "url": "https://api.github.com/repositories/793158157"
 }

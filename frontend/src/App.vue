@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref, watch} from "vue";
-import {NConfigProvider, darkTheme, NTag, NTabs, NTabPane, NList, NListItem, NCollapse, NCollapseItem, NResult, NSelect, NInput, NModal} from "naive-ui";
-import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL} from "./api";
-import Request from "./Request.vue";
+import {computed, h, onMounted, reactive, ref, watch} from "vue";
+import {
+  NConfigProvider, darkTheme,
+  NTag, NTabs, NTabPane,
+  NList, NListItem,
+  NResult, NSelect, NInput, NModal,
+  NTree, NIcon, NButton, TreeOption,
+} from "naive-ui";
+import {DeleteOutlined, EditOutlined} from "@vicons/antd";
+import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL, Tree} from "./api";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
 
@@ -35,8 +41,55 @@ function fromNow(date: Date): string {
   }
 }
 
+let requestsTree = ref({} as Tree | null);
 let requests = ref({} as Record<string, RequestData>); // TODO: tree
 let history = ref([] as HistoryEntry[]);
+const treeNodeProps = ({ option }: { option: TreeOption }) => {
+  return {
+    onClick() {
+      if (!option.children && !option.disabled) {
+        const id = option.key as string;
+        const req = requests.value[id];
+        selectRequest(id, req);
+      }
+    }
+  }
+}
+const treeData = computed(() => { // TODO: drag and drop
+  const mapper = (tree: Tree) =>
+    (tree.ids ?? []).map(id => {
+      const req = requests.value[id];
+      const method = req.kind=="http" ? Methods[req.method] : Database[req.database];
+      return {
+        key: id,
+        label: id.split("/").pop(),
+        prefix: () => h(NTag, {
+          type: Methods[method] ? "success" : "info",
+          class: 'method',
+          style: "width: 4em; justify-content: center;",
+          size: "small",
+        }, () => method),
+        suffix: () => h("span", {
+          style: "display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;",
+        }, [
+          h(NButton, {
+            size: "tiny",
+            onClick() {renameID.value = id; renameValue.value = id;},
+          }, () => [h(NIcon, {component: EditOutlined})]),
+          h(NButton, {
+            size: "tiny",
+            onClick() {deleteRequest(id)},
+          }, () => [h(NIcon, {color: "red", component: DeleteOutlined})]),
+        ]),
+      };
+    }).concat((Object.entries(tree.dirs ?? {})).map(([k, v]) => ({
+      key: k,
+      label: k,
+      children: mapper(v),
+    })));
+  return mapper(requestsTree.value);
+});
+const expandedKeys = ref(["Sanya", "subdir"]); // TODO: restore from local storage
 
 const request = reactive({box: null} as {
   box: {
@@ -59,25 +112,22 @@ const request_history = computed(() => {
 
 function updateRequest() { // TODO: replace with event
   api
-    .requestUpdate(collectionID.value, request.box.id, request.box.kind, request.box.request)
-    .then(() => { fetch(collectionID.value); })
+    .requestUpdate(request.box.id, request.box.kind, request.box.request)
+    .then(() => { fetch(); })
     .catch((err) => alert(`Could not save current request: ${err}`));
 }
 watch(request, updateRequest, { deep: true }); // TODO: replace with events & handler
 
-function fetch(collectionID: string): void {
+function fetch(): void {
   api
-    .collectionRequests(collectionID)
+    .collectionRequests()
     .then((json) => {
-      requests.value = Object.fromEntries(json.requests.map(r => [r.id, r as RequestHTTPT & {kind: 'http'} | RequestSQLT & {kind: 'sql'}]));
+      requestsTree.value = json.tree;
+      requests.value = json.requests;
       history.value = json.history;
     })
     .catch((err) => { throw err; }); // TODO: handle error
 }
-
-// const collapsed = reactive({});// ref<{ [i: number]: boolean }>({});
-// TODO: remove collections altogether, use tree instead
-const collectionID = ref("Sanya"); // TODO: default collection must be <unknown>
 
 function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
   const kind = requests.value[id].kind;
@@ -100,10 +150,10 @@ function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
 }
 function deleteRequest(id: string) {
   api
-    .requestDelete(collectionID.value, id)
+    .requestDelete(id)
     .then(() => {
       delete requests.value[id];
-      fetch(collectionID.value);
+      fetch();
     })
     .catch((err) => alert(`Could not delete request: ${err}`));
 }
@@ -119,16 +169,16 @@ watch(newRequestKind, function() {
   }
 
   api
-    .requestCreate(collectionID.value, "test-create", newRequestKind.value)
+    .requestCreate("test-create", newRequestKind.value)
     .then(() => {
-      fetch(collectionID.value);
+      fetch();
     }); // TODO: add name
 });
 
 // TODO: fix editing request headers
 
 onMounted(() => {
-  fetch(collectionID.value);
+  fetch();
 });
 const openCollections = reactive(['Sanya']); // TODO: save to/load from local storage
 
@@ -141,14 +191,13 @@ function renameCancel() {
 function rename() {
   const req = requests.value[renameID.value];
   api.requestUpdate(
-    collectionID.value,
     renameID.value,
     req.kind,
     req,
     renameValue.value,
   ).catch((err) => alert(`Could not rename request: ${err}`));
   renameCancel();
-  fetch(collectionID.value);
+  fetch();
 }
 </script>
 
@@ -184,25 +233,15 @@ function rename() {
             clearable
             :options='[{label:"HTTP", value:"http"}, {label:"SQL", value:"sql"}]'
           />
-          <NCollapse :default-expanded-names="openCollections" >
-            <NCollapseItem name="Sanya" title="Sanya">
-              <NList hoverable :border="false">
-                <NListItem
-                  v-for="(req, id) in requests"
-                  :key="id"
-                  :animated="false"
-                >
-                  <Request
-                    :id="id"
-                    :method='req.kind=="http" ? Methods[req.method] : Database[req.database]'
-                    v-on:click="() => selectRequest(id, req)"
-                    v-on:rename="() => {renameID = id; renameValue = id;}"
-                    v-on:delete="() => deleteRequest(id)"
-                  />
-                </NListItem>
-              </NList>
-            </NCollapseItem>
-          </NCollapse>
+          <NTree
+            block-line
+            expand-on-click
+            :show-line="true"
+            :data="treeData"
+            :draggable="true"
+            :default-expanded-keys="expandedKeys"
+            :node-props="treeNodeProps"
+          />
         </NTabPane>
         <NTabPane
           name="tab-nav-history"
@@ -248,13 +287,11 @@ function rename() {
       </template><template v-else-if='request.box.kind === "http"'>
         <RequestHTTP
           :id="request.box.id"
-          :collectionID="collectionID"
           :request="request.box.request"
           :response='request_history[0]?.response as ResponseHTTP ?? null'
         />
       </template><template v-else-if='request.box.kind === "sql"'>
         <RequestSQL
-          :collectionID="collectionID"
           :id="request.box.id"
           :request="request.box.request"
           :response='request_history[0]?.response as ResponseSQL ?? null'
@@ -318,6 +355,9 @@ div.n-dynamic-input-item__action {
 }
 textarea {
   height: 100%;
+}
+div.n-tree-node-indent:nth-child(1) {
+  width: 0px !important;
 }
 /*
 .page {

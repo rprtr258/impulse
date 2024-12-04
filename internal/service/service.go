@@ -97,18 +97,13 @@ func New(dbFs afero.Fs) (*fiber.App, func()) {
 	app.Static("/", "./frontend/dist")
 
 	app.Post("/api", handler(map[string]func(*fiber.Ctx) error{
-		// collections
-		"/create": handlerWrapper(s.HandlerCollectionCreate),
-		"/list":   handlerWrapper(s.HandlerCollectionList),
-		"/read":   handlerWrapper(s.HandlerCollectionGet),
-		"/update": handlerWrapper(s.HandlerCollectionUpdate),
-		"/delete": handlerWrapper(s.HandlerCollectionDelete),
-		// requests
-		"/requests/create":  handlerWrapper(s.HandlerRequestNew),
-		"/requests/read":    handlerWrapper(s.HandlerRequestGet),
-		"/requests/update":  handlerWrapper(s.HandlerRequestUpdate),
-		"/requests/delete":  handlerWrapper(s.HandlerRequestDelete),
-		"/requests/perform": handlerWrapper(s.HandlerRequestSend),
+		"/list": handlerWrapper(s.HandlerList),
+		// TODO: support operating on dirs also
+		"/create":  handlerWrapper(s.HandlerNew),
+		"/read":    handlerWrapper(s.HandlerGet),
+		"/update":  handlerWrapper(s.HandlerUpdate),
+		"/delete":  handlerWrapper(s.HandlerDelete),
+		"/perform": handlerWrapper(s.HandlerSend),
 	}))
 
 	return app, func() {

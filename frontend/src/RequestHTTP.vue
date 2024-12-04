@@ -20,9 +20,8 @@ function responseBodyLanguage(contentType: string): string {
   return "text";
 };
 
-const {id, collectionID} = defineProps<{
+const {id} = defineProps<{
   id: string,
-  collectionID: string,
 }>();
 
 let request = defineModel<RequestHTTP>("request");
@@ -30,7 +29,7 @@ let response = defineModel<ResponseHTTP | null>("response");
 
 function send() {
   api
-    .requestPerform(collectionID, id)
+    .requestPerform(id)
     .then(v => {
       if (v.kind === "http") {
         response.value = {

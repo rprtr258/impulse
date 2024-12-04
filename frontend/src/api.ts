@@ -75,12 +75,6 @@ export type Request = {
 } & (RequestHTTP & {kind: "http"} |
   RequestSQL & {kind: "sql"})
 
-interface Collection {
-  id: string,
-  name: string,
-  request_ids: string[],
-}
-
 async function apiCall(route: string, params: object) {
   const res = await fetch(_baseURL, {
     method: "POST",
@@ -97,22 +91,20 @@ async function apiCall(route: string, params: object) {
   return x;
 }
 
+export interface Tree {
+  ids: string[] | null, // TODO: remove null
+  dirs: Record<string, Tree> | null, // TODO: remove null
+}
+
 interface CollectionGetResponse {
-  requests: Request[],
+  tree: Tree,
+  requests: Record<string, Request>,
   history: HistoryEntry[],
 }
 
 export const api = {
-  async collectionCreate(name: string): Promise<void> {
-    return apiCall("/create", {name: name});
-  },
-
-  async collectionList(): Promise<Collection[]> {
-    return apiCall("/list", {});
-  },
-
-  async collectionRequests(id: string): Promise<CollectionGetResponse> {
-    const x: CollectionGetResponse = await apiCall("/read", {id: id});
+  async collectionRequests(): Promise<CollectionGetResponse> {
+    const x: CollectionGetResponse = await apiCall("/list", {});
     for (const req of x.history) {
       const d = new Date();
       d.setTime(Date.parse(req.sent_at as unknown as string));
@@ -124,27 +116,23 @@ export const api = {
   },
 
   async requestCreate(
-    colId: string,
     name: string,
     kind: "http" | "sql",
   ): Promise<void> {
-    return apiCall("/requests/create", {
-      id: colId,
-      name: name,
+    return apiCall("/create", {
+      id: name,
       kind: kind,
     });
   },
 
   async requestUpdate(
-    colId: string,
     reqId: string,
     kind: "http" | "sql",
     req: RequestHTTP | RequestSQL,
     name: string | null = null,
   ): Promise<void> {
-    return await apiCall("/requests/update", {
-      id: colId,
-      n: reqId,
+    return await apiCall("/update", {
+      id: reqId,
       kind: kind,
       name: name ?? reqId,
       request: req,
@@ -152,22 +140,18 @@ export const api = {
   },
 
   async requestPerform(
-    colId: string,
     reqId: string,
   ): Promise<ResponseData> {
-    return await apiCall("/requests/perform", {
-      id: colId,
-      n: reqId,
+    return await apiCall("/perform", {
+      id: reqId,
     });
   },
 
   async requestDelete(
-    colId: string,
     reqId: string,
   ): Promise<void> {
-    return await apiCall("/requests/delete", {
-      id: colId,
-      n: reqId,
+    return await apiCall("/delete", {
+      id: reqId,
     });
   },
 };

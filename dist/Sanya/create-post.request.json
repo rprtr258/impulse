@@ -7,6 +7,6 @@
     }
   ],
   "kind": "http",
-  "method": "GET",
+  "method": "POST",
   "url": "https://jsonplaceholder.typicode.com/posts"
 }

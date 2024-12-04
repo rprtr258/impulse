@@ -4,9 +4,8 @@ import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayou
 import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
 import {api, Database, RequestSQL, ResponseSQL} from "./api";
 
-const {id, collectionID} = defineProps<{
+const {id} = defineProps<{
   id: string,
-  collectionID: string,
 }>();
 
 let request = defineModel<RequestSQL>("request");
@@ -14,7 +13,7 @@ let response = defineModel<ResponseSQL>("response");
 
 function send() {
   api
-    .requestPerform(collectionID, id)
+    .requestPerform(id)
     .then(v => {
       if (v.kind === "sql") {
         response.value = {

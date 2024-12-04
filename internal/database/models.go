@@ -244,11 +244,3 @@ func (e Request) MarshalJSON() ([]byte, error) {
 		return nil, errors.Errorf("unsupported request type %T", req)
 	}
 }
-
-type CollectionID string
-
-type Collection struct {
-	ID         CollectionID `json:"id"`
-	Name       string       `json:"name"` // TODO: remove, just use id
-	RequestIDs []RequestID  `json:"requests"`
-}
