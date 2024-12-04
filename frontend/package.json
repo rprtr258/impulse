@@ -12,10 +12,11 @@
     "lint": "eslint . --fix"
   },
   "dependencies": {
-    "highlight.js": "^11.10.0",
+    "monaco-editor": "^0.52.0",
     "vue": "^3.5.12"
   },
   "devDependencies": {
+    "vite-plugin-monaco-editor": "^1.1.0",
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.17.0",
     "@vicons/antd": "^0.12.0",

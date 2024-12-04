@@ -1,13 +1,50 @@
 <script setup lang="ts">
-import {} from "vue";
-import {NTag, NCode, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from "naive-ui";
+import {onMounted, ref, watch} from "vue";
+import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, darkTheme} from "naive-ui";
+import * as monaco from "monaco-editor";
 import {api, Method as Methods, RequestHTTP, ResponseHTTP} from "./api";
 
-import hljs from "highlight.js/lib/core";
-import json from "highlight.js/lib/languages/json";
-import xml from "highlight.js/lib/languages/xml";
-hljs.registerLanguage("json", json);
-hljs.registerLanguage("html", xml);
+const {id} = defineProps<{
+  id: string,
+}>();
+
+let request = defineModel<RequestHTTP>("request");
+let response = defineModel<ResponseHTTP | null>("response");
+
+const codeRef = ref(null);
+let editor = null as monaco.editor.IStandaloneCodeEditor | null;
+onMounted(() => {
+  monaco.editor.defineTheme("material-ocean", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      {token: "number",            foreground: "F78C6C"},
+      {token: "string.key.json",   foreground: "49C1AE"},
+      {token: "string.value.json", foreground: "BEE28A"},
+      {token: "keyword.json",      foreground: "C792EA"},
+    ],
+    colors: {
+      'editor.background': '#0F111A',
+      'editor.foreground': '#8F93A2',
+      'editor.lineHighlightBackground': '#00000050',
+      'editor.selectionBackground': '#717CB450',
+    },
+  });
+  editor = monaco.editor.create(codeRef.value, {
+    value: "",
+    language: "json",
+    theme: "material-ocean",
+    readOnly: true,
+    folding: true,
+    minimap: {enabled: false},
+    wordWrap: "on",
+    lineNumbersMinChars: 3,
+  });
+});
+watch(response, () => {
+  editor?.setValue(response.value?.body);
+}, {deep: true});
+
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
     "application/json;": "json",
@@ -19,13 +56,6 @@ function responseBodyLanguage(contentType: string): string {
   }
   return "text";
 };
-
-const {id} = defineProps<{
-  id: string,
-}>();
-
-let request = defineModel<RequestHTTP>("request");
-let response = defineModel<ResponseHTTP | null>("response");
 
 function send() {
   api
@@ -124,12 +154,11 @@ function send() {
         >{{response.code ?? "N/A"}}</Ntag>
       </template></NTabPane>
       <NTabPane name="tab-resp-body" tab="Body" style="overflow-y: auto;">
-        <NCode
-          :hljs='hljs'
-          :code='response.body'
-          :language='responseBodyLanguage(response.headers.find(h => h.key === "Content-Type")?.value ?? "")'
-          word-wrap
-        />
+        <div
+          id="code"
+          ref="codeRef"
+          style="height: 100%;"
+        ></div>
       </NTabPane>
       <NTabPane name="tab-resp-headers" tab="Headers" style="flex: 1;">
         <NTable striped size="small" single-column :single-line="false">
@@ -155,4 +184,7 @@ function send() {
 </template>
 
 <style lang="css" scoped>
+.monaco-editor, .n-tab-pane {
+  height: 100% !important;
+}
 </style>
