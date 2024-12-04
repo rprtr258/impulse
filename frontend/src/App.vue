@@ -89,7 +89,7 @@ const treeData = computed(() => { // TODO: drag and drop
     }));
   return mapper(requestsTree.value);
 });
-const expandedKeys = ref(["Sanya", "subdir"]); // TODO: restore from local storage
+const expandedKeys = ref(["Sanya", "subdir"]); // TODO: save to/load from local storage
 
 const request = reactive({box: null} as {
   box: {
@@ -171,6 +171,7 @@ watch(newRequestKind, function() {
   api
     .requestCreate("test-create", newRequestKind.value)
     .then(() => {
+      newRequestKind.value = null;
       fetch();
     }); // TODO: add name
 });
@@ -180,7 +181,6 @@ watch(newRequestKind, function() {
 onMounted(() => {
   fetch();
 });
-const openCollections = reactive(['Sanya']); // TODO: save to/load from local storage
 
 const renameID = ref(null as string | null);
 const renameValue = ref(null as string | null);
