@@ -118,4 +118,7 @@ const data = ref(response.value.rows.map(row => Object.fromEntries(row.map((v, i
 </template>
 
 <style lang="css" scoped>
+.monaco-editor, .n-tab-pane {
+  height: 100% !important;
+}
 </style>

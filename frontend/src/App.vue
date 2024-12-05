@@ -6,8 +6,9 @@ import {
   NList, NListItem,
   NResult, NSelect, NInput, NModal,
   NTree, NIcon, NButton, TreeOption,
+  NSpace,
 } from "naive-ui";
-import {DeleteOutlined, EditOutlined} from "@vicons/antd";
+import {DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined} from "@vicons/antd";
 import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL, Tree} from "./api";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
@@ -199,16 +200,33 @@ function rename() {
   renameCancel();
   fetch();
 }
+
+const sidebarHidden = ref(false);
 </script>
 
 <template>
 <NConfigProvider :theme='darkTheme' class="h100">
-  <div class="h100" style="display: grid; grid-template-columns: 1fr 6fr;">
+  <div
+    class="h100"
+    :style='{
+      display: "grid",
+      "grid-template-columns": `${sidebarHidden ? "3em" : "272px"} 6fr`,
+    }'
+  >
     <!-- TODO: highlight selected item -->
-    <aside style="width: 272px; overflow: auto; color: rgba(255, 255, 255, 0.82); background-color: rgb(24, 24, 28);">
+    <aside
+      style="
+        overflow: auto;
+        color: rgba(255, 255, 255, 0.82);
+        background-color: rgb(24, 24, 28);
+        display: grid;
+        grid-template-rows: auto 2.5em;
+      "
+    >
       <NTabs
         type="card"
         size="small"
+        v-if="!sidebarHidden"
       >
         <NTabPane
           name="tab-nav-collection"
@@ -274,6 +292,28 @@ function rename() {
           </NList>
         </NTabPane>
       </NTabs>
+      <div v-else></div>
+      <NButton
+        class="h100"
+        @click="sidebarHidden = !sidebarHidden"
+        style="display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;"
+        v-if="!sidebarHidden"
+      >
+        <NSpace>
+          <NIcon :component="DoubleLeftOutlined" />
+          hide
+        </NSpace>
+      </NButton>
+      <NButton
+        class="h100"
+        @click="sidebarHidden = !sidebarHidden"
+        style="display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;"
+        v-else
+      >
+        <NSpace>
+          <NIcon :component="DoubleRightOutlined" />
+        </NSpace>
+      </NButton>
     </aside>
     <div style="color: rgba(255, 255, 255, 0.82); background-color: rgb(16, 16, 20); overflow: hidden;">
       <template v-if="request.box === null">
