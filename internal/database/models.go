@@ -244,3 +244,25 @@ func (e Request) MarshalJSON() ([]byte, error) {
 		return nil, errors.Errorf("unsupported request type %T", req)
 	}
 }
+
+func (e Request) MarshalJSON2() ([]byte, error) {
+	switch req := e.Data.(type) {
+	case HTTPRequest:
+		return json.Marshal(map[string]any{
+			"kind":    "http",
+			"url":     req.URL,
+			"method":  req.Method,
+			"body":    req.Body,
+			"headers": req.Headers,
+		})
+	case SQLRequest:
+		return json.Marshal(map[string]any{
+			"kind":     "sql",
+			"dsn":      req.DSN,
+			"database": req.Database,
+			"query":    req.Query,
+		})
+	default:
+		return nil, errors.Errorf("unsupported request type %T", req)
+	}
+}

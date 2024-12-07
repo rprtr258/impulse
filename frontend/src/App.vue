@@ -159,20 +159,18 @@ function deleteRequest(id: string) {
     .catch((err) => alert(`Could not delete request: ${err}`));
 }
 
-function selectHistoryRequest(req: HistoryEntry) {
-  selectRequest(req.request_id, req.request);
-}
-
 const newRequestKind = ref<"http" | "sql" | null>(null);
 watch(newRequestKind, function() {
   if (newRequestKind.value === null) {
     return;
   }
 
+  const kind = newRequestKind.value;
+  newRequestKind.value = null;
+  const id = new Date().toUTCString();
   api
-    .requestCreate("test-create", newRequestKind.value)
+    .requestCreate(id, kind)
     .then(() => {
-      newRequestKind.value = null;
       fetch();
     }); // TODO: add name
 });
@@ -240,8 +238,8 @@ const sidebarHidden = ref(false);
             title="Rename request"
             positive-text="Rename"
             negative-text="Cancel"
-            @positive-click="rename"
-            @negative-click="renameCancel"
+            v-on:positive-click="rename"
+            v-on:negative-click="renameCancel"
           >
             <NInput v-model:value="renameValue" />
           </NModal>
@@ -270,7 +268,7 @@ const sidebarHidden = ref(false);
             <NListItem
               v-for='r, i in history'
               :key='i'
-              v-on:click='selectHistoryRequest(r)'
+              v-on:click='selectRequest(r.request_id, r.request)'
               class='history-card card'
             >
               <div class='headline'>
@@ -295,7 +293,7 @@ const sidebarHidden = ref(false);
       <div v-else></div>
       <NButton
         class="h100"
-        @click="sidebarHidden = !sidebarHidden"
+        v-on:click="sidebarHidden = !sidebarHidden"
         style="display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;"
         v-if="!sidebarHidden"
       >
@@ -306,7 +304,7 @@ const sidebarHidden = ref(false);
       </NButton>
       <NButton
         class="h100"
-        @click="sidebarHidden = !sidebarHidden"
+        v-on:click="sidebarHidden = !sidebarHidden"
         style="display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;"
         v-else
       >

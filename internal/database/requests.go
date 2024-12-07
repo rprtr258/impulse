@@ -163,9 +163,11 @@ func Create(
 		}
 		defer requestFile.Close()
 
-		enc := json.NewEncoder(requestFile)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(request); err != nil {
+		b, err := request.MarshalJSON2()
+		if err != nil {
+			return errors.Wrap(err, "marshal request")
+		}
+		if _, err := requestFile.Write(b); err != nil {
 			return errors.Wrap(err, "write request")
 		}
 		return nil
