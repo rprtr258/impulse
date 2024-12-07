@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, h, onMounted, reactive, ref, watch} from "vue";
+import {computed, h, onMounted, reactive, ref, VNodeChild, watch} from "vue";
 import {
   NConfigProvider, darkTheme,
   NTag, NTabs, NTabPane,
@@ -64,28 +64,9 @@ const treeData = computed(() => { // TODO: drag and drop
       children: mapper(v),
     })).concat((tree.ids ?? []).map(id => {
       const req = requests.value[id];
-      const method = req.kind=="http" ? Methods[req.method] : Database[req.database];
       return {
         key: id,
         label: id.split("/").pop(),
-        prefix: () => h(NTag, {
-          type: Methods[method] ? "success" : "info",
-          class: 'method',
-          style: "width: 4em; justify-content: center;",
-          size: "small",
-        }, () => method),
-        suffix: () => h("span", {
-          style: "display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;",
-        }, [
-          h(NButton, {
-            size: "tiny",
-            onClick() {renameID.value = id; renameValue.value = id;},
-          }, () => [h(NIcon, {component: EditOutlined})]),
-          h(NButton, {
-            size: "tiny",
-            onClick() {deleteRequest(id)},
-          }, () => [h(NIcon, {color: "red", component: DeleteOutlined})]),
-        ]),
       };
     }));
   return mapper(requestsTree.value);
@@ -198,6 +179,39 @@ function rename() {
   renameCancel();
   fetch();
 }
+function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boolean}): VNodeChild {
+  const option = info.option;
+  const req = requests.value[option.key];
+  if (req === undefined) {
+    return null;
+  }
+  const method = req.kind=="http" ? Methods[req.method] : Database[req.database];
+  return h(NTag, {
+    type: Methods[method] ? "success" : "info",
+    class: 'method',
+    style: "width: 4em; justify-content: center;",
+    size: "small",
+  }, () => method)
+}
+function renderSuffix(info: {option: TreeOption}): VNodeChild {
+  const option = info.option;
+  const id = option.key as string;
+  return h("span", {
+    style: "display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: .5em;",
+  }, [
+    h(NButton, {
+      size: "tiny",
+      onClick() {renameID.value = id; renameValue.value = id;},
+    }, () => [h(NIcon, {component: EditOutlined})]),
+    h(NButton, {
+      size: "tiny",
+      onClick(e) {
+        e.stopPropagation();
+        deleteRequest(id);
+      },
+    }, () => [h(NIcon, {color: "red", component: DeleteOutlined})]),
+  ])
+}
 
 const sidebarHidden = ref(false);
 </script>
@@ -257,6 +271,8 @@ const sidebarHidden = ref(false);
             :draggable="true"
             :default-expanded-keys="expandedKeys"
             :node-props="treeNodeProps"
+            :render-prefix="renderPrefix"
+            :render-suffix="renderSuffix"
           />
         </NTabPane>
         <NTabPane
