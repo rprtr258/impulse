@@ -139,7 +139,7 @@ func Get(
 
 type PayloadRequestCreate struct {
 	ID          RequestID
-	HTTPRequest HTTPRequest
+	RequestData RequestData
 }
 
 func Create(
@@ -150,10 +150,20 @@ func Create(
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
+	var history any
+	switch payload.RequestData.(type) {
+	case HTTPRequest:
+		history = []HistoryEntry[HTTPRequest, HTTPResponse]{}
+	case SQLRequest:
+		history = []HistoryEntry[SQLRequest, SQLResponse]{}
+	default:
+		panic("unknown history type")
+	}
+
 	request := Request{
 		RequestID(payload.ID),
-		payload.HTTPRequest,
-		[]HistoryEntry[HTTPRequest, HTTPResponse]{},
+		payload.RequestData,
+		history,
 	}
 
 	if err := func() error {

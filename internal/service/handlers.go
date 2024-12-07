@@ -107,14 +107,26 @@ func (s *Service) HandlerNew(ctx context.Context, request struct {
 	ID   string `json:"id"`
 	Kind string `json:"kind"`
 }) (ResponseNewRequest, error) {
-	requestID, err := database.Create(
-		ctx, s.DB,
-		database.PayloadRequestCreate{database.RequestID(request.ID), database.HTTPRequest{
-			"",             // URL
+	var req database.RequestData
+	switch request.Kind {
+	case "http":
+		req = database.HTTPRequest{
+			"",             // URL // TODO: insert last url used
 			http.MethodGet, // Method
 			"",             // Body
 			nil,            // Headers
-		}})
+		}
+	case "sql":
+		req = database.SQLRequest{
+			"",                // DSN // TODO: insert last dsn used
+			database.Postgres, // Database
+			"",                // Query
+		}
+	default:
+		return ResponseNewRequest{}, errors.Errorf("unknown request kind %q", request.Kind)
+	}
+
+	requestID, err := database.Create(ctx, s.DB, database.PayloadRequestCreate{database.RequestID(request.ID), req})
 	if err != nil {
 		return ResponseNewRequest{}, errors.Wrap(err, "error while creating request")
 	}
