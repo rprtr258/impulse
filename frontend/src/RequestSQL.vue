@@ -10,7 +10,7 @@ const {id} = defineProps<{
 }>();
 
 let request = defineModel<RequestSQL>("request");
-let response = defineModel<ResponseSQL>("response");
+let response = defineModel<ResponseSQL | null>("response");
 
 const codeRef = ref(null);
 let editor = null as monaco.editor.IStandaloneCodeEditor | null;
@@ -47,7 +47,7 @@ function send() {
     })
     .catch((err) => alert(`Could not perform request: ${err}`));
 }
-const columns = ref(response.value.columns.map(c => {
+const columns = ref((response.value?.columns ?? []).map(c => {
   return {
     key: c,
     title: _ => {
@@ -70,7 +70,9 @@ const columns = ref(response.value.columns.map(c => {
     },
   }
 }));
-const data = ref(response.value.rows.map(row => Object.fromEntries(row.map((v, i) => [response.value.columns[i], v]))));
+const data = ref((response.value?.rows ?? []).map(row =>
+  Object.fromEntries(row.map((v, i) => [response.value.columns[i], v]))
+));
 </script>
 
 <template>
@@ -82,7 +84,7 @@ const data = ref(response.value.rows.map(row => Object.fromEntries(row.map((v, i
         v-model:value="request.database"
         style="width: 10%;"
       />
-      <NInput :value="request.dsn"/>
+      <NInput v-model:value="request.dsn"/>
       <NButton type="primary" v-on:click="send()">Run</NButton>
     </NInputGroup>
   </NLayoutHeader>
