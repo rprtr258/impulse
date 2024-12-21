@@ -13,7 +13,11 @@ let response = defineModel<ResponseHTTP | null>("response");
 
 const codeRef = ref(null);
 let editor = null as monaco.editor.IStandaloneCodeEditor | null;
-onMounted(() => {
+watch(response, () => {
+  if (codeRef.value === null || editor !== null) {
+    return;
+  }
+
   editor = monaco.editor.create(codeRef.value, {
     value: "",
     language: "json",

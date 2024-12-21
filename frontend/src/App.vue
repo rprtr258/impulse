@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {computed, h, onMounted, reactive, ref, VNodeChild, watch} from "vue";
+// import {useBrowserLocation} from "@vueuse/core";
 import {
   NConfigProvider, darkTheme,
   NTag, NTabs, NTabPane,
@@ -111,7 +112,10 @@ function fetch(): void {
     .catch((err) => { throw err; }); // TODO: handle error
 }
 
+// const location = useBrowserLocation();
+
 function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
+  // location.value.hash = id;
   const kind = requests.value[id].kind;
   switch (kind) {
     case "http":
@@ -217,6 +221,7 @@ const sidebarHidden = ref(false);
 </script>
 
 <template>
+<!-- {{location}} -->
 <NConfigProvider :theme='darkTheme' class="h100">
   <div
     class="h100"
