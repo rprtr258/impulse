@@ -92,6 +92,9 @@ const request_history = computed(() => {
 
   return history.value.filter(h => h.request_id === request.box.id);
 });
+const response = computed(() => {
+  return request_history.value[0]?.response;
+});
 
 function updateRequest() { // TODO: replace with event
   api
@@ -229,11 +232,10 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 
 const sidebarHidden = ref(false);
 
-function sendSQL(id: string) {
-  api
-    .requestPerform(id)
+async function sendSQL(id: string) {
+  await api.requestPerform(id)
     .catch((err) => alert(`Could not perform request: ${err}`));
-  fetch();
+  await fetch();
 }
 </script>
 
@@ -363,13 +365,12 @@ function sendSQL(id: string) {
         <RequestHTTP
           :id="request.box.id"
           :request="request.box.request"
-          :response='request_history[0]?.response as ResponseHTTP ?? null'
+          :response="response as ResponseHTTP | null"
         />
       </template><template v-else-if='request.box.kind === "sql"'>
         <RequestSQL
-          :id="request.box.id"
           :request="request.box.request"
-          :response='request_history[0]?.response as ResponseSQL ?? null'
+          :response="response as ResponseSQL | null"
           v-on:send="() => sendSQL(request.box.id)"
         />
       </template>

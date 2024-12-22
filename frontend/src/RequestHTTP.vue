@@ -27,9 +27,7 @@ watch(response, () => {
     });
   }
 
-  if (editor !== null) {
-    editor?.setValue(response.value?.body);
-  }
+  editor?.setValue(response.value?.body);
 }, {deep: true});
 
 function responseBodyLanguage(contentType: string): string {

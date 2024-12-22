@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import {h, onMounted, ref, watch} from "vue";
+import {h, onMounted, ref} from "vue";
 import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NSelect, NSplit, NTooltip} from "naive-ui";
 import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
 import * as monaco from "monaco-editor";
-import {api, Database, RequestSQL, ResponseSQL} from "./api";
+import {Database, RequestSQL, ResponseSQL} from "./api";
 
-const {id} = defineProps<{
-  id: string,
+const {response} = defineProps<{
+  response: ResponseSQL | null,
 }>();
+const data = (response?.rows ?? []).map(row =>
+  Object.fromEntries(row.map((v, i) => [response.columns[i], v]))
+);
 
 let request = defineModel<RequestSQL>("request");
-let response = defineModel<ResponseSQL | null>("response"); // TODO: use as initial prop value(?)
 
 const emit = defineEmits<{
   (e: "send"): void,
@@ -34,11 +36,11 @@ onMounted(() => {
 });
 
 
-const columns = ref((response.value?.columns ?? []).map(c => {
+const columns = ref((response?.columns ?? []).map(c => {
   return {
     key: c,
     title: _ => {
-      const type = response.value.types[response.value.columns.indexOf(c)];
+      const type = response.types[response.columns.indexOf(c)];
       return h(NTooltip, {trigger: "hover", placement: "bottom-start"}, {
         trigger: () => h("div", {}, [
           h(NIcon, {size: "15", color: "grey"}, () => [
@@ -57,9 +59,6 @@ const columns = ref((response.value?.columns ?? []).map(c => {
     },
   }
 }));
-const data = ref((response.value?.rows ?? []).map(row =>
-  Object.fromEntries(row.map((v, i) => [response.value.columns[i], v]))
-));
 </script>
 
 <template>
