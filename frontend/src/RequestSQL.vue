@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import {h, onMounted, ref} from "vue";
+import {computed, h, onMounted, ref} from "vue";
 import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NSelect, NSplit, NTooltip} from "naive-ui";
 import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
 import * as monaco from "monaco-editor";
 import {Database, RequestSQL, ResponseSQL} from "./api";
+import {watch} from "vue";
 
 const {response} = defineProps<{
   response: ResponseSQL | null,
 }>();
-const data = (response?.rows ?? []).map(row =>
-  Object.fromEntries(row.map((v, i) => [response.columns[i], v]))
-);
-
-let request = defineModel<RequestSQL>("request");
 
 const emit = defineEmits<{
   (e: "send"): void,
 }>();
+
+let request = defineModel<RequestSQL>("request");
 
 const codeRef = ref(null);
 let editor = null as monaco.editor.IStandaloneCodeEditor | null;
@@ -34,9 +32,11 @@ onMounted(() => {
     request.value.query = editor.getValue();
   });
 });
+watch(request, () => {
+  editor?.setValue(request.value?.query ?? "");
+});
 
-
-const columns = ref((response?.columns ?? []).map(c => {
+const columns = computed(() => (response?.columns ?? []).map(c => {
   return {
     key: c,
     title: _ => {
@@ -59,6 +59,9 @@ const columns = ref((response?.columns ?? []).map(c => {
     },
   }
 }));
+const data = computed(() => (response?.rows ?? []).map(row =>
+  Object.fromEntries(row.map((v, i) => [response.columns[i], v]))
+));
 </script>
 
 <template>

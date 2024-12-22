@@ -92,9 +92,6 @@ const request_history = computed(() => {
   return history.value.filter(h => h.request_id === request.box.id);
 });
 const response = ref<ResponseHTTP | ResponseSQL | null>(null);
-// const response = computed(() => {
-//   return request_history.value[0]?.response;
-// });
 
 function updateRequest() { // TODO: replace with event
   api
@@ -135,7 +132,7 @@ function selectRequest(id: string) {
       };
       break;
   }
-  response.value = history.value.filter(h => h.request_id === request.box.id)[0]?.response;
+  response.value = history.value.find(h => h.request_id === request.box.id)?.response ?? null;
 }
 
 function deleteRequest(id: string) {
@@ -231,10 +228,28 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 
 const sidebarHidden = ref(false);
 
+function sendHTTP(id: string) {
+  api
+    .requestPerform(id)
+    .then(v => {
+      if (v.kind === "http") {
+        response.value = {
+          code: v.code,
+          body: v.body,
+          headers: v.headers,
+        };
+      } else {
+        // TODO: fail
+        throw new Error("Unexpected response kind: " + v.kind);
+      }
+    })
+    .catch((err) => alert(`Could not perform request: ${err}`));
+}
 async function sendSQL(id: string) {
   await api.requestPerform(id)
     .catch((err) => alert(`Could not perform request: ${err}`));
   await fetch();
+  selectRequest(id);
 }
 </script>
 
@@ -362,9 +377,9 @@ async function sendSQL(id: string) {
         />
       </template><template v-else-if='request.box.kind === "http"'>
         <RequestHTTP
-          :id="request.box.id"
           :request="request.box.request"
           :response="response as ResponseHTTP | null"
+          v-on:send="() => sendHTTP(request.box.id)"
         />
       </template><template v-else-if='request.box.kind === "sql"'>
         <RequestSQL

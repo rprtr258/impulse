@@ -2,18 +2,21 @@
 import {ref, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, darkTheme} from "naive-ui";
 import * as monaco from "monaco-editor";
-import {api, Method as Methods, RequestHTTP, ResponseHTTP} from "./api";
+import {Method as Methods, RequestHTTP, ResponseHTTP} from "./api";
 
-const {id} = defineProps<{
-  id: string,
+const {response} = defineProps<{
+  response: ResponseHTTP | null,
+}>();
+
+const emit = defineEmits<{
+  (e: "send"): void,
 }>();
 
 let request = defineModel<RequestHTTP>("request");
-let response = defineModel<ResponseHTTP | null>("response");
 
 const codeRef = ref(null);
 let editor = null as monaco.editor.IStandaloneCodeEditor | null;
-watch(response, () => {
+watch([() => response, codeRef], () => {
   if (codeRef.value !== null && editor === null) {
     editor = monaco.editor.create(codeRef.value, {
       value: "",
@@ -27,8 +30,8 @@ watch(response, () => {
     });
   }
 
-  editor?.setValue(response.value?.body);
-}, {deep: true});
+  editor?.setValue(response?.body ?? "");
+}, {deep: true, immediate: true});
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
@@ -41,24 +44,6 @@ function responseBodyLanguage(contentType: string): string {
   }
   return "text";
 };
-
-function send() {
-  api
-    .requestPerform(id)
-    .then(v => {
-      if (v.kind === "http") {
-        response.value = {
-          code: v.code,
-          body: v.body,
-          headers: v.headers,
-        };
-      } else {
-        // TODO: fail
-        throw new Error("Unexpected response kind: " + v.kind);
-      }
-    })
-    .catch((err) => alert(`Could not perform request: ${err}`));
-}
 </script>
 
 <template>
@@ -70,7 +55,7 @@ function send() {
       style="width: 10%; min-width: 8em;"
     />
     <NInput v-model:value="request.url"/>
-    <NButton type="primary" v-on:click="send()">Send</NButton>
+    <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
   </NInputGroup>
   <NTabs
     type="card"
