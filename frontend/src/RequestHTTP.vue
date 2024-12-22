@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, ref, watch} from "vue";
+import {ref, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, darkTheme} from "naive-ui";
 import * as monaco from "monaco-editor";
 import {api, Method as Methods, RequestHTTP, ResponseHTTP} from "./api";
@@ -14,23 +14,22 @@ let response = defineModel<ResponseHTTP | null>("response");
 const codeRef = ref(null);
 let editor = null as monaco.editor.IStandaloneCodeEditor | null;
 watch(response, () => {
-  if (codeRef.value === null || editor !== null) {
-    return;
+  if (codeRef.value !== null && editor === null) {
+    editor = monaco.editor.create(codeRef.value, {
+      value: "",
+      language: "json",
+      theme: "material-ocean",
+      readOnly: true,
+      folding: true,
+      minimap: {enabled: false},
+      wordWrap: "on",
+      lineNumbers: "off",
+    });
   }
 
-  editor = monaco.editor.create(codeRef.value, {
-    value: "",
-    language: "json",
-    theme: "material-ocean",
-    readOnly: true,
-    folding: true,
-    minimap: {enabled: false},
-    wordWrap: "on",
-    lineNumbers: "off",
-  });
-});
-watch(response, () => {
-  editor?.setValue(response.value?.body);
+  if (editor !== null) {
+    editor?.setValue(response.value?.body);
+  }
 }, {deep: true});
 
 function responseBodyLanguage(contentType: string): string {

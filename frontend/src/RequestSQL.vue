@@ -10,7 +10,11 @@ const {id} = defineProps<{
 }>();
 
 let request = defineModel<RequestSQL>("request");
-let response = defineModel<ResponseSQL | null>("response");
+let response = defineModel<ResponseSQL | null>("response"); // TODO: use as initial prop value(?)
+
+const emit = defineEmits<{
+  (e: "send"): void,
+}>();
 
 const codeRef = ref(null);
 let editor = null as monaco.editor.IStandaloneCodeEditor | null;
@@ -30,23 +34,6 @@ onMounted(() => {
 });
 
 
-function send() {
-  api
-    .requestPerform(id)
-    .then(v => {
-      if (v.kind === "sql") {
-        response.value = {
-          columns: v.columns,
-          types: v.types,
-          rows: v.rows,
-        }
-      } else {
-        // TODO: fail
-        throw new Error("Unexpected response kind: " + v.kind);
-      }
-    })
-    .catch((err) => alert(`Could not perform request: ${err}`));
-}
 const columns = ref((response.value?.columns ?? []).map(c => {
   return {
     key: c,
@@ -85,7 +72,7 @@ const data = ref((response.value?.rows ?? []).map(row =>
         style="width: 10%;"
       />
       <NInput v-model:value="request.dsn"/>
-      <NButton type="primary" v-on:click="send()">Run</NButton>
+      <NButton type="primary" v-on:click='emit("send")'>Run</NButton>
     </NInputGroup>
   </NLayoutHeader>
   <NLayoutContent style="height: 90%;">

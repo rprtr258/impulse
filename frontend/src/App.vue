@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, h, onMounted, reactive, ref, VNodeChild, watch} from "vue";
-// import {useBrowserLocation} from "@vueuse/core";
+import {useBrowserLocation} from "@vueuse/core";
 import {
   NConfigProvider, darkTheme,
   NTag, NTabs, NTabPane,
@@ -101,21 +101,19 @@ function updateRequest() { // TODO: replace with event
 }
 watch(request, updateRequest, { deep: true }); // TODO: replace with events & handler
 
-function fetch(): void {
-  api
+async function fetch(): Promise<void> {
+  const json = await api
     .collectionRequests()
-    .then((json) => {
-      requestsTree.value = json.tree;
-      requests.value = json.requests;
-      history.value = json.history;
-    })
     .catch((err) => { throw err; }); // TODO: handle error
+  requestsTree.value = json.tree;
+  requests.value = json.requests;
+  history.value = json.history;
 }
 
-// const location = useBrowserLocation();
+const location = useBrowserLocation();
 
 function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
-  // location.value.hash = id;
+  location.value.hash = id;
   const kind = requests.value[id].kind;
   switch (kind) {
     case "http":
@@ -134,6 +132,7 @@ function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
       break;
   }
 }
+
 function deleteRequest(id: string) {
   api
     .requestDelete(id)
@@ -163,7 +162,18 @@ watch(newRequestKind, function() {
 // TODO: fix editing request headers
 
 onMounted(() => {
-  fetch();
+  fetch().then(() => {
+    if (location.value.hash !== "") {
+      const id = location.value.hash.slice(1); // remove '#'
+      const req = requests.value[id];
+      if (req === undefined) {
+        location.value.hash = "";
+        return;
+      }
+
+      selectRequest(id, req);
+    }
+  });
 });
 
 const renameID = ref(null as string | null);
@@ -218,10 +228,16 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 }
 
 const sidebarHidden = ref(false);
+
+function sendSQL(id: string) {
+  api
+    .requestPerform(id)
+    .catch((err) => alert(`Could not perform request: ${err}`));
+  fetch();
+}
 </script>
 
 <template>
-<!-- {{location}} -->
 <NConfigProvider :theme='darkTheme' class="h100">
   <div
     class="h100"
@@ -354,6 +370,7 @@ const sidebarHidden = ref(false);
           :id="request.box.id"
           :request="request.box.request"
           :response='request_history[0]?.response as ResponseSQL ?? null'
+          v-on:send="() => sendSQL(request.box.id)"
         />
       </template>
     </div>
