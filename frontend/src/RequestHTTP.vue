@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {ref, watch} from "vue";
-import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, darkTheme} from "naive-ui";
+import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from "naive-ui";
 import * as monaco from "monaco-editor";
-import {Method as Methods, RequestHTTP, ResponseHTTP} from "./api";
+import {api, Method as Methods, RequestHTTP, ResponseHTTP, Result} from "./api";
 
 const {response} = defineProps<{
   response: ResponseHTTP | null,
@@ -13,10 +13,27 @@ const emit = defineEmits<{
 }>();
 
 let request = defineModel<RequestHTTP>("request");
+const query = ref("");
+const jqerror = ref<string | null>(null);
+
+async function transform(body: string, query: string): Promise<Result<string>> {
+  if (query === "") {
+    return {kind: "ok", value: body};
+  }
+
+  const res = await api.jq(body, query);
+  if (res.kind === "err") {
+    return {kind: "err", value: res.value};
+  }
+  return {kind: "ok", value: res.value.map(v => JSON.stringify(JSON.parse(v), null, 2)).join("\n")};
+};
 
 const codeRef = ref(null);
 let editor = null as monaco.editor.IStandaloneCodeEditor | null;
-watch([() => response, codeRef], () => {
+watch([
+  () => response,
+  codeRef,
+], () => {
   if (codeRef.value !== null && editor === null) {
     editor = monaco.editor.create(codeRef.value, {
       value: "",
@@ -29,9 +46,31 @@ watch([() => response, codeRef], () => {
       lineNumbers: "off",
     });
   }
-
-  editor?.setValue(response?.body ?? "");
 }, {deep: true, immediate: true});
+watch([
+  () => response,
+  query,
+], () => {
+  const body = response?.body ?? "";
+  transform(body, query.value)
+    .then(v => {
+      switch (v.kind) {
+      case "ok":
+        if (editor !== null) {
+          editor.setValue(v.value);
+        }
+        jqerror.value = null;
+        break;
+      case "err":
+        jqerror.value = v.value;
+        break;
+      }
+    });
+}, {immediate: true});
+watch(() => response, () => {
+  query.value = "";
+  jqerror.value = null;
+});
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
@@ -124,11 +163,19 @@ function responseBodyLanguage(contentType: string): string {
         >{{response.code ?? "N/A"}}</Ntag>
       </template></NTabPane>
       <NTabPane name="tab-resp-body" tab="Body" style="overflow-y: auto;">
-        <div
-          id="code"
-          ref="codeRef"
-          style="height: 100%;"
-        ></div>
+        <div style="display: grid; grid-template-rows: auto 3em; height: 100%;">
+          <div
+            id="code"
+            ref="codeRef"
+            style="height: 100%;"
+          ></div>
+          <div v-if="jqerror !== null" style="position: fixed; color: red; bottom: 3em;">{{jqerror}}</div>
+          <NInput
+            :status='jqerror !== null ? "error" : "success"'
+            v-model:value="query"
+            style="height: 100%;"
+          />
+        </div>
       </NTabPane>
       <NTabPane name="tab-resp-headers" tab="Headers" style="flex: 1;">
         <NTable striped size="small" single-column :single-line="false">

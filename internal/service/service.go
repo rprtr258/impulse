@@ -27,7 +27,7 @@ func handlerWrapper[In, Out any](handler func(context.Context, In) (Out, error))
 
 		response, err := handler(c.Context(), request)
 		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+			return err
 		}
 
 		return c.JSON(response)
@@ -104,6 +104,7 @@ func New(dbFs afero.Fs) (*fiber.App, func()) {
 		"/update":  handlerWrapper(s.HandlerUpdate),
 		"/delete":  handlerWrapper(s.HandlerDelete),
 		"/perform": handlerWrapper(s.HandlerSend),
+		"/jq":      handlerWrapper(s.HandlerJQ),
 	}))
 
 	return app, func() {

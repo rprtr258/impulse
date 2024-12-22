@@ -75,7 +75,7 @@ export type Request = {
 } & (RequestHTTP & {kind: "http"} |
   RequestSQL & {kind: "sql"})
 
-async function apiCall(route: string, params: object) {
+async function apiCall<T>(route: string, params: object): Promise<T/* | {message: string, error: string}*/> { // TODO: handle errors
   const res = await fetch(_baseURL, {
     method: "POST",
     headers: {
@@ -100,6 +100,14 @@ interface CollectionGetResponse {
   tree: Tree,
   requests: Record<string, Request>,
   history: HistoryEntry[],
+}
+
+export type Result<T> = {
+  kind: "ok",
+  value: T,
+} | {
+  kind: "err",
+  value: string,
 }
 
 export const api = {
@@ -153,5 +161,19 @@ export const api = {
     return await apiCall("/delete", {
       id: reqId,
     });
+  },
+
+  async jq(
+    data: string,
+    query: string,
+  ): Promise<Result<string[]>> {
+    const result = await apiCall<string[]>("/jq", {
+      json: data,
+      query: query,
+    });
+    if (result.error) {
+      return {kind: "err", value: result.error};
+    }
+    return {kind: "ok", value: result};
   },
 };
