@@ -51,8 +51,7 @@ const treeNodeProps = ({ option }: { option: TreeOption }) => {
     onClick() {
       if (!option.children && !option.disabled) {
         const id = option.key as string;
-        const req = requests.value[id];
-        selectRequest(id, req);
+        selectRequest(id);
       }
     }
   }
@@ -92,9 +91,10 @@ const request_history = computed(() => {
 
   return history.value.filter(h => h.request_id === request.box.id);
 });
-const response = computed(() => {
-  return request_history.value[0]?.response;
-});
+const response = ref<ResponseHTTP | ResponseSQL | null>(null);
+// const response = computed(() => {
+//   return request_history.value[0]?.response;
+// });
 
 function updateRequest() { // TODO: replace with event
   api
@@ -115,7 +115,8 @@ async function fetch(): Promise<void> {
 
 const location = useBrowserLocation();
 
-function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
+function selectRequest(id: string) {
+  const req = requests.value[id];
   location.value.hash = id;
   const kind = requests.value[id].kind;
   switch (kind) {
@@ -134,6 +135,7 @@ function selectRequest(id: string, req: RequestHTTPT | RequestSQLT) {
       };
       break;
   }
+  response.value = history.value.filter(h => h.request_id === request.box.id)[0]?.response;
 }
 
 function deleteRequest(id: string) {
@@ -147,7 +149,7 @@ function deleteRequest(id: string) {
 }
 
 const newRequestKind = ref<"http" | "sql" | null>(null);
-watch(newRequestKind, function() {
+watch(newRequestKind, async () => {
   if (newRequestKind.value === null) {
     return;
   }
@@ -155,26 +157,23 @@ watch(newRequestKind, function() {
   const kind = newRequestKind.value;
   newRequestKind.value = null;
   const id = new Date().toUTCString();
-  api
-    .requestCreate(id, kind)
-    .then(() => {
-      fetch();
-    }); // TODO: add name
+  await api.requestCreate(id, kind);
+  await fetch();
+  // TODO: add name
 });
 
 // TODO: fix editing request headers
 
 onMounted(() => {
   fetch().then(() => {
-    if (location.value.hash !== "") {
+    if (location.value.hash !== "#") {
       const id = location.value.hash.slice(1); // remove '#'
-      const req = requests.value[id];
-      if (req === undefined) {
+      if (requests.value[id] === undefined) {
         location.value.hash = "";
         return;
       }
 
-      selectRequest(id, req);
+      selectRequest(id);
     }
   });
 });
@@ -305,15 +304,15 @@ async function sendSQL(id: string) {
         >
           <NList hoverable :border="false">
             <NListItem
-              v-for='r, i in history'
-              :key='i'
-              v-on:click='selectRequest(r.request_id, r.request)'
-              class='history-card card'
+              v-for="r, i in history"
+              :key="i"
+              v-on:click="selectRequest(r.request_id)"
+              class="history-card card"
             >
-              <div class='headline'>
+              <div class="headline">
                 <NTag
-                  type='info'
-                  class='method'
+                  type="info"
+                  class="method"
                   size="small"
                   style="width: 4em; justify-content: center;"
                 >{{(() => {
