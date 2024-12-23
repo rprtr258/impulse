@@ -14,6 +14,7 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"github.com/pkg/errors"
+	"github.com/rprtr258/fun"
 	"github.com/rprtr258/fun/exp/zun"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -325,7 +326,7 @@ func (s *Service) sendGRPC(ctx context.Context, req database.GRPCRequest) (datab
 				}
 			},
 			onReceiveTrailers: func(stat *status.Status, md metadata.MD) {
-				st = *stat
+				st = fun.Deref(stat)
 				for k, vs := range md {
 					meta[k] = append(meta[k], vs...)
 				}
