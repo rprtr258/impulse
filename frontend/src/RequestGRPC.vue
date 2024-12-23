@@ -4,6 +4,8 @@ import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, ND
 import * as monaco from "monaco-editor";
 import {api, RequestGRPC, ResponseGRPC, Result, GRPCCodes} from "./api";
 import {formatResponse} from "./utils";
+import Tabs from "./Tabs.vue";
+import Tab from "./Tab.vue";
 
 const {response} = defineProps<{
   response: ResponseGRPC | null,
@@ -136,26 +138,21 @@ watch(() => response, () => {
     <NInput v-model:value="request.target"/>
     <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
   </NInputGroup>
-  <NTabs
-    type="card"
-    size="small"
-    class="h100"
+  <Tabs
+    style="height: 100%;"
   >
-    <NTabPane
-      name="tab-req-request"
-      tab='Request'
-      class="h100"
-      display-directive="show"
+    <Tab
+      title="Request"
+      style="height: 100%;"
     >
       <div
         id="code"
         ref="requestRef"
         style="height: 100%;"
       ></div>
-    </NTabPane>
-    <NTabPane
-      name="tab-req-headers"
-      tab='Metadata'
+    </Tab>
+    <Tab
+      title="Metadata"
       style="display: flex; flex-direction: column; flex: 1;"
       display-directive="show"
     >
@@ -180,8 +177,8 @@ watch(() => response, () => {
         <NInput type="text" ref="key" :value="pending.key" style="flex: 1;" />
         <NInput type="text" ref="value" :value="pending.value" style="flex: 1;" />
       </div> -->
-    </NTabPane>
-  </NTabs>
+    </Tab>
+  </Tabs>
   <template v-if="response === null">
     <NEmpty
       description="Send request or choose one from history."
