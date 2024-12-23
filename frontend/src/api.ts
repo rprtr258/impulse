@@ -73,6 +73,7 @@ export interface RequestGRPC {
 export interface ResponseGRPC {
   response: string,
   code: GRPCCode,
+  metadata: Parameter[],
 }
 
 export type RequestData =

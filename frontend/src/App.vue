@@ -300,6 +300,7 @@ async function sendSQL(id: string) {
           name="tab-nav-collection"
           tab="Collection"
           style="flex: 1;"
+          display-directive="show"
         >
           <NModal
             :show="renameID !== null"
@@ -335,6 +336,7 @@ async function sendSQL(id: string) {
           name="tab-nav-history"
           tab="History"
           style="flex: 1;"
+          display-directive="show"
         >
           <NList hoverable :border="false">
             <NListItem

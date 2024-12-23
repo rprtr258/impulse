@@ -152,6 +152,7 @@ function responseBodyLanguage(contentType: string): string {
       name="tab-req-request"
       tab='Request'
       class="h100"
+      display-directive="show"
     >
       <div
         id="code"
@@ -163,14 +164,15 @@ function responseBodyLanguage(contentType: string): string {
       name="tab-req-headers"
       tab='Metadata'
       style="display: flex; flex-direction: column; flex: 1;"
+      display-directive="show"
     >
-      <!-- <NDynamicInput
-        :value='request.headers'
-        @update:value='value => request.headers=value.filter(({key, value}) => key!=="" || value!=="").concat([{key: "", value: ""}])'
+      <NDynamicInput
+        :value='request.metadata'
+        @update:value='value => request.metadata=value.filter(({key, value}) => key!=="" || value!=="").concat([{key: "", value: ""}])'
         preset="pair"
         key-placeholder="Header"
         value-placeholder="Value"
-      /> -->
+      />
       <!-- <div
         style="display: flex; flex-direction: row;"
         v-for="(obj, i) in request.headers"
@@ -201,14 +203,23 @@ function responseBodyLanguage(contentType: string): string {
       default-value="tab-resp-body"
       style="overflow-y: auto;"
     >
-      <NTabPane name="tab-resp-code" disabled><template #tab>
+      <NTabPane
+        name="tab-resp-code"
+        disabled
+        display-directive="show"
+      ><template #tab>
         <NTag
           :type='response.code === 0 ? "success" : "error"'
           size="small"
           round
         >{{response.code /*TODO: as string*/ ?? "N/A"}} {{GRPCCodes[response.code]}}</Ntag>
       </template></NTabPane>
-      <NTabPane name="tab-resp-body" tab="Body" style="overflow-y: auto;">
+      <NTabPane
+        name="tab-resp-body"
+        tab="Body"
+        style="overflow-y: auto;"
+        display-directive="show"
+      >
         <div style="display: grid; grid-template-rows: auto 3em; height: 100%;">
           <div
             id="code"
@@ -223,7 +234,12 @@ function responseBodyLanguage(contentType: string): string {
           />
         </div>
       </NTabPane>
-      <NTabPane name="tab-resp-headers" tab="Metadata" style="flex: 1;">
+      <NTabPane
+        name="tab-resp-headers"
+        tab="Metadata"
+        style="flex: 1;"
+        display-directive="show"
+      >
         <NTable striped size="small" single-column :single-line="false">
           <colgroup>
             <col style="width: 50%" />

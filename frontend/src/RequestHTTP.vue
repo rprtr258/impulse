@@ -100,6 +100,7 @@ function responseBodyLanguage(contentType: string): string {
       name="tab-req-request"
       tab='Request'
       class="h100"
+      display-directive="show"
     >
       <NInput
         type="textarea"
@@ -112,6 +113,7 @@ function responseBodyLanguage(contentType: string): string {
       name="tab-req-headers"
       tab='Headers'
       style="display: flex; flex-direction: column; flex: 1;"
+      display-directive="show"
     >
       <NDynamicInput
         :value='request.headers'
@@ -150,14 +152,23 @@ function responseBodyLanguage(contentType: string): string {
       default-value="tab-resp-body"
       style="overflow-y: auto;"
     >
-      <NTabPane name="tab-resp-code" disabled><template #tab>
+      <NTabPane
+        name="tab-resp-code"
+        disabled
+        display-directive="show"
+      ><template #tab>
         <NTag
           :type='response.code < 300 ? "success" : response.code < 500 ? "warning" : "error"'
           size="small"
           round
         >{{response.code ?? "N/A"}}</Ntag>
       </template></NTabPane>
-      <NTabPane name="tab-resp-body" tab="Body" style="overflow-y: auto;">
+      <NTabPane
+        name="tab-resp-body"
+        tab="Body"
+        style="overflow-y: auto;"
+        display-directive="show"
+      >
         <div style="display: grid; grid-template-rows: auto 3em; height: 100%;">
           <div
             ref="responseRef"
@@ -171,7 +182,12 @@ function responseBodyLanguage(contentType: string): string {
           />
         </div>
       </NTabPane>
-      <NTabPane name="tab-resp-headers" tab="Headers" style="flex: 1;">
+      <NTabPane
+        name="tab-resp-headers"
+        tab="Headers"
+        style="flex: 1;"
+        display-directive="show"
+      >
         <NTable striped size="small" single-column :single-line="false">
           <colgroup>
             <col style="width: 50%" />
