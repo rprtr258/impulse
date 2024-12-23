@@ -29,19 +29,28 @@ async function transform(body: string, query: string): Promise<Result<string>> {
 };
 
 const responseRef = useTemplateRef("responseRef");
-let editor = null as monaco.editor.IStandaloneCodeEditor | null;
-onMounted(() => {
-  editor = monaco.editor.create(responseRef.value, {
-    value: response.body,
-    language: "json",
-    theme: "material-ocean",
-    readOnly: true,
-    folding: true,
-    minimap: {enabled: false},
-    wordWrap: "on",
-    lineNumbers: "off",
-  });
-});
+let responseEditor = null as monaco.editor.IStandaloneCodeEditor | null;
+watch([
+  () => response,
+  responseRef,
+], () => {
+  // NOTE: cant init in onMounted since response is optional
+  if (responseRef.value !== null && responseEditor === null) {
+    responseEditor = monaco.editor.create(responseRef.value, {
+      value: response.body,
+      language: "json",
+      theme: "material-ocean",
+      readOnly: true,
+      folding: true,
+      minimap: {enabled: false},
+      wordWrap: "on",
+      lineNumbers: "off",
+    });
+  } else if (responseEditor !== null) {
+    responseEditor.dispose();
+    responseEditor = null;
+  }
+}, {deep: true, immediate: true});
 watch([
   () => response,
   query,
@@ -51,8 +60,8 @@ watch([
     .then(v => {
       switch (v.kind) {
       case "ok":
-        if (editor !== null) {
-          editor.setValue(v.value);
+        if (responseEditor !== null) {
+          responseEditor.setValue(v.value);
         }
         jqerror.value = null;
         break;

@@ -65,14 +65,14 @@ onMounted(() => {
 });
 
 const responseRef = useTemplateRef("responseRef");
-let editorResp = null as monaco.editor.IStandaloneCodeEditor | null;
+let responseEditor = null as monaco.editor.IStandaloneCodeEditor | null;
 watch([
   () => response,
   responseRef,
 ], () => {
   // NOTE: cant init in onMounted since response is optional
-  if (responseRef.value !== null && editorResp === null) {
-    editorResp = monaco.editor.create(responseRef.value, {
+  if (responseRef.value !== null && responseEditor === null) {
+    responseEditor = monaco.editor.create(responseRef.value, {
       value: "",
       language: "json",
       theme: "material-ocean",
@@ -93,8 +93,8 @@ watch([
     .then(v => {
       switch (v.kind) {
       case "ok":
-        if (editorResp !== null) {
-          editorResp.setValue(v.value);
+        if (responseEditor !== null) {
+          responseEditor.setValue(v.value);
         }
         jqerror.value = null;
         break;
