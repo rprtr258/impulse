@@ -104,7 +104,11 @@ func New(dbFs afero.Fs) (*fiber.App, func()) {
 		"/update":  handlerWrapper(s.HandlerUpdate),
 		"/delete":  handlerWrapper(s.HandlerDelete),
 		"/perform": handlerWrapper(s.HandlerSend),
-		"/jq":      handlerWrapper(s.HandlerJQ),
+		"/jq":      handlerWrapper(s.HandlerJQ), // run jq query on given json
+		// grpc
+		"/grpc/methods":        handlerWrapper(s.HandlerGRPCMethods),       // list grpc methods using grpc reflection
+		"/grpc/query/fake":     handlerWrapper(s.HandlerGRPCQueryFake),     // generate fake query for grpc method
+		"/grpc/query/validate": handlerWrapper(s.HandlerGRPCQueryValidate), // validate query for grpc method
 	}))
 
 	return app, func() {

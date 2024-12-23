@@ -42,9 +42,21 @@ export interface ResponseHTTP {
   headers: Parameter[],
 }
 
+export interface RequestGRPC {
+  target: string,
+  method: string,
+  payload: string,
+}
+
+export interface ResponseGRPC {
+  response: string,
+  code: number,
+}
+
 export type RequestData =
   | {kind: "http"} & RequestHTTP
-  | {kind: "sql"} & RequestSQL;
+  | {kind: "sql"} & RequestSQL
+  | {kind: "grpc"} & RequestGRPC;
 
 export interface ResponseSQL {
   columns: string[],
@@ -54,7 +66,8 @@ export interface ResponseSQL {
 
 export type ResponseData =
   | {kind: "http"} & ResponseHTTP
-  | {kind: "sql"} & ResponseSQL;
+  | {kind: "sql"} & ResponseSQL
+  | {kind: "grpc"} & ResponseGRPC;
 
 export type HistoryEntry = {
   request_id: string,
@@ -135,8 +148,8 @@ export const api = {
 
   async requestUpdate(
     reqId: string,
-    kind: "http" | "sql",
-    req: RequestHTTP | RequestSQL,
+    kind: RequestData["kind"],
+    req: Omit<RequestData, "kind">,
     name: string | null = null,
   ): Promise<void> {
     return await apiCall("/update", {
@@ -175,5 +188,18 @@ export const api = {
       return {kind: "err", value: result.error};
     }
     return {kind: "ok", value: result};
+  },
+
+  async grpcMethods(target: string) {
+    const result = await apiCall<{
+      service: string,
+      methods: string[],
+    }[]>("/grpc/methods", {
+      target: target,
+    });
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    return result;
   },
 };

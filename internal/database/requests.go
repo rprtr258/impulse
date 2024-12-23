@@ -129,6 +129,11 @@ func Get(
 				panic(err)
 			}
 			request.History = history
+		case []HistoryEntry[GRPCRequest, GRPCResponse]:
+			if err := json.Unmarshal(b, &history); err != nil {
+				panic(err)
+			}
+			request.History = history
 		default:
 			panic("unknown history type")
 		}

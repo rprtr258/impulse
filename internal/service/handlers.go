@@ -70,6 +70,16 @@ func (s *Service) HandlerList(ctx context.Context, _ struct{}) (fiber.Map, error
 				m["request_id"] = req.ID
 				return m
 			}, req.History.([]database.HistoryEntry[database.SQLRequest, database.SQLResponse])...)...)
+		case database.GRPCRequest:
+			history = append(history, fun.Map[fiber.Map](func(h database.HistoryEntry[database.GRPCRequest, database.GRPCResponse]) fiber.Map {
+				b, _ := json.Marshal(h)
+
+				var m fiber.Map
+				_ = json.Unmarshal(b, &m)
+
+				m["request_id"] = req.ID
+				return m
+			}, req.History.([]database.HistoryEntry[database.GRPCRequest, database.GRPCResponse])...)...)
 		default:
 			return nil, errors.Errorf("unknown request type %T", req)
 		}
@@ -178,6 +188,12 @@ func (s *Service) HandlerUpdate(ctx context.Context, request struct {
 			return struct{}{}, errors.Wrap(err, "huita 3 request")
 		}
 		requestt = req
+	case "grpc":
+		var req database.GRPCRequest
+		if err := json.Unmarshal(b, &req); err != nil {
+			return struct{}{}, errors.Wrap(err, "huita 4 request")
+		}
+		requestt = req
 	default:
 		return struct{}{}, errors.Errorf("unknown request kind %q", request.Kind)
 	}
@@ -249,7 +265,7 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 	case database.HTTPRequest:
 		resp, err := s.sendHTTP(ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send request id=%q", request.URL)
+			return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
 		}
 		response = resp
 
@@ -269,7 +285,7 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 	case database.SQLRequest:
 		resp, err := s.sendSQL(ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send request id=%q", request.Query)
+			return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
 		}
 		response = resp
 
@@ -279,6 +295,26 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 			ctx, s.DB,
 			database.RequestID(req.RequestID),
 			database.HistoryEntry[database.SQLRequest, database.SQLResponse]{
+				SentAt:     sentAt,
+				ReceivedAt: receivedAt,
+				Request:    request,
+				Response:   resp,
+			}); err != nil {
+			return nil, errors.Wrap(err, "insert into database")
+		}
+	case database.GRPCRequest:
+		resp, err := s.sendGRPC(ctx, request)
+		if err != nil {
+			return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
+		}
+		response = resp
+
+		receivedAt := time.Now()
+
+		if err := database.CreateHistoryEntry(
+			ctx, s.DB,
+			database.RequestID(req.RequestID),
+			database.HistoryEntry[database.GRPCRequest, database.GRPCResponse]{
 				SentAt:     sentAt,
 				ReceivedAt: receivedAt,
 				Request:    request,

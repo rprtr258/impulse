@@ -29,6 +29,7 @@ type Kind string
 const (
 	KindHTTP Kind = "http"
 	KindSQL  Kind = "sql"
+	KindGRPC Kind = "grpc"
 )
 
 type RequestData interface {
@@ -56,6 +57,15 @@ var decoderRequestSQL = json2.Map3(
 			return Database(s)
 		}),
 	json2.Field("query", json2.String),
+)
+
+var decoderRequestGRPC = json2.Map3(
+	func(target, method, payload string) GRPCRequest {
+		return GRPCRequest{target, method, payload}
+	},
+	json2.Optional("target", json2.String, ""),
+	json2.Optional("method", json2.String, ""),
+	json2.Optional("payload", json2.String, "{}"),
 )
 
 var decoderKind = json2.Map(
@@ -145,6 +155,23 @@ type SQLResponse struct { // TODO: last inserted id on insert
 
 func (SQLResponse) isResponseData() Kind { return KindSQL }
 
+type GRPCRequest struct {
+	Target  string `json:"target"`
+	Method  string `json:"method"` // NOTE: fully qualified
+	Payload string `json:"payload"`
+	// TODO: add headers
+}
+
+func (GRPCRequest) isRequestData() Kind { return KindGRPC }
+
+type GRPCResponse struct { // TODO: last inserted id on insert
+	Response string `json:"response"`
+	// https://grpc.io/docs/guides/status-codes/#the-full-list-of-status-codes
+	Code int `json:"code"`
+}
+
+func (GRPCResponse) isResponseData() Kind { return KindGRPC }
+
 type HistoryEntry[I RequestData, O ResponseData] struct {
 	SentAt     time.Time `json:"sent_at"`
 	ReceivedAt time.Time `json:"received_at"`
@@ -153,16 +180,6 @@ type HistoryEntry[I RequestData, O ResponseData] struct {
 }
 
 type RequestID string
-
-type RequestHTTP struct {
-	Request HTTPRequest                               `json:"request"`
-	History []HistoryEntry[HTTPRequest, HTTPResponse] `json:"history"`
-}
-
-type RequestSQL struct {
-	Request SQLRequest                              `json:"request"`
-	History []HistoryEntry[SQLRequest, SQLResponse] `json:"history"`
-}
 
 type Request struct {
 	ID      RequestID
@@ -204,6 +221,9 @@ func (e *Request) UnmarshalJSON(b []byte) error {
 				// 		return nil
 				// 	}))),
 				// ), func(dest SQLResponse) ResponseData { return dest })
+			case KindGRPC:
+				decoderRequest = json2.Map(decoderRequestGRPC, func(dest GRPCRequest) RequestData { return dest })
+				history = []HistoryEntry[GRPCRequest, GRPCResponse]{}
 			default:
 				return json2.Fail[Request](fmt.Sprintf("unknown kind %q", kind))
 			}
@@ -240,6 +260,14 @@ func (e Request) MarshalJSON() ([]byte, error) {
 			"database": req.Database,
 			"query":    req.Query,
 		})
+	case GRPCRequest:
+		return json.Marshal(map[string]any{
+			"kind":    "grpc",
+			"id":      e.ID,
+			"target":  req.Target,
+			"method":  req.Method,
+			"payload": req.Payload,
+		})
 	default:
 		return nil, errors.Errorf("unsupported request type %T", req)
 	}
@@ -261,6 +289,13 @@ func (e Request) MarshalJSON2() ([]byte, error) {
 			"dsn":      req.DSN,
 			"database": req.Database,
 			"query":    req.Query,
+		})
+	case GRPCRequest:
+		return json.Marshal(map[string]any{
+			"kind":    "grpc",
+			"target":  req.Target,
+			"method":  req.Method,
+			"payload": req.Payload,
 		})
 	default:
 		return nil, errors.Errorf("unsupported request type %T", req)

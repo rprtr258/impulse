@@ -2,19 +2,37 @@
 import {onMounted, ref, useTemplateRef, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from "naive-ui";
 import * as monaco from "monaco-editor";
-import {api, Method as Methods, RequestHTTP, ResponseHTTP, Result} from "./api";
+import {api, RequestGRPC, ResponseGRPC, Result} from "./api";
 
 const {response} = defineProps<{
-  response: ResponseHTTP | null,
+  response: ResponseGRPC | null,
 }>();
 
 const emit = defineEmits<{
   (e: "send"): void,
 }>();
 
-let request = defineModel<RequestHTTP>("request");
+let request = defineModel<RequestGRPC>("request");
 const query = ref("");
 const jqerror = ref<string | null>(null);
+
+const methods = ref<{
+  service: string,
+  methods: string[],
+}[]>([]);
+const loadingMethods = ref(false);
+
+watch(() => request.value.target, () => {
+  loadingMethods.value = true;
+  api.grpcMethods(request.value.target)
+    .then(v => {
+      methods.value = v;
+      loadingMethods.value = false;
+    })
+    .catch(err => {
+      loadingMethods.value = false;
+    });
+}, {immediate: true});
 
 async function transform(body: string, query: string): Promise<Result<string>> {
   if (query === "") {
@@ -28,11 +46,11 @@ async function transform(body: string, query: string): Promise<Result<string>> {
   return {kind: "ok", value: res.value.map(v => JSON.stringify(JSON.parse(v), null, 2)).join("\n")};
 };
 
-const responseRef = useTemplateRef("responseRef");
-let editor = null as monaco.editor.IStandaloneCodeEditor | null;
+const requestRef = useTemplateRef("requestRef");
+let editorReq = null as monaco.editor.IStandaloneCodeEditor | null;
 onMounted(() => {
-  editor = monaco.editor.create(responseRef.value, {
-    value: response.body,
+  editorReq = monaco.editor.create(requestRef.value, {
+    value: request.value.payload,
     language: "json",
     theme: "material-ocean",
     readOnly: true,
@@ -41,18 +59,42 @@ onMounted(() => {
     wordWrap: "on",
     lineNumbers: "off",
   });
+  editorReq.onDidChangeModelContent(() => {
+    request.value.payload = editorReq.getValue();
+  });
 });
+
+const responseRef = useTemplateRef("responseRef");
+let editorResp = null as monaco.editor.IStandaloneCodeEditor | null;
+watch([
+  () => response,
+  responseRef,
+], () => {
+  // NOTE: cant init in onMounted since response is optional
+  if (responseRef.value !== null && editorResp === null) {
+    editorResp = monaco.editor.create(responseRef.value, {
+      value: "",
+      language: "json",
+      theme: "material-ocean",
+      readOnly: true,
+      folding: true,
+      minimap: {enabled: false},
+      wordWrap: "on",
+      lineNumbers: "off",
+    });
+  }
+}, {deep: true, immediate: true});
 watch([
   () => response,
   query,
 ], () => {
-  const body = response?.body ?? "";
+  const body = response?.response ?? "";
   transform(body, query.value)
     .then(v => {
       switch (v.kind) {
       case "ok":
-        if (editor !== null) {
-          editor.setValue(v.value);
+        if (editorResp !== null) {
+          editorResp.setValue(v.value);
         }
         jqerror.value = null;
         break;
@@ -84,11 +126,21 @@ function responseBodyLanguage(contentType: string): string {
 <div class="h100" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;">
   <NInputGroup style="grid-column: span 2;">
     <NSelect
-      :options="Object.keys(Methods).map(method => ({label: method, value: method}))"
       v-model:value="request.method"
-      style="width: 10%; min-width: 8em;"
+      :options='methods.map(svc => ({
+        type: "group",
+        label: svc.service,
+        key: svc.service,
+        children: svc.methods.map(method => ({
+          label: method,
+          value: svc.service + "." + method,
+        })),
+      }))'
+      :loading="loadingMethods"
+      remote
+      style="width: 10%; min-width: 18em;"
     />
-    <NInput v-model:value="request.url"/>
+    <NInput v-model:value="request.target"/>
     <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
   </NInputGroup>
   <NTabs
@@ -101,25 +153,24 @@ function responseBodyLanguage(contentType: string): string {
       tab='Request'
       class="h100"
     >
-      <NInput
-        type="textarea"
-        class="h100"
-        :value='request.body'
-        @update:value="value => request.body = value"
-      />
+      <div
+        id="code"
+        ref="requestRef"
+        style="height: 100%;"
+      ></div>
     </NTabPane>
     <NTabPane
       name="tab-req-headers"
       tab='Headers'
       style="display: flex; flex-direction: column; flex: 1;"
     >
-      <NDynamicInput
+      <!-- <NDynamicInput
         :value='request.headers'
         @update:value='value => request.headers=value.filter(({key, value}) => key!=="" || value!=="").concat([{key: "", value: ""}])'
         preset="pair"
         key-placeholder="Header"
         value-placeholder="Value"
-      />
+      /> -->
       <!-- <div
         style="display: flex; flex-direction: row;"
         v-for="(obj, i) in request.headers"
@@ -152,14 +203,15 @@ function responseBodyLanguage(contentType: string): string {
     >
       <NTabPane name="tab-resp-code" disabled><template #tab>
         <NTag
-          :type='response.code < 300 ? "success" : response.code < 500 ? "warning" : "error"'
+          :type='response.code === 0 ? "success" : "error"'
           size="small"
           round
-        >{{response.code ?? "N/A"}}</Ntag>
+        >{{response.code /*TODO: as string*/ ?? "N/A"}}</Ntag>
       </template></NTabPane>
       <NTabPane name="tab-resp-body" tab="Body" style="overflow-y: auto;">
         <div style="display: grid; grid-template-rows: auto 3em; height: 100%;">
           <div
+            id="code"
             ref="responseRef"
             style="height: 100%;"
           ></div>
@@ -183,10 +235,10 @@ function responseBodyLanguage(contentType: string): string {
               <th>VALUE</th>
             </tr>
           </thead>
-          <tr v-for="header in response.headers" :key="header.key">
+          <!-- <tr v-for="header in response.headers" :key="header.key">
             <td>{{header.key}}</td>
             <td>{{header.value}}</td>
-          </tr>
+          </tr> -->
         </NTable>
       </NTabPane>
     </NTabs>

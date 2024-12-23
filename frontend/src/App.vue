@@ -10,9 +10,15 @@ import {
   NSpace,
 } from "naive-ui";
 import {DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined} from "@vicons/antd";
-import {api, Method as Methods, type HistoryEntry, RequestData, Database, RequestSQL as RequestSQLT, RequestHTTP as RequestHTTPT, ResponseHTTP, ResponseSQL, Tree} from "./api";
+import {
+  api, Method as Methods, type HistoryEntry, RequestData, Database, Tree,
+  RequestSQL as RequestSQLT, ResponseSQL,
+  RequestHTTP as RequestHTTPT, ResponseHTTP,
+  RequestGRPC as RequestGRPCT, ResponseGRPC,
+} from "./api";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
+import RequestGRPC from "./RequestGRPC.vue";
 
 function fromNow(date: Date): string {
   const now = new Date();
@@ -76,13 +82,11 @@ const expandedKeys = ref(["Sanya", "subdir"]); // TODO: save to/load from local 
 const request = reactive({box: null} as {
   box: {
     id: string,
-  } & ({
-    kind: "http",
-    request: RequestHTTPT,
-  } | {
-    kind: "sql",
-    request: RequestSQLT,
-  }) | null,
+  } & (
+    {kind: "http", request: RequestHTTPT}
+    | {kind: "sql", request: RequestSQLT}
+    | {kind: "grpc", request: RequestGRPCT}
+  ) | null,
 });
 const request_history = computed(() => {
   if (request.box === null) {
@@ -91,7 +95,7 @@ const request_history = computed(() => {
 
   return history.value.filter(h => h.request_id === request.box.id);
 });
-const response = ref<ResponseHTTP | ResponseSQL | null>(null);
+const response = ref<ResponseHTTP | ResponseSQL | ResponseGRPC | null>(null);
 
 function updateRequest() { // TODO: replace with event
   api
@@ -129,6 +133,13 @@ function selectRequest(id: string) {
         id: id,
         kind: kind,
         request: req as RequestSQLT,
+      };
+      break;
+    case "grpc":
+      request.box = {
+        id: id,
+        kind: kind,
+        request: req as RequestGRPCT,
       };
       break;
   }
@@ -192,13 +203,20 @@ function rename() {
   renameCancel();
   fetch();
 }
+function badge(req: RequestData): string {
+  switch (req.kind) {
+  case "http": return Methods[req.method];
+  case "sql": return Database[req.database];
+  case "grpc": return "GRPC";
+  }
+}
 function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boolean}): VNodeChild {
   const option = info.option;
   const req = requests.value[option.key];
   if (req === undefined) {
     return null;
   }
-  const method = req.kind=="http" ? Methods[req.method] : Database[req.database];
+  const method = badge(req);
   return h(NTag, {
     type: Methods[method] ? "success" : "info",
     class: 'method',
@@ -228,6 +246,7 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 
 const sidebarHidden = ref(false);
 
+// TODO: merge
 function sendHTTP(id: string) {
   api
     .requestPerform(id)
@@ -330,10 +349,7 @@ async function sendSQL(id: string) {
                   class="method"
                   size="small"
                   style="width: 4em; justify-content: center;"
-                >{{(() => {
-                  const tmp = requests[r.request_id];
-                  return tmp.kind == "http" ? Methods[tmp.method] : Database[tmp.database];
-                })()}}</Ntag>
+                >{{badge(requests[r.request_id])}}</Ntag>
                 <span class='url' style="padding-left: .5em;">{{r.request_id}}</span>
               </div>
               <div class='footer'>
@@ -385,6 +401,12 @@ async function sendSQL(id: string) {
         <RequestSQL
           :request="request.box.request"
           :response="response as ResponseSQL | null"
+          v-on:send="() => sendSQL(request.box.id)"
+        />
+      </template><template v-else-if='request.box.kind === "grpc"'>
+        <RequestGRPC
+          :request="request.box.request"
+          :response="response as ResponseGRPC | null"
           v-on:send="() => sendSQL(request.box.id)"
         />
       </template>
