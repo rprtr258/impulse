@@ -59,13 +59,14 @@ var decoderRequestSQL = json2.Map3(
 	json2.Field("query", json2.String),
 )
 
-var decoderRequestGRPC = json2.Map3(
-	func(target, method, payload string) GRPCRequest {
-		return GRPCRequest{target, method, payload}
+var decoderRequestGRPC = json2.Map4(
+	func(target, method, payload string, metadata []KV) GRPCRequest {
+		return GRPCRequest{target, method, payload, metadata}
 	},
 	json2.Optional("target", json2.String, ""),
 	json2.Optional("method", json2.String, ""),
 	json2.Optional("payload", json2.String, "{}"),
+	json2.Optional("metadata", decoderKVs, nil),
 )
 
 var decoderKind = json2.Map(
@@ -156,10 +157,10 @@ type SQLResponse struct { // TODO: last inserted id on insert
 func (SQLResponse) isResponseData() Kind { return KindSQL }
 
 type GRPCRequest struct {
-	Target  string `json:"target"`
-	Method  string `json:"method"` // NOTE: fully qualified
-	Payload string `json:"payload"`
-	// TODO: add headers
+	Target   string `json:"target"`
+	Method   string `json:"method"` // NOTE: fully qualified
+	Payload  string `json:"payload"`
+	Metadata []KV   `json:"metadata"`
 }
 
 func (GRPCRequest) isRequestData() Kind { return KindGRPC }
@@ -167,7 +168,8 @@ func (GRPCRequest) isRequestData() Kind { return KindGRPC }
 type GRPCResponse struct { // TODO: last inserted id on insert
 	Response string `json:"response"`
 	// https://grpc.io/docs/guides/status-codes/#the-full-list-of-status-codes
-	Code int `json:"code"`
+	Code     int  `json:"code"`
+	Metadata []KV `json:"metadata"`
 }
 
 func (GRPCResponse) isResponseData() Kind { return KindGRPC }
@@ -262,11 +264,12 @@ func (e Request) MarshalJSON() ([]byte, error) {
 		})
 	case GRPCRequest:
 		return json.Marshal(map[string]any{
-			"kind":    "grpc",
-			"id":      e.ID,
-			"target":  req.Target,
-			"method":  req.Method,
-			"payload": req.Payload,
+			"kind":     "grpc",
+			"id":       e.ID,
+			"target":   req.Target,
+			"method":   req.Method,
+			"payload":  req.Payload,
+			"metadata": req.Metadata,
 		})
 	default:
 		return nil, errors.Errorf("unsupported request type %T", req)
@@ -292,10 +295,11 @@ func (e Request) MarshalJSON2() ([]byte, error) {
 		})
 	case GRPCRequest:
 		return json.Marshal(map[string]any{
-			"kind":    "grpc",
-			"target":  req.Target,
-			"method":  req.Method,
-			"payload": req.Payload,
+			"kind":     "grpc",
+			"target":   req.Target,
+			"method":   req.Method,
+			"payload":  req.Payload,
+			"metadata": req.Metadata,
 		})
 	default:
 		return nil, errors.Errorf("unsupported request type %T", req)

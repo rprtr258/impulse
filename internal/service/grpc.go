@@ -10,11 +10,15 @@ import (
 
 	"github.com/fullstorydev/grpcurl"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"github.com/pkg/errors"
 	"github.com/rprtr258/fun/exp/zun"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 
@@ -251,6 +255,46 @@ func (s *Service) HandlerGRPCQueryFake(ctx context.Context, req struct {
 	return string(b), nil
 }
 
+type invocationHandler struct {
+	onResolveMethod   func(*desc.MethodDescriptor)
+	onSendHeaders     func(metadata.MD)
+	onReceiveHeaders  func(metadata.MD)
+	onReceiveResponse func(proto.Message)
+	onReceiveTrailers func(*status.Status, metadata.MD)
+}
+
+var _ grpcurl.InvocationEventHandler = (*invocationHandler)(nil)
+
+func (h *invocationHandler) OnResolveMethod(md *desc.MethodDescriptor) {
+	if h.onResolveMethod != nil {
+		h.onResolveMethod(md)
+	}
+}
+
+func (h *invocationHandler) OnSendHeaders(md metadata.MD) {
+	if h.onSendHeaders != nil {
+		h.onSendHeaders(md)
+	}
+}
+
+func (h *invocationHandler) OnReceiveHeaders(md metadata.MD) {
+	if h.onReceiveHeaders != nil {
+		h.onReceiveHeaders(md)
+	}
+}
+
+func (h *invocationHandler) OnReceiveResponse(resp proto.Message) {
+	if h.onReceiveResponse != nil {
+		h.onReceiveResponse(resp)
+	}
+}
+
+func (h *invocationHandler) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
+	if h.onReceiveTrailers != nil {
+		h.onReceiveTrailers(stat, md)
+	}
+}
+
 func (s *Service) sendGRPC(ctx context.Context, req database.GRPCRequest) (database.GRPCResponse, error) {
 	reflSource, cc, err := connect(ctx, req.Target)
 	if err != nil {
@@ -258,25 +302,62 @@ func (s *Service) sendGRPC(ctx context.Context, req database.GRPCRequest) (datab
 	}
 	defer cc.Close()
 
-	// bb := invoke(ctx, reflSource, cc, "helloworld.Greeter.SayHello", string(b))
-	formatter := grpcurl.NewJSONFormatter(true, nil)
-	var bb bytes.Buffer
+	// TODO: долбоебское апи заставляет меня передавать долбоебские строки вместо metadata.MD сразу
+	headers := make([]string, 0, len(req.Metadata))
+	for _, kv := range req.Metadata {
+		headers = append(headers, fmt.Sprintf("%s: %s", kv.Key, kv.Value))
+	}
+
+	var body bytes.Buffer
+	var st status.Status
+	meta := metadata.MD{}
 	r := bytes.NewReader([]byte(req.Payload))
 	if err := grpcurl.InvokeRPC(
-		ctx, reflSource, cc, req.Method, nil,
-		&grpcurl.DefaultEventHandler{
-			Out:            &bb,
-			Formatter:      formatter,
-			VerbosityLevel: 0,
+		ctx, reflSource, cc, req.Method,
+		headers,
+		&invocationHandler{
+			onReceiveResponse: func(m proto.Message) {
+				_ = (&jsonpb.Marshaler{}).Marshal(&body, m)
+			},
+			onReceiveHeaders: func(md metadata.MD) {
+				for k, vs := range md {
+					meta[k] = append(meta[k], vs...)
+				}
+			},
+			onReceiveTrailers: func(stat *status.Status, md metadata.MD) {
+				st = *stat
+				for k, vs := range md {
+					meta[k] = append(meta[k], vs...)
+				}
+			},
 		},
 		grpcurl.NewJSONRequestParserWithUnmarshaler(r, jsonpb.Unmarshaler{}).Next,
 	); err != nil {
 		return database.GRPCResponse{}, errors.Wrap(err, "invoke rpc")
 	}
 
+	kvs := make([]database.KV, 0, len(meta))
+	for k, vs := range meta {
+		for _, v := range vs {
+			kvs = append(kvs, database.KV{
+				Key:   k,
+				Value: v,
+			})
+		}
+	}
+
+	if code := st.Code(); code != codes.OK {
+		return database.GRPCResponse{
+			st.Message(),
+			int(code),
+			kvs,
+		}, nil
+	}
+
 	return database.GRPCResponse{
-		bb.String(),
-		0, // TODO: pass response code
+		body.String(),
+		int(codes.OK),
+		kvs,
 	}, nil
 }
 

@@ -2,7 +2,7 @@
 import {onMounted, ref, useTemplateRef, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from "naive-ui";
 import * as monaco from "monaco-editor";
-import {api, RequestGRPC, ResponseGRPC, Result} from "./api";
+import {api, RequestGRPC, ResponseGRPC, Result, GRPCCodes} from "./api";
 
 const {response} = defineProps<{
   response: ResponseGRPC | null,
@@ -53,7 +53,7 @@ onMounted(() => {
     value: request.value.payload,
     language: "json",
     theme: "material-ocean",
-    readOnly: true,
+    readOnly: false,
     folding: true,
     minimap: {enabled: false},
     wordWrap: "on",
@@ -161,7 +161,7 @@ function responseBodyLanguage(contentType: string): string {
     </NTabPane>
     <NTabPane
       name="tab-req-headers"
-      tab='Headers'
+      tab='Metadata'
       style="display: flex; flex-direction: column; flex: 1;"
     >
       <!-- <NDynamicInput
@@ -206,7 +206,7 @@ function responseBodyLanguage(contentType: string): string {
           :type='response.code === 0 ? "success" : "error"'
           size="small"
           round
-        >{{response.code /*TODO: as string*/ ?? "N/A"}}</Ntag>
+        >{{response.code /*TODO: as string*/ ?? "N/A"}} {{GRPCCodes[response.code]}}</Ntag>
       </template></NTabPane>
       <NTabPane name="tab-resp-body" tab="Body" style="overflow-y: auto;">
         <div style="display: grid; grid-template-rows: auto 3em; height: 100%;">
@@ -223,7 +223,7 @@ function responseBodyLanguage(contentType: string): string {
           />
         </div>
       </NTabPane>
-      <NTabPane name="tab-resp-headers" tab="Headers" style="flex: 1;">
+      <NTabPane name="tab-resp-headers" tab="Metadata" style="flex: 1;">
         <NTable striped size="small" single-column :single-line="false">
           <colgroup>
             <col style="width: 50%" />
@@ -235,10 +235,10 @@ function responseBodyLanguage(contentType: string): string {
               <th>VALUE</th>
             </tr>
           </thead>
-          <!-- <tr v-for="header in response.headers" :key="header.key">
+          <tr v-for="header in response.metadata" :key="header.key">
             <td>{{header.key}}</td>
             <td>{{header.value}}</td>
-          </tr> -->
+          </tr>
         </NTable>
       </NTabPane>
     </NTabs>
