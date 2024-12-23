@@ -3,6 +3,7 @@ import {onMounted, ref, useTemplateRef, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from "naive-ui";
 import * as monaco from "monaco-editor";
 import {api, RequestGRPC, ResponseGRPC, Result, GRPCCodes} from "./api";
+import {formatResponse} from "./utils";
 
 const {response} = defineProps<{
   response: ResponseGRPC | null,
@@ -36,14 +37,14 @@ watch(() => request.value.target, () => {
 
 async function transform(body: string, query: string): Promise<Result<string>> {
   if (query === "") {
-    return {kind: "ok", value: body};
+    return {kind: "ok", value: formatResponse(body)};
   }
 
   const res = await api.jq(body, query);
   if (res.kind === "err") {
     return {kind: "err", value: res.value};
   }
-  return {kind: "ok", value: res.value.map(v => JSON.stringify(JSON.parse(v), null, 2)).join("\n")};
+  return {kind: "ok", value: res.value.map(v => formatResponse(v)).join("\n")};
 };
 
 const requestRef = useTemplateRef("requestRef");
@@ -73,7 +74,6 @@ watch([
   // NOTE: cant init in onMounted since response is optional
   if (responseRef.value !== null && responseEditor === null) {
     responseEditor = monaco.editor.create(responseRef.value, {
-      value: "",
       language: "json",
       theme: "material-ocean",
       readOnly: true,
@@ -82,6 +82,9 @@ watch([
       wordWrap: "on",
       lineNumbers: "off",
     });
+  } else if (responseEditor !== null) {
+    responseEditor.dispose();
+    responseEditor = null;
   }
 }, {deep: true, immediate: true});
 watch([
@@ -108,18 +111,6 @@ watch(() => response, () => {
   query.value = "";
   jqerror.value = null;
 });
-
-function responseBodyLanguage(contentType: string): string {
-  for (const [key, value] of Object.entries({
-    "application/json;": "json",
-    "text/html;": "html",
-  })) {
-    if (contentType.startsWith(key)) {
-      return value;
-    }
-  }
-  return "text";
-};
 </script>
 
 <template>

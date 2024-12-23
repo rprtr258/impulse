@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import {onMounted, ref, useTemplateRef, watch} from "vue";
+import {ref, useTemplateRef, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty} from "naive-ui";
 import * as monaco from "monaco-editor";
 import {api, Method as Methods, RequestHTTP, ResponseHTTP, Result} from "./api";
+import {formatResponse} from "./utils";
 
 const {response} = defineProps<{
   response: ResponseHTTP | null,
@@ -18,14 +19,14 @@ const jqerror = ref<string | null>(null);
 
 async function transform(body: string, query: string): Promise<Result<string>> {
   if (query === "") {
-    return {kind: "ok", value: body};
+    return {kind: "ok", value: formatResponse(body)};
   }
 
   const res = await api.jq(body, query);
   if (res.kind === "err") {
     return {kind: "err", value: res.value};
   }
-  return {kind: "ok", value: res.value.map(v => JSON.stringify(JSON.parse(v), null, 2)).join("\n")};
+  return {kind: "ok", value: res.value.map(v => formatResponse(v)).join("\n")};
 };
 
 const responseRef = useTemplateRef("responseRef");
@@ -37,7 +38,6 @@ watch([
   // NOTE: cant init in onMounted since response is optional
   if (responseRef.value !== null && responseEditor === null) {
     responseEditor = monaco.editor.create(responseRef.value, {
-      value: response.body,
       language: "json",
       theme: "material-ocean",
       readOnly: true,
