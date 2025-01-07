@@ -71,20 +71,22 @@ watch([
   () => response,
   responseRef,
 ], () => {
+  const dermo = () => monaco.editor.create(responseRef.value, {
+    language: "json",
+    theme: "material-ocean",
+    readOnly: true,
+    folding: true,
+    minimap: {enabled: false},
+    wordWrap: "on",
+    lineNumbers: "off",
+  });
   // NOTE: cant init in onMounted since response is optional
   if (responseRef.value !== null && responseEditor === null) {
-    responseEditor = monaco.editor.create(responseRef.value, {
-      language: "json",
-      theme: "material-ocean",
-      readOnly: true,
-      folding: true,
-      minimap: {enabled: false},
-      wordWrap: "on",
-      lineNumbers: "off",
-    });
+    responseEditor = dermo();
   } else if (responseEditor !== null) {
     responseEditor.dispose();
-    responseEditor = null;
+    // NOTE: эту хуйню нужно пересоздавать после получения нового ответа
+    responseEditor = responseRef.value === null ? null : dermo();
   }
 }, {deep: true, immediate: true});
 watch([
