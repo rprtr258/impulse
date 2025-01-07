@@ -30,6 +30,7 @@ const (
 	KindHTTP Kind = "http"
 	KindSQL  Kind = "sql"
 	KindGRPC Kind = "grpc"
+	KindJQ   Kind = "jq"
 )
 
 type RequestData interface {
@@ -67,6 +68,14 @@ var decoderRequestGRPC = json2.Map4(
 	json2.Optional("method", json2.String, ""),
 	json2.Optional("payload", json2.String, "{}"),
 	json2.Optional("metadata", decoderKVs, nil),
+)
+
+var decoderRequestJQ = json2.Map2(
+	func(query string, json []string) JQRequest {
+		return JQRequest{query, json}
+	},
+	json2.Optional("query", json2.String, "."),
+	json2.Required("json", json2.List(json2.String)),
 )
 
 var decoderKind = json2.Map(
@@ -156,6 +165,19 @@ type SQLResponse struct { // TODO: last inserted id on insert
 
 func (SQLResponse) isResponseData() Kind { return KindSQL }
 
+type JQRequest struct {
+	Query string   `json:"query"`
+	JSON  []string `json:"json"`
+}
+
+func (JQRequest) isRequestData() Kind { return KindJQ }
+
+type JQResponse struct {
+	Response []string `json:"response"`
+}
+
+func (JQResponse) isResponseData() Kind { return KindJQ }
+
 type GRPCRequest struct {
 	Target   string `json:"target"`
 	Method   string `json:"method"` // NOTE: fully qualified
@@ -226,6 +248,9 @@ func (e *Request) UnmarshalJSON(b []byte) error {
 			case KindGRPC:
 				decoderRequest = json2.Map(decoderRequestGRPC, func(dest GRPCRequest) RequestData { return dest })
 				history = []HistoryEntry[GRPCRequest, GRPCResponse]{}
+			case KindJQ:
+				decoderRequest = json2.Map(decoderRequestJQ, func(dest JQRequest) RequestData { return dest })
+				history = []HistoryEntry[JQRequest, JQResponse]{}
 			default:
 				return json2.Fail[Request](fmt.Sprintf("unknown kind %q", kind))
 			}
@@ -247,7 +272,7 @@ func (e Request) MarshalJSON() ([]byte, error) {
 	switch req := e.Data.(type) {
 	case HTTPRequest:
 		return json.Marshal(map[string]any{
-			"kind":    "http",
+			"kind":    KindHTTP,
 			"id":      e.ID,
 			"url":     req.URL,
 			"method":  req.Method,
@@ -256,7 +281,7 @@ func (e Request) MarshalJSON() ([]byte, error) {
 		})
 	case SQLRequest:
 		return json.Marshal(map[string]any{
-			"kind":     "sql",
+			"kind":     KindSQL,
 			"id":       e.ID,
 			"dsn":      req.DSN,
 			"database": req.Database,
@@ -264,12 +289,19 @@ func (e Request) MarshalJSON() ([]byte, error) {
 		})
 	case GRPCRequest:
 		return json.Marshal(map[string]any{
-			"kind":     "grpc",
+			"kind":     KindGRPC,
 			"id":       e.ID,
 			"target":   req.Target,
 			"method":   req.Method,
 			"payload":  req.Payload,
 			"metadata": req.Metadata,
+		})
+	case JQRequest:
+		return json.Marshal(map[string]any{
+			"kind":  KindJQ,
+			"id":    e.ID,
+			"query": req.Query,
+			"json":  req.JSON,
 		})
 	default:
 		return nil, errors.Errorf("unsupported request type %T", req)
@@ -280,7 +312,7 @@ func (e Request) MarshalJSON2() ([]byte, error) {
 	switch req := e.Data.(type) {
 	case HTTPRequest:
 		return json.Marshal(map[string]any{
-			"kind":    "http",
+			"kind":    KindHTTP,
 			"url":     req.URL,
 			"method":  req.Method,
 			"body":    req.Body,
@@ -288,18 +320,24 @@ func (e Request) MarshalJSON2() ([]byte, error) {
 		})
 	case SQLRequest:
 		return json.Marshal(map[string]any{
-			"kind":     "sql",
+			"kind":     KindSQL,
 			"dsn":      req.DSN,
 			"database": req.Database,
 			"query":    req.Query,
 		})
 	case GRPCRequest:
 		return json.Marshal(map[string]any{
-			"kind":     "grpc",
+			"kind":     KindGRPC,
 			"target":   req.Target,
 			"method":   req.Method,
 			"payload":  req.Payload,
 			"metadata": req.Metadata,
+		})
+	case JQRequest:
+		return json.Marshal(map[string]any{
+			"kind":  KindJQ,
+			"json":  req.JSON,
+			"query": req.Query,
 		})
 	default:
 		return nil, errors.Errorf("unsupported request type %T", req)

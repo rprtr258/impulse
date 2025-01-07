@@ -15,10 +15,12 @@ import {
   RequestSQL as RequestSQLT, ResponseSQL,
   RequestHTTP as RequestHTTPT, ResponseHTTP,
   RequestGRPC as RequestGRPCT, ResponseGRPC,
+  RequestJQ as RequestJQT, ResponseJQ,
 } from "./api";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
 import RequestGRPC from "./RequestGRPC.vue";
+import RequestJQ from "./RequestJQ.vue";
 
 function fromNow(date: Date): string {
   const now = new Date();
@@ -86,6 +88,7 @@ const request = reactive({box: null} as {
     {kind: "http", request: RequestHTTPT}
     | {kind: "sql", request: RequestSQLT}
     | {kind: "grpc", request: RequestGRPCT}
+    | {kind: "jq", request: RequestJQT}
   ) | null,
 });
 const request_history = computed(() => {
@@ -95,7 +98,7 @@ const request_history = computed(() => {
 
   return history.value.filter(h => h.request_id === request.box.id);
 });
-const response = ref<ResponseHTTP | ResponseSQL | ResponseGRPC | null>(null);
+const response = ref<ResponseHTTP | ResponseSQL | ResponseGRPC | ResponseJQ | null>(null);
 
 function updateRequest() { // TODO: replace with event
   api
@@ -140,6 +143,13 @@ function selectRequest(id: string) {
         id: id,
         kind: kind,
         request: req as RequestGRPCT,
+      };
+      break;
+    case "jq":
+      request.box = {
+        id: id,
+        kind: kind,
+        request: req as RequestJQT,
       };
       break;
   }
@@ -203,11 +213,12 @@ function rename() {
   renameCancel();
   fetch();
 }
-function badge(req: RequestData): string {
+function badge(req: RequestData): [string, string] {
   switch (req.kind) {
-  case "http": return Methods[req.method];
-  case "sql": return Database[req.database];
-  case "grpc": return "GRPC";
+  case "http": return [Methods[req.method], "lime"];
+  case "sql": return [Database[req.database], "bluewhite"];
+  case "grpc": return ["GRPC", "cyan"];
+  case "jq": return ["JQ", "violet"];
   }
 }
 function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boolean}): VNodeChild {
@@ -216,11 +227,11 @@ function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boo
   if (req === undefined) {
     return null;
   }
-  const method = badge(req);
+  const [method, color] = badge(req);
   return h(NTag, {
     type: Methods[method] ? "success" : "info",
     class: 'method',
-    style: "width: 4em; justify-content: center;",
+    style: `width: 4em; justify-content: center; color: ${color};`,
     size: "small",
   }, () => method)
 }
@@ -264,7 +275,7 @@ function sendHTTP(id: string) {
     })
     .catch((err) => alert(`Could not perform request: ${err}`));
 }
-async function sendSQL(id: string) {
+async function send(id: string) {
   await api.requestPerform(id)
     .catch((err) => alert(`Could not perform request: ${err}`));
   await fetch();
@@ -403,13 +414,19 @@ async function sendSQL(id: string) {
         <RequestSQL
           :request="request.box.request"
           :response="response as ResponseSQL | null"
-          v-on:send="() => sendSQL(request.box.id)"
+          v-on:send="() => send(request.box.id)"
         />
       </template><template v-else-if='request.box.kind === "grpc"'>
         <RequestGRPC
           :request="request.box.request"
           :response="response as ResponseGRPC | null"
-          v-on:send="() => sendSQL(request.box.id)"
+          v-on:send="() => send(request.box.id)"
+        />
+      </template><template v-else-if='request.box.kind === "jq"'>
+        <RequestJQ
+          :request="request.box.request"
+          :response="response as ResponseJQ | null"
+          v-on:send="() => send(request.box.id)"
         />
       </template>
     </div>

@@ -80,6 +80,16 @@ func (s *Service) HandlerList(ctx context.Context, _ struct{}) (fiber.Map, error
 				m["request_id"] = req.ID
 				return m
 			}, req.History.([]database.HistoryEntry[database.GRPCRequest, database.GRPCResponse])...)...)
+		case database.JQRequest:
+			history = append(history, fun.Map[fiber.Map](func(h database.HistoryEntry[database.JQRequest, database.JQResponse]) fiber.Map {
+				b, _ := json.Marshal(h)
+
+				var m fiber.Map
+				_ = json.Unmarshal(b, &m)
+
+				m["request_id"] = req.ID
+				return m
+			}, req.History.([]database.HistoryEntry[database.JQRequest, database.JQResponse])...)...)
 		default:
 			return nil, errors.Errorf("unknown request type %T", req)
 		}
@@ -192,6 +202,12 @@ func (s *Service) HandlerUpdate(ctx context.Context, request struct {
 		var req database.GRPCRequest
 		if err := json.Unmarshal(b, &req); err != nil {
 			return struct{}{}, errors.Wrap(err, "huita 4 request")
+		}
+		requestt = req
+	case "jq":
+		var req database.JQRequest
+		if err := json.Unmarshal(b, &req); err != nil {
+			return struct{}{}, errors.Wrap(err, "huita 5 request")
 		}
 		requestt = req
 	default:
@@ -319,6 +335,38 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 				ReceivedAt: receivedAt,
 				Request:    request,
 				Response:   resp,
+			}); err != nil {
+			return nil, errors.Wrap(err, "insert into database")
+		}
+	case database.JQRequest:
+		resps := []string{}
+		for _, json := range request.JSON {
+			resp, err := s.HandlerJQ(ctx, struct {
+				JSON  string "json:\"json\""
+				Query string "json:\"query\""
+			}{
+				JSON:  json,
+				Query: request.Query,
+			})
+			if err != nil {
+				return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
+			}
+			resps = append(resps, resp...)
+		}
+		response = database.JQResponse{
+			Response: resps,
+		}
+
+		receivedAt := time.Now()
+
+		if err := database.CreateHistoryEntry(
+			ctx, s.DB,
+			database.RequestID(req.RequestID),
+			database.HistoryEntry[database.JQRequest, database.JQResponse]{
+				SentAt:     sentAt,
+				ReceivedAt: receivedAt,
+				Request:    request,
+				Response:   response.(database.JQResponse),
 			}); err != nil {
 			return nil, errors.Wrap(err, "insert into database")
 		}

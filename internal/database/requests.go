@@ -134,6 +134,11 @@ func Get(
 				panic(err)
 			}
 			request.History = history
+		case []HistoryEntry[JQRequest, JQResponse]:
+			if err := json.Unmarshal(b, &history); err != nil {
+				panic(err)
+			}
+			request.History = history
 		default:
 			panic("unknown history type")
 		}

@@ -76,10 +76,20 @@ export interface ResponseGRPC {
   metadata: Parameter[],
 }
 
+export interface RequestJQ {
+  query: string,
+  json: string[],
+}
+
+export interface ResponseJQ {
+  response: string[],
+}
+
 export type RequestData =
   | {kind: "http"} & RequestHTTP
   | {kind: "sql"} & RequestSQL
-  | {kind: "grpc"} & RequestGRPC;
+  | {kind: "grpc"} & RequestGRPC
+  | {kind: "jq"} & RequestJQ;
 
 export interface ResponseSQL {
   columns: string[],
@@ -90,7 +100,8 @@ export interface ResponseSQL {
 export type ResponseData =
   | {kind: "http"} & ResponseHTTP
   | {kind: "sql"} & ResponseSQL
-  | {kind: "grpc"} & ResponseGRPC;
+  | {kind: "grpc"} & ResponseGRPC
+  | {kind: "jq"} & ResponseJQ;
 
 export type HistoryEntry = {
   request_id: string,
@@ -104,12 +115,19 @@ export type HistoryEntry = {
   kind: "sql",
   request: RequestSQL,
   response: ResponseSQL,
+} | {
+  kind: "grpc",
+  request: RequestGRPC,
+  response: ResponseGRPC,
+} | {
+  kind: "jq",
+  request: RequestJQ,
+  response: ResponseJQ,
 })
 
 export type Request = {
   id: string,
-} & (RequestHTTP & {kind: "http"} |
-  RequestSQL & {kind: "sql"})
+} & RequestData;
 
 async function apiCall<T>(route: string, params: object): Promise<T/* | {message: string, error: string}*/> { // TODO: handle errors
   const res = await fetch(_baseURL, {
