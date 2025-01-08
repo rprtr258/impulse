@@ -358,11 +358,10 @@ async function send(id: string) {
             >
               <div class="headline">
                 <NTag
-                  type="info"
                   class="method"
                   size="small"
-                  style="width: 4em; justify-content: center;"
-                >{{badge(requests[r.request_id])}}</Ntag>
+                  :style="`width: 4em; justify-content: center; color: ${badge(requests[r.request_id])[1]}`"
+                >{{badge(requests[r.request_id])[0]}}</Ntag>
                 <span class='url' style="padding-left: .5em;">{{r.request_id}}</span>
               </div>
               <div class='footer'>
