@@ -120,6 +120,9 @@ func Get(
 		if err != nil {
 			panic(err)
 		}
+		if string(b) == "null" {
+			return
+		}
 
 		kind := request.Data.isRequestData()
 		decoderHistory := json2.List(json2.Map4(
