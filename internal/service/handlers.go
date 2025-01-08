@@ -341,13 +341,7 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 	case database.JQRequest:
 		resps := []string{}
 		for _, json := range request.JSON {
-			resp, err := s.HandlerJQ(ctx, struct {
-				JSON  string "json:\"json\""
-				Query string "json:\"query\""
-			}{
-				JSON:  json,
-				Query: request.Query,
-			})
+			resp, err := jq(ctx, json, request.Query)
 			if err != nil {
 				return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
 			}

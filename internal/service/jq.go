@@ -9,18 +9,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// HandlerSend create a handler that performs call and save result to history
-func (s *Service) HandlerJQ(ctx context.Context, req struct {
-	JSON  string `json:"json"`
-	Query string `json:"query"`
-}) ([]string, error) {
+func jq(ctx context.Context, payload, query string) ([]string, error) {
 	var input any
-	if err := json.Unmarshal([]byte(req.JSON), &input); err != nil {
-		return []string{req.JSON}, nil
+	if err := json.Unmarshal([]byte(payload), &input); err != nil {
+		return []string{payload}, nil
 	}
 
 	result, err := func() ([]string, error) {
-		query, err := gojq.Parse(req.Query)
+		query, err := gojq.Parse(query)
 		if err != nil {
 			return nil, errors.Wrap(err, "parse query")
 		}
@@ -47,8 +43,20 @@ func (s *Service) HandlerJQ(ctx context.Context, req struct {
 		return result, nil
 	}()
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return nil, err
 	}
 
 	return result, nil
+}
+
+// HandlerSend create a handler that performs call and save result to history
+func (s *Service) HandlerJQ(ctx context.Context, req struct {
+	JSON  string `json:"json"`
+	Query string `json:"query"`
+}) ([]string, error) {
+	res, err := jq(ctx, req.JSON, req.Query)
+	if err != nil {
+		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	return res, nil
 }
