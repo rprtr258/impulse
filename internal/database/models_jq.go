@@ -5,8 +5,8 @@ import json2 "github.com/rprtr258/fun/exp/json"
 const KindJQ Kind = "jq"
 
 func init() {
-	decoders[KindJQ] = json2.Map(decoderRequestJQ, decoderRequestMap)
-	histories[KindJQ] = []HistoryEntry[JQRequest, JQResponse]{}
+	decodersRequest[KindJQ] = json2.Map(decoderRequestJQ, decoderRequestMap)
+	decodersResponse[KindJQ] = json2.Map(decoderResponseJQ, decoderResponseMap)
 }
 
 var decoderRequestJQ = json2.Map2(
@@ -15,6 +15,13 @@ var decoderRequestJQ = json2.Map2(
 	},
 	json2.Optional("query", json2.String, "."),
 	json2.Required("json", json2.List(json2.String)),
+)
+
+var decoderResponseJQ = json2.Map(
+	json2.Required("response", json2.List(json2.String)),
+	func(response []string) JQResponse {
+		return JQResponse{response}
+	},
 )
 
 type JQRequest struct {

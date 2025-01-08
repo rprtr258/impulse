@@ -49,50 +49,13 @@ func (s *Service) HandlerList(ctx context.Context, _ struct{}) (fiber.Map, error
 
 	history := []fiber.Map{}
 	for _, req := range requests {
-		switch req.Data.(type) {
-		case database.HTTPRequest:
-			history = append(history, fun.Map[fiber.Map](func(h database.HistoryEntry[database.HTTPRequest, database.HTTPResponse]) fiber.Map {
-				b, _ := json.Marshal(h)
+		history = append(history, fun.Map[fiber.Map](func(h database.HistoryEntry) fiber.Map {
+			b, _ := json.Marshal(h)
 
-				var m fiber.Map
-				_ = json.Unmarshal(b, &m)
-
-				m["request_id"] = req.ID
-				return m
-			}, req.History.([]database.HistoryEntry[database.HTTPRequest, database.HTTPResponse])...)...)
-		case database.SQLRequest:
-			history = append(history, fun.Map[fiber.Map](func(h database.HistoryEntry[database.SQLRequest, database.SQLResponse]) fiber.Map {
-				b, _ := json.Marshal(h)
-
-				var m fiber.Map
-				_ = json.Unmarshal(b, &m)
-
-				m["request_id"] = req.ID
-				return m
-			}, req.History.([]database.HistoryEntry[database.SQLRequest, database.SQLResponse])...)...)
-		case database.GRPCRequest:
-			history = append(history, fun.Map[fiber.Map](func(h database.HistoryEntry[database.GRPCRequest, database.GRPCResponse]) fiber.Map {
-				b, _ := json.Marshal(h)
-
-				var m fiber.Map
-				_ = json.Unmarshal(b, &m)
-
-				m["request_id"] = req.ID
-				return m
-			}, req.History.([]database.HistoryEntry[database.GRPCRequest, database.GRPCResponse])...)...)
-		case database.JQRequest:
-			history = append(history, fun.Map[fiber.Map](func(h database.HistoryEntry[database.JQRequest, database.JQResponse]) fiber.Map {
-				b, _ := json.Marshal(h)
-
-				var m fiber.Map
-				_ = json.Unmarshal(b, &m)
-
-				m["request_id"] = req.ID
-				return m
-			}, req.History.([]database.HistoryEntry[database.JQRequest, database.JQResponse])...)...)
-		default:
-			return nil, errors.Errorf("unknown request type %T", req)
-		}
+			m, _ := database.DecodeHistory(req.Data, b)
+			m["request_id"] = req.ID
+			return m
+		}, req.History...)...)
 	}
 	slices.SortFunc(history, func(i, j fiber.Map) int {
 		return strings.Compare(j["sent_at"].(string), i["sent_at"].(string))
@@ -279,87 +242,36 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 	var response database.ResponseData
 	switch request := request.Data.(type) {
 	case database.HTTPRequest:
-		resp, err := s.sendHTTP(ctx, request)
+		response, err = s.sendHTTP(ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
-		}
-		response = resp
-
-		receivedAt := time.Now()
-
-		if err := database.CreateHistoryEntry(
-			ctx, s.DB,
-			database.RequestID(req.RequestID),
-			database.HistoryEntry[database.HTTPRequest, database.HTTPResponse]{
-				SentAt:     sentAt,
-				ReceivedAt: receivedAt,
-				Request:    request,
-				Response:   resp,
-			}); err != nil {
-			return nil, errors.Wrap(err, "insert into database")
+			return nil, errors.Wrapf(err, "send http request id=%q", req.RequestID)
 		}
 	case database.SQLRequest:
-		resp, err := s.sendSQL(ctx, request)
+		response, err = s.sendSQL(ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
-		}
-		response = resp
-
-		receivedAt := time.Now()
-
-		if err := database.CreateHistoryEntry(
-			ctx, s.DB,
-			database.RequestID(req.RequestID),
-			database.HistoryEntry[database.SQLRequest, database.SQLResponse]{
-				SentAt:     sentAt,
-				ReceivedAt: receivedAt,
-				Request:    request,
-				Response:   resp,
-			}); err != nil {
-			return nil, errors.Wrap(err, "insert into database")
+			return nil, errors.Wrapf(err, "send sql request id=%q", req.RequestID)
 		}
 	case database.GRPCRequest:
-		resp, err := s.sendGRPC(ctx, request)
+		response, err = s.sendGRPC(ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
-		}
-		response = resp
-
-		receivedAt := time.Now()
-
-		if err := database.CreateHistoryEntry(
-			ctx, s.DB,
-			database.RequestID(req.RequestID),
-			database.HistoryEntry[database.GRPCRequest, database.GRPCResponse]{
-				SentAt:     sentAt,
-				ReceivedAt: receivedAt,
-				Request:    request,
-				Response:   resp,
-			}); err != nil {
-			return nil, errors.Wrap(err, "insert into database")
+			return nil, errors.Wrapf(err, "send grpc request id=%q", req.RequestID)
 		}
 	case database.JQRequest:
-		resp, err := s.sendJQ(ctx, request)
+		response, err = s.sendJQ(ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
-		}
-		response = resp
-
-		receivedAt := time.Now()
-
-		if err := database.CreateHistoryEntry(
-			ctx, s.DB,
-			database.RequestID(req.RequestID),
-			database.HistoryEntry[database.JQRequest, database.JQResponse]{
-				SentAt:     sentAt,
-				ReceivedAt: receivedAt,
-				Request:    request,
-				Response:   resp,
-			}); err != nil {
-			return nil, errors.Wrap(err, "insert into database")
+			return nil, errors.Wrapf(err, "send jq request id=%q", req.RequestID)
 		}
 	default:
 		return nil, errors.Errorf("unsupported request type %T", req)
+	}
+
+	receivedAt := time.Now()
+	if err := database.CreateHistoryEntry(
+		ctx, s.DB, database.RequestID(req.RequestID),
+		sentAt, receivedAt,
+		request.Data, response,
+	); err != nil {
+		return nil, errors.Wrap(err, "insert into database")
 	}
 
 	return database.ResponseDataWithKind(response)

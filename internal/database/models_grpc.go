@@ -1,12 +1,14 @@
 package database
 
-import json2 "github.com/rprtr258/fun/exp/json"
+import (
+	json2 "github.com/rprtr258/fun/exp/json"
+)
 
 const KindGRPC Kind = "grpc"
 
 func init() {
-	decoders[KindGRPC] = json2.Map(decoderRequestGRPC, decoderRequestMap)
-	histories[KindGRPC] = []HistoryEntry[GRPCRequest, GRPCResponse]{}
+	decodersRequest[KindGRPC] = json2.Map(decoderRequestGRPC, decoderRequestMap)
+	decodersResponse[KindGRPC] = json2.Map(decoderResponseGRPC, decoderResponseMap)
 }
 
 var decoderRequestGRPC = json2.Map4(
@@ -16,6 +18,15 @@ var decoderRequestGRPC = json2.Map4(
 	json2.Optional("target", json2.String, ""),
 	json2.Optional("method", json2.String, ""),
 	json2.Optional("payload", json2.String, "{}"),
+	json2.Optional("metadata", decoderKVs, nil),
+)
+
+var decoderResponseGRPC = json2.Map3(
+	func(response string, code int, metadata []KV) GRPCResponse {
+		return GRPCResponse{response, code, metadata}
+	},
+	json2.Required("response", json2.String),
+	json2.Required("code", json2.Int),
 	json2.Optional("metadata", decoderKVs, nil),
 )
 

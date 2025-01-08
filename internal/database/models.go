@@ -35,14 +35,15 @@ var decoderKind = json2.Map(
 		return Kind(kind)
 	})
 
-func decoderRequestMap[T RequestData](dest T) RequestData { return dest }
+func decoderRequestMap[T RequestData](dest T) RequestData    { return dest }
+func decoderResponseMap[T ResponseData](dest T) ResponseData { return dest }
 
-var decoders = map[Kind]json2.Decoder[RequestData]{}
-var histories = map[Kind]any{}
+var decodersRequest = map[Kind]json2.Decoder[RequestData]{}
+var decodersResponse = map[Kind]json2.Decoder[ResponseData]{}
 var decoderRequestData = json2.AndThen(
 	decoderKind,
 	func(kind Kind) json2.Decoder[RequestData] {
-		decoder, ok := decoders[kind]
+		decoder, ok := decodersRequest[kind]
 		if !ok {
 			return json2.Fail[RequestData](fmt.Sprintf("unknown request kind %q", kind))
 		}
@@ -53,11 +54,11 @@ type ResponseData interface {
 	isResponseData() Kind
 }
 
-type HistoryEntry[I RequestData, O ResponseData] struct {
-	SentAt     time.Time `json:"sent_at"`
-	ReceivedAt time.Time `json:"received_at"`
-	Request    I         `json:"request"`
-	Response   O         `json:"response"`
+type HistoryEntry struct {
+	SentAt     time.Time    `json:"sent_at"`
+	ReceivedAt time.Time    `json:"received_at"`
+	Request    RequestData  `json:"request"`
+	Response   ResponseData `json:"response"`
 }
 
 type RequestID string
@@ -65,30 +66,28 @@ type RequestID string
 type Request struct {
 	ID      RequestID
 	Data    RequestData
-	History any // TODO: []HistoryEntry[HTTPRequest, HTTPResponse] | []HistoryEntry[SQLRequest, SQLResponse] aligned w/ Data field
+	History []HistoryEntry // TODO: []HistoryEntry[HTTPRequest, HTTPResponse] | []HistoryEntry[SQLRequest, SQLResponse] aligned w/ Data field
 }
 
+var decoderRequest = json2.AndThen(
+	decoderKind,
+	func(kind Kind) json2.Decoder[Request] {
+		decoderRequest, ok := decodersRequest[kind]
+		if !ok {
+			return json2.Fail[Request](fmt.Sprintf("unknown kind %q", kind))
+		}
+
+		return json2.Map(
+			decoderRequest,
+			func(req RequestData) Request {
+				return Request{"", req, nil}
+			},
+		)
+	})
+
 func (e *Request) UnmarshalJSON(b []byte) error {
-	var decoderHistoryEntry = json2.AndThen(
-		decoderKind,
-		func(kind Kind) json2.Decoder[Request] {
-			decoderRequest, ok := decoders[kind]
-			if !ok {
-				return json2.Fail[Request](fmt.Sprintf("unknown kind %q", kind))
-			}
-
-			history := histories[kind]
-
-			return json2.Map(
-				decoderRequest,
-				func(req RequestData) Request {
-					return Request{"", req, history}
-				},
-			)
-		})
-
 	var err error
-	*e, err = decoderHistoryEntry.ParseBytes(b)
+	*e, err = decoderRequest.ParseBytes(b)
 	return err
 }
 
@@ -138,4 +137,19 @@ func ResponseDataWithKind(resp ResponseData) (map[string]any, error) {
 	m["kind"] = resp.isResponseData()
 
 	return m, nil
+}
+
+func DecodeHistory(req RequestData, b []byte) (map[string]any, error) {
+	kind := req.isRequestData()
+	decoderHistory := json2.Map4(
+		func(sentAt, receivedAt time.Time, request RequestData, response ResponseData) map[string]any {
+			res, _ := gavnischtsche(HistoryEntry{sentAt, receivedAt, request, response})
+			return res
+		},
+		json2.Required("sent_at", json2.Time),
+		json2.Required("received_at", json2.Time),
+		json2.Required("request", decodersRequest[kind]),
+		json2.Required("response", decodersResponse[kind]),
+	)
+	return decoderHistory.ParseBytes(b)
 }

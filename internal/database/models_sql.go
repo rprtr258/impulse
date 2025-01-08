@@ -5,8 +5,8 @@ import json2 "github.com/rprtr258/fun/exp/json"
 const KindSQL Kind = "sql"
 
 func init() {
-	decoders[KindSQL] = json2.Map(decoderRequestSQL, decoderRequestMap)
-	histories[KindSQL] = []HistoryEntry[SQLRequest, SQLResponse]{}
+	decodersRequest[KindSQL] = json2.Map(decoderRequestSQL, decoderRequestMap)
+	decodersResponse[KindSQL] = json2.Map(decoderResponseSQL, decoderResponseMap)
 }
 
 var decoderRequestSQL = json2.Map3(
@@ -20,6 +20,24 @@ var decoderRequestSQL = json2.Map3(
 			return Database(s)
 		}),
 	json2.Field("query", json2.String),
+)
+
+func decoderAny(v any, dest *any) error {
+	*dest = v
+	return nil
+}
+
+var decoderResponseSQL = json2.Map3(
+	func(columns []string, types []ColumnType, rows [][]any) SQLResponse {
+		return SQLResponse{columns, types, rows}
+	},
+	json2.Required("columns", json2.List(json2.String)),
+	json2.Required("types", json2.List(json2.Map(
+		json2.String,
+		func(col string) ColumnType {
+			return ColumnType(col)
+		}))),
+	json2.Required("rows", json2.List(json2.List(decoderAny))),
 )
 
 type Database string

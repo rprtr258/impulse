@@ -6,8 +6,10 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
+	json2 "github.com/rprtr258/fun/exp/json"
 	"github.com/spf13/afero"
 )
 
@@ -118,30 +120,22 @@ func Get(
 		if err != nil {
 			panic(err)
 		}
-		switch history := request.History.(type) {
-		case []HistoryEntry[HTTPRequest, HTTPResponse]:
-			if err := json.Unmarshal(b, &history); err != nil {
-				panic(err)
-			}
-			request.History = history
-		case []HistoryEntry[SQLRequest, SQLResponse]:
-			if err := json.Unmarshal(b, &history); err != nil {
-				panic(err)
-			}
-			request.History = history
-		case []HistoryEntry[GRPCRequest, GRPCResponse]:
-			if err := json.Unmarshal(b, &history); err != nil {
-				panic(err)
-			}
-			request.History = history
-		case []HistoryEntry[JQRequest, JQResponse]:
-			if err := json.Unmarshal(b, &history); err != nil {
-				panic(err)
-			}
-			request.History = history
-		default:
-			panic("unknown history type")
+
+		kind := request.Data.isRequestData()
+		decoderHistory := json2.List(json2.Map4(
+			func(sentAt, receivedAt time.Time, request RequestData, response ResponseData) HistoryEntry {
+				return HistoryEntry{sentAt, receivedAt, request, response}
+			},
+			json2.Required("sent_at", json2.Time),
+			json2.Required("received_at", json2.Time),
+			json2.Required("request", decodersRequest[kind]),
+			json2.Required("response", decodersResponse[kind]),
+		))
+		history, err := decoderHistory.ParseBytes(b)
+		if err != nil {
+			panic("unknown history type: " + err.Error())
 		}
+		request.History = history
 	}() // TODO: ganvnische
 
 	return request, nil
@@ -160,20 +154,10 @@ func Create(
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	var history any
-	switch payload.RequestData.(type) {
-	case HTTPRequest:
-		history = []HistoryEntry[HTTPRequest, HTTPResponse]{}
-	case SQLRequest:
-		history = []HistoryEntry[SQLRequest, SQLResponse]{}
-	default:
-		panic("unknown history type")
-	}
-
 	request := Request{
 		RequestID(payload.ID),
 		payload.RequestData,
-		history,
+		nil,
 	}
 
 	if err := func() error {
@@ -283,11 +267,14 @@ func Update(
 	return nil
 }
 
-func CreateHistoryEntry[I RequestData, O ResponseData](
+func CreateHistoryEntry(
 	ctx context.Context,
 	db *DB,
 	id RequestID,
-	item HistoryEntry[I, O],
+	SentAt time.Time,
+	ReceivedAt time.Time,
+	Request RequestData,
+	Response ResponseData,
 ) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -304,7 +291,8 @@ func CreateHistoryEntry[I RequestData, O ResponseData](
 		return errors.Wrap(err, "seek to end")
 	}
 
-	if err := json.NewEncoder(entryFile).Encode(item); err != nil {
+	historyEntry := HistoryEntry{SentAt, ReceivedAt, Request, Response}
+	if err := json.NewEncoder(entryFile).Encode(historyEntry); err != nil {
 		return errors.Wrapf(err, "write history entry for request %q", id)
 	}
 
