@@ -339,17 +339,11 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 			return nil, errors.Wrap(err, "insert into database")
 		}
 	case database.JQRequest:
-		resps := []string{}
-		for _, json := range request.JSON {
-			resp, err := jq(ctx, json, request.Query)
-			if err != nil {
-				return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
-			}
-			resps = append(resps, resp...)
+		resp, err := s.sendJQ(ctx, request)
+		if err != nil {
+			return nil, errors.Wrapf(err, "send request id=%q", req.RequestID)
 		}
-		response = database.JQResponse{
-			Response: resps,
-		}
+		response = resp
 
 		receivedAt := time.Now()
 
@@ -360,7 +354,7 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 				SentAt:     sentAt,
 				ReceivedAt: receivedAt,
 				Request:    request,
-				Response:   response.(database.JQResponse),
+				Response:   resp,
 			}); err != nil {
 			return nil, errors.Wrap(err, "insert into database")
 		}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/impulse-http/local-backend/internal/database"
 	"github.com/itchyny/gojq"
 	"github.com/pkg/errors"
 )
@@ -59,4 +60,18 @@ func (s *Service) HandlerJQ(ctx context.Context, req struct {
 		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 	return res, nil
+}
+
+func (s *Service) sendJQ(ctx context.Context, request database.JQRequest) (database.JQResponse, error) {
+	resps := []string{}
+	for _, json := range request.JSON {
+		resp, err := jq(ctx, json, request.Query)
+		if err != nil {
+			return database.JQResponse{}, err
+		}
+		resps = append(resps, resp...)
+	}
+	return database.JQResponse{
+		Response: resps,
+	}, nil
 }
