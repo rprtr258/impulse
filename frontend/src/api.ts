@@ -156,8 +156,8 @@ async function apiCall<T>(route: string, params: object): Promise<Result<T>> { /
 }
 
 export interface Tree {
-  ids: string[] | null, // TODO: remove null
-  dirs: Record<string, Tree> | null, // TODO: remove null
+  ids?: string[],
+  dirs?: Record<string, Tree>,
 }
 
 interface CollectionGetResponse {

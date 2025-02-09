@@ -6,9 +6,9 @@ import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
 
-const {request, response = null} = defineProps<{
+const {request, response} = defineProps<{
   request: RequestGRPC,
-  response: ResponseGRPC | null,
+  response?: ResponseGRPC,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -115,7 +115,7 @@ const selectOptions = computed(() => methods.value.map(svc => ({
       </div> -->
     </NTabPane>
   </NTabs>
-  <template v-if="response === null">
+  <template v-if="response === undefined">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"

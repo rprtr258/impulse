@@ -5,11 +5,13 @@ import {TableBaseColumn} from "naive-ui/es/data-table/src/interface";
 import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
 import {Database, RequestSQL, ResponseSQL} from "./api";
 import EditorSQL from "./EditorSQL.vue";
-import {store} from "./store";
+import {useStore} from "./store";
 
-const {request, response = null} = defineProps<{
+const store = useStore();
+
+const {request, response} = defineProps<{
   request: RequestSQL,
-  response: ResponseSQL | null,
+  response?: ResponseSQL,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -47,7 +49,7 @@ watch(() => store.requestID, () => {
 });
 
 const columns = computed(() => {
-  if (response === null) {
+  if (response === undefined) {
     return [];
   }
 
@@ -91,7 +93,7 @@ const columns = computed(() => {
 });
 // TODO: fix duplicate column names
 const data = computed(() => {
-  if (response === null) {
+  if (response === undefined) {
     return [];
   }
 
@@ -137,14 +139,13 @@ const data = computed(() => {
         />
       </template>
       <template #2>
-        <template v-if="response === null">
+        <template v-if="response === undefined">
           <NEmpty
             description="Run query or choose one from history."
             class="h100"
             style="justify-content: center;"
           />
-        </template>
-        <template v-else>
+        </template><template v-else>
           <NScrollbar>
             <NDataTable
               :columns="columns"
@@ -152,7 +153,7 @@ const data = computed(() => {
               :single-line="false"
               size="small"
               resizable
-              :scroll-x="response?.columns.length * 200"
+              :scroll-x="response.columns.length * 200"
             />
           </NScrollbar>
         </template>

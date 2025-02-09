@@ -13,9 +13,9 @@ import {
 import {DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined, DownOutlined} from "@vicons/antd";
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
-import {store, setNotify} from "./store";
+import {useStore} from "./store";
 import {
-  Method as Methods, RequestData, Kinds, Database, Tree,
+  Method, RequestData, Kinds, Database, Tree,
   ResponseHTTP, RequestHTTP as RequestHTTPT,
   ResponseSQL,  RequestSQL  as RequestSQLT,
   ResponseGRPC, RequestGRPC as RequestGRPCT,
@@ -27,7 +27,7 @@ import RequestGRPC from "./RequestGRPC.vue";
 import RequestJQ from "./RequestJQ.vue";
 
 const notification = useNotification();
-setNotify((...args) => notification.error({title: "Error", content: args.map(arg => arg.toString()).join("\n")}));
+const store = useStore();
 
 function dirname(id: string): string {
   return id.split("/").slice(0, -1).join("/");
@@ -47,10 +47,15 @@ const treeData = computed(() => {
         label: basename(id),
       };
     }));
-  return mapper(store.requestsTree);
+  return mapper(store.requestsTree.value);
 });
 function renameRequest(id: string, newID: string) {
-  const selectedID = store.requestID;
+  const selectedID = store.requestID.value;
+  if (selectedID === null) {
+    notification.error({title: "Invalid request", content: "No request to rename"});
+    return;
+  }
+
   store.rename(id, newID);
   if (selectedID !== null && id === selectedID) {
     selectRequest(newID);
@@ -180,7 +185,7 @@ function rename() {
 
 function badge(req: RequestData): [string, string] {
   switch (req.kind) {
-  case "http": return [Methods[req.method], "lime"];
+  case "http": return [Method[req.method], "lime"];
   case "sql": return [Database[req.database], "bluewhite"];
   case "grpc": return ["GRPC", "cyan"];
   case "jq": return ["JQ", "violet"];
@@ -198,7 +203,7 @@ function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boo
   }
   const [method, color] = badge(req);
   return h(NTag, {
-    type: Methods[method] ? "success" : "info",
+    type: req.kind === "http" ? "success" : "info", // TODO: replace with color
     class: 'method',
     style: `width: 4em; justify-content: center; color: ${color};`,
     size: "small",
@@ -329,7 +334,7 @@ const sidebarHidden = ref(false);
           <NTree
             block-line
             expand-on-click
-            :selected-keys='[(store.requestID ?? "")]'
+            :selected-keys='[(store.requestID.value ?? "")]'
             :show-line="true"
             :data="treeData"
             :draggable="true"
@@ -402,33 +407,33 @@ const sidebarHidden = ref(false);
         class="h100"
         style="align-content: center;"
       />
-    </template><template v-else-if='store.request().kind === "http"'>
+    </template><template v-else-if='store.request()!.kind === "http"'>
       <RequestHTTP
         :request="store.request() as RequestHTTPT"
-        :response="store.response as ResponseHTTP | null"
-        v-on:send="() => store.send(store.requestID)"
-        v-on:update="(request) => store.update(store.requestID, request)"
+        :response="(store.response.box ?? undefined) as ResponseHTTP | undefined"
+        v-on:send="() => store.send(store.requestID.value!)"
+        v-on:update="(request) => store.update(store.requestID.value!, request)"
       />
-    </template><template v-else-if='store.request().kind === "sql"'>
+    </template><template v-else-if='store.request()!.kind === "sql"'>
       <RequestSQL
         :request="store.request() as RequestSQLT"
-        :response="store.response as ResponseSQL | null"
-        v-on:send="() => store.send(store.requestID)"
-        v-on:update="(request) => store.update(store.requestID, request)"
+        :response="(store.response.box ?? undefined) as ResponseSQL | undefined"
+        v-on:send="() => store.send(store.requestID.value!)"
+        v-on:update="(request) => store.update(store.requestID.value!, request)"
       />
-    </template><template v-else-if='store.request().kind === "grpc"'>
+    </template><template v-else-if='store.request()!.kind === "grpc"'>
       <RequestGRPC
         :request="store.request() as RequestGRPCT"
-        :response="store.response as ResponseGRPC | null"
-        v-on:send="() => store.send(store.requestID)"
-        v-on:update="(request) => store.update(store.requestID, request)"
+        :response="(store.response.box ?? undefined) as ResponseGRPC | undefined"
+        v-on:send="() => store.send(store.requestID.value!)"
+        v-on:update="(request) => store.update(store.requestID.value!, request)"
       />
-    </template><template v-else-if='store.request().kind === "jq"'>
+    </template><template v-else-if='store.request()!.kind === "jq"'>
       <RequestJQ
         :request="store.request() as RequestJQT"
-        :response="store.response as ResponseJQ | null"
-        v-on:send="() => store.send(store.requestID)"
-        v-on:update="(request) => store.update(store.requestID, request)"
+        :response="(store.response.box ?? undefined) as ResponseJQ | undefined"
+        v-on:send="() => store.send(store.requestID.value!)"
+        v-on:update="(request) => store.update(store.requestID.value!, request)"
       />
     </template>
   </div>

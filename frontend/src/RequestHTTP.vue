@@ -5,9 +5,9 @@ import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
 
-const {request, response = null} = defineProps<{
+const {request, response} = defineProps<{
   request: RequestHTTP,
-  response: ResponseHTTP | null,
+  response?: ResponseHTTP,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -81,7 +81,7 @@ function updateHeaders(value: Parameter[]){
       />
     </NTabPane>
   </NTabs>
-  <template v-if="response === null">
+  <template v-if="response === undefined">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"

@@ -3,8 +3,8 @@ import {computed} from 'vue';
 import {NDynamicInput} from 'naive-ui';
 import {Parameter} from './api';
 
-const {value = null} = defineProps<{
-  value: Parameter[],
+const {value} = defineProps<{
+  value?: Parameter[],
 }>();
 const emit = defineEmits<{
   update: [value: Parameter[]],
