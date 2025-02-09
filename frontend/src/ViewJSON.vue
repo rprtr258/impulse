@@ -8,7 +8,7 @@ import {transform} from "./utils";
 import {defaultExtensions} from "./editor";
 
 const {value = null} = defineProps<{
-  value?: string | undefined | null, // TODO: optional govno is ignored in typing
+  value: string,
 }>();
 
 const query = ref("");

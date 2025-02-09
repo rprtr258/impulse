@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {onMounted, useTemplateRef, watch} from "vue";
-import {EditorState} from "@codemirror/state";
+import {ChangeSpec, EditorState} from "@codemirror/state";
 import {EditorView} from "@codemirror/view";
 import {json} from "@codemirror/lang-json";
 import {defaultEditorExtensions, defaultExtensions} from "./editor";
 
 const {value = null} = defineProps<{
-  value?: string | undefined | null, // TODO: optional govno is ignored in typing
+  value: string | null,
 }>();
 const emit = defineEmits<{
   update: [value: string],
@@ -34,7 +34,7 @@ watch(() => value, () => {
   if (value === editor.state.doc.toString()) return;
 
   editor.dispatch({
-    changes: {from: 0, to: editor.state.doc.length, insert: value},
+    changes: {from: 0, to: editor.state.doc.length, insert: value} as ChangeSpec,
   });
 });
 </script>

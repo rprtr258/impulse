@@ -6,7 +6,7 @@ import {PostgreSQL, sql} from "@codemirror/lang-sql";
 import {defaultEditorExtensions, defaultExtensions} from "./editor";
 
 const {value = null} = defineProps<{
-  value?: string | undefined | null, // TODO: optional govno is ignored in typing
+  value: string,
 }>();
 const emit = defineEmits<{
   update: [value: string],

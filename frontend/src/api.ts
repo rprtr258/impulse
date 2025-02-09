@@ -50,7 +50,7 @@ export const Database = {
   mysql:      "MY",
   sqlite:     "LITE",
   clickhouse: "CH",
-};
+} as const;
 export type Database = keyof typeof Database;
 
 export interface RequestSQL {
@@ -133,22 +133,26 @@ export type Request = {
 } & RequestData;
 
 async function apiCall<T>(route: string, params: object): Promise<Result<T>> { // TODO: handle errors
-  const res = await fetch(_baseURL, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      ROUTE: route,
-      ...params,
-    }),
-  });
-  if (res.status !== 200) {
-    const x = await res.json();
-    return err(x.error);
+  try {
+    const res = await fetch(_baseURL, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ROUTE: route,
+        ...params,
+      }),
+    });
+    if (res.status !== 200) {
+      const x = await res.json();
+      return err(x.error);
+    }
+    return ok(await res.json());
+  } catch (e) {
+    return err(`${e}`);
   }
-  return ok(await res.json());
 }
 
 export interface Tree {

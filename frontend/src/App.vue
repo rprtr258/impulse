@@ -26,19 +26,17 @@ import RequestSQL from "./RequestSQL.vue";
 import RequestGRPC from "./RequestGRPC.vue";
 import RequestJQ from "./RequestJQ.vue";
 
-onMounted(() => {
-  const notification = useNotification();
-  setNotify((...args) => notification.error({title: "Error", content: args.map(arg => arg.toString()).join("\n")}));
-});
+const notification = useNotification();
+setNotify((...args) => notification.error({title: "Error", content: args.map(arg => arg.toString()).join("\n")}));
 
 function dirname(id: string): string {
   return id.split("/").slice(0, -1).join("/");
 }
 function basename(id: string): string {
-  return id.split("/").pop();
+  return id.split("/").pop() ?? "";
 }
 const treeData = computed(() => {
-  const mapper = (tree: Tree) =>
+  const mapper = (tree: Tree): TreeOption[] =>
     Object.entries(tree.dirs ?? {}).map(([k, v]) => ({
       key: k,
       label: basename(k),
@@ -85,7 +83,7 @@ function selectRequest(id: string) {
 onMounted(() => {
   store.fetch().then(() => {
     if (location.value.hash !== "#") {
-      const id = decodeURI(location.value.hash.slice(1)); // remove '#'
+      const id = decodeURI((location.value.hash ?? "").slice(1)); // remove '#'
       if (store.requests[id] === undefined) {
         location.value.hash = "";
         return;
@@ -153,14 +151,30 @@ watch(newRequestKind, async () => {
 
 // TODO: fix editing request headers
 
-const renameID = ref(null as string | null);
-const renameValue = ref(null as string | null);
+const renameID = ref<string | null>(null);
+const renameValue = ref<string | null>(null);
 function renameCancel() {
   renameID.value = null;
   renameValue.value = null;
 }
 function rename() {
-  renameRequest(renameID.value, renameValue.value);
+  const fromID = renameID.value;
+  if (fromID === null) {
+    notification.error({title: "Invalid request", content: "No request to rename"});
+    return;
+  }
+
+  const toID = renameValue.value;
+  if (toID === null) {
+    notification.error({title: "Invalid request", content: "No new name"});
+    return;
+  }
+
+  if (toID === fromID) {
+    return;
+  }
+
+  renameRequest(fromID, toID);
   renameCancel();
 }
 
@@ -174,6 +188,10 @@ function badge(req: RequestData): [string, string] {
 }
 function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boolean}): VNodeChild {
   const option = info.option;
+  if (option.key === undefined) {
+    return null;
+  }
+
   const req = store.requests[option.key];
   if (req === undefined) {
     return null;
@@ -471,227 +489,4 @@ div.n-dynamic-input-item__action {
 textarea {
   height: 100%;
 }
-/*
-.page {
-  display: grid;
-  padding: 1em 10px 0px 10px;
-  grid-template-columns: 2fr 10fr;
-  grid-gap: 10px;
-}
-
-.page .sidebar {
-  scrollbar-width: none;
-  padding: 0 0.5em;
-}
-
-.history-card {
-  margin-bottom: 10px;
-  cursor: pointer;
-}
-
-.request-bar {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  position: relative;
-}
-
-.request-bar .bar {
-  width: 100%;
-}
-
-.nested {
-  margin-left: 10px;
-}
-
-#request-response {
-  margin-top: 20px;
-  padding-bottom: 30px;
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr);
-  grid-column-gap: 1em;
-}
-
-td {
-  padding: 3px;
-}
-tr:nth-child(odd) {
-  background: gray;
-  color: white;
-}
-
-.input {
-  background: lightgray;
-  border: 1px solid #2c3e50;
-  padding: 15px;
-  width: calc(100% - 144px);
-}
-
-.input:focus {
-  outline: 1.5px solid #2c3e50;
-}
-
-.icon {
-  width: 1.2em;
-  vertical-align: middle;
-  display: inline-block;
-}
-
-.name {
-  padding-left: 10px;
-}
-
-.method {
-  background: #2c3e50;
-  color: #ffffff;
-  padding: 1px;
-}
-
-.badge {
-  background: #2c3e50;
-  color: #ffffff;
-  padding: 3px 6px;
-  width: 3em;
-  text-align: center;
-}
-
-.base-field {
-  align-content: center;
-  text-align: center;
-  height: 100%;
-}
-
-.text {
-  vertical-align: middle;
-  text-align: center;
-}
-
-.pretty-select {
-  background: #2c3e50;
-  cursor: pointer;
-}
-
-.option {
-  padding: 2px;
-  background: lightgray;
-  color: black;
-}
-
-.option:hover {
-  background: #2c3e50;
-  color: white;
-}
-
-.options-container {
-  position: absolute;
-  z-index: 1;
-  border: 1px solid #2c3e50;
-  background: white;
-  width: inherit;
-  left: 0px;
-}
-
-.url {
-  display: inline-flex;
-  margin-left: 10px;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-}
-
-.card {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-content: flex-start;
-  border: 1px solid #2c3e50;
-  padding: 10px;
-}
-
-.card div {
-  display: flex;
-  flex-direction: row;
-  align-content: flex-start;
-}
-
-.footer {
-  margin-top: 5px;
-  font-size: 0.8rem;
-}
-
-.card:hover {
-  border: 1px solid #ffffff;
-  background: #2c3e50;
-  color: #ffffff;
-}
-
-.card:hover .method {
-  background: #2c3e50;
-  color: #2c3e50;
-}
-
-.editor {
-  text-align: left;
-  min-width: 100%;
-  max-width: 100%;
-  height: 100%;
-  border: 1px solid #2c3e50;
-  background: inherit;
-  color: inherit;
-}
-
-.h-100 {
-  height: 100%;
-}
-
-.active {
-  font-weight: bold;
-  border-bottom: 2px solid #2c3e50;
-}
-
-.button {
-  width: 10rem;
-  font-size: 16pt;
-  height: 100%;
-  border: 1px solid #2c3e50;
-  background: #3f8ddb;
-  color: white;
-  padding: 15px;
-}
-.button:hover {
-  background: #2c3e50;
-  cursor: pointer;
-}
-
-.json-viewer {
-  border: 1px solid #2c3e50;
-  padding: 0 1em;
-  height: calc(100% - 2 * 10px);
-  text-align: left;
-  word-break: break-all;
-  font-family: monospace;
-}
-
-.parameter-row {
-  display: flex;
-  align-content: stretch;
-  justify-content: stretch;
-  margin: -1px;
-}
-.parameter-row input {
-  flex-grow: 1;
-  background: #ffffff;
-  border: 1px solid #2c3e50;
-  padding: 10px;
-  width: calc(100% - (2 * 15px) - 1px);
-}
-.parameter-row input:focus {
-  outline: 2px solid #2c3e50;
-  border-left: 1px solid #2c3e50;
-}
-.parameter-row input:nth-child(2) {
-  border-left: none;
-} */
 </style>

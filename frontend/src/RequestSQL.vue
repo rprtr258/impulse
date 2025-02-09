@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import {computed, h, ref, watch} from "vue";
 import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NScrollbar, NSelect, NSplit, NTooltip} from "naive-ui";
+import {TableBaseColumn} from "naive-ui/es/data-table/src/interface";
 import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
 import {Database, RequestSQL, ResponseSQL} from "./api";
 import EditorSQL from "./EditorSQL.vue";
-import { store } from "./store";
+import {store} from "./store";
 
 const {request, response = null} = defineProps<{
   request: RequestSQL,
-  response?: ResponseSQL | undefined | null, // TODO: optional govno is ignored in typing
+  response: ResponseSQL | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -45,45 +46,60 @@ watch(() => store.requestID, () => {
   buttonDisabled.value = false;
 });
 
-const columns = computed(() => (response?.columns ?? []).map(c => {
-  return {
-    key: c,
-    title: _ => {
-      const type = response.types[response.columns.indexOf(c)];
-      return h(NTooltip, {trigger: "hover", placement: "bottom-start"}, {
-        trigger: () => h("div", {}, [
-          h(NIcon, {size: "15", color: "grey"}, () => [
-            h(
-              type === "number" ? FieldNumberOutlined :
-              type === "string" ? ItalicOutlined :
-              type === "bool" ? CheckSquareOutlined :
-              type === "time" ? ClockCircleOutlined :
-              QuestionCircleOutlined,
-            )
-          ]),
-          c,
-        ]),
-        default: () => type,
-      });
-    },
-    render: (rowData: any, rowIndex: number) => {
-      const v = rowData[c];
-      switch (true) {
-      case v === null:
-        return "(NULL)"; // TODO: faded
-      case typeof v == "boolean":
-        return v ? "true" : "false";
-      case typeof v == "number" || typeof v == "string":
-        return v;
-      default:
-        console.log(rowData, rowData[c], rowIndex);
-        return rowData[c];
-      }
-    },
+const columns = computed(() => {
+  if (response === null) {
+    return [];
   }
-}));
+
+  return (response.columns ?? []).map(c => {
+    return {
+      key: c,
+      title: (_: TableBaseColumn) => {
+        const type = response.types[response.columns.indexOf(c)];
+        return h(NTooltip, {trigger: "hover", placement: "bottom-start"}, {
+          trigger: () => h("div", {}, [
+            h(NIcon, {size: "15", color: "grey"}, () => [
+              h(
+                type === "number" ? FieldNumberOutlined :
+                type === "string" ? ItalicOutlined :
+                type === "bool" ? CheckSquareOutlined :
+                type === "time" ? ClockCircleOutlined :
+                QuestionCircleOutlined,
+              )
+            ]),
+            c,
+          ]),
+          default: () => type,
+        });
+      },
+      render: (rowData: any, rowIndex: number) => {
+        const v = rowData[c];
+        switch (true) {
+        case v === null:
+          return "(NULL)"; // TODO: faded
+        case typeof v == "boolean":
+          return v ? "true" : "false";
+        case typeof v == "number" || typeof v == "string":
+          return v;
+        default:
+          console.log(rowData, rowData[c], rowIndex);
+          return rowData[c];
+        }
+      },
+    }
+  });
+});
 // TODO: fix duplicate column names
-const data = computed(() => (response?.rows ?? []).map(row => Object.fromEntries(row.map((v, i) => [response.columns[i], v]))));
+const data = computed(() => {
+  if (response === null) {
+    return [];
+  }
+
+  return (response.rows ?? [])
+    .map(row =>
+      Object.fromEntries(row
+        .map((v, i) => [response.columns[i], v])));
+});
 </script>
 
 <template>

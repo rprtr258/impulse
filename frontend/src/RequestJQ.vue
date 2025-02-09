@@ -2,13 +2,12 @@
 import {computed, ref} from "vue";
 import {NInput, NButton, NInputGroup, NEmpty} from "naive-ui";
 import {RequestJQ, ResponseJQ} from "./api";
-// import {transform} from "./utils";
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 
 const {request, response = null} = defineProps<{
   request: RequestJQ,
-  response?: ResponseJQ | undefined | null, // TODO: optional govno is ignored in typing
+  response: ResponseJQ | null,
 }>();
 const emit = defineEmits<{
   send: [],

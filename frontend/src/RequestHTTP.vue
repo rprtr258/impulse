@@ -7,7 +7,7 @@ import ParamsList from "./ParamsList.vue";
 
 const {request, response = null} = defineProps<{
   request: RequestHTTP,
-  response?: ResponseHTTP | undefined | null, // TODO: optional govno is ignored in typing
+  response: ResponseHTTP | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -65,7 +65,7 @@ function updateHeaders(value: Parameter[]){
     >
       <EditorJSON
         class="h100"
-        :value="request.body"
+        :value="request.body ?? null"
         v-on:update="(value: string) => updateRequest({body: value})"
       />
     </NTabPane>

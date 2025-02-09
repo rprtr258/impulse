@@ -8,7 +8,7 @@ import ParamsList from "./ParamsList.vue";
 
 const {request, response = null} = defineProps<{
   request: RequestGRPC,
-  response?: ResponseGRPC | undefined | null, // TODO: optional govno is ignored in typing
+  response: ResponseGRPC | null,
 }>();
 const emit = defineEmits<{
   send: [],
