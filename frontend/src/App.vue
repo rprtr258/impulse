@@ -52,11 +52,6 @@ const treeData = computed(() => {
 });
 function renameRequest(id: string, newID: string) {
   const selectedID = store.requestID.value;
-  if (selectedID === null) {
-    notification.error({title: "Invalid request", content: "No request to rename"});
-    return;
-  }
-
   store.rename(id, newID);
   if (selectedID !== null && id === selectedID) {
     selectRequest(newID);
@@ -166,7 +161,7 @@ function renameCancel() {
 function rename() {
   const fromID = renameID.value;
   if (fromID === null) {
-    notification.error({title: "Invalid request", content: "No request to rename"});
+    notification.error({title: "Invalid request", content: `No request to rename: ${renameID.value} -> ${renameValue.value}`});
     return;
   }
 
