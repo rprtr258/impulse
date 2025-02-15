@@ -15,12 +15,13 @@ import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
 import {useStore} from "./store";
 import {
-  Method, RequestData, Kinds, Database, Tree,
-  ResponseHTTP, RequestHTTP as RequestHTTPT,
+  Method, RequestData, Kinds, Database,
+  ResponseHTTP,
   ResponseSQL,  RequestSQL  as RequestSQLT,
   ResponseGRPC, RequestGRPC as RequestGRPCT,
   ResponseJQ,   RequestJQ   as RequestJQT,
 } from "./api";
+import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
 import RequestGRPC from "./RequestGRPC.vue";
@@ -36,26 +37,22 @@ function basename(id: string): string {
   return id.split("/").pop() ?? "";
 }
 const treeData = computed(() => {
-  const mapper = (tree: Tree): TreeOption[] =>
-    Object.entries(tree.dirs ?? {}).map(([k, v]) => ({
+  const mapper = (tree: app.Tree): TreeOption[] =>
+    Object.entries(tree.Dirs ?? {}).map(([k, v]) => ({
       key: k,
       label: basename(k),
       children: mapper(v),
-    })).concat((tree.ids ?? []).map(id => {
+    })).concat(tree.IDs.map(id => {
       return {
         key: id,
         label: basename(id),
+        children: null,
       };
     }));
   return mapper(store.requestsTree.value);
 });
 function renameRequest(id: string, newID: string) {
   const selectedID = store.requestID.value;
-  if (selectedID === null) {
-    notification.error({title: "Invalid request", content: "No request to rename"});
-    return;
-  }
-
   store.rename(id, newID);
   if (selectedID !== null && id === selectedID) {
     selectRequest(newID);
@@ -165,7 +162,7 @@ function renameCancel() {
 function rename() {
   const fromID = renameID.value;
   if (fromID === null) {
-    notification.error({title: "Invalid request", content: "No request to rename"});
+    notification.error({title: "Invalid request", content: `No request to rename: ${renameID.value} -> ${renameValue.value}`});
     return;
   }
 
@@ -247,13 +244,13 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
             if (!req) {
               return;
             }
-            const httpToCurl = ({url, method, body, headers}: RequestHTTPT) => {
+            const httpToCurl = ({url, method, body, headers}: database.HTTPRequest) => {
               return `curl -X ${method} ${url}` +
                 (headers.length > 0 ? " " + headers.map(({key, value}) => `-H "${key}: ${value}"`).join(" ") : "") +
                 ((body) ? ` -d '${body}'` : "");
             };
             console.log(req);
-            navigator.clipboard.writeText(httpToCurl(req as RequestHTTPT));
+            navigator.clipboard.writeText(httpToCurl(req as database.HTTPRequest));
           }
         }
       },
@@ -357,16 +354,16 @@ const sidebarHidden = ref(false);
           <NListItem
             v-for="r, i in store.history"
             :key="i"
-            v-on:click="selectRequest(r.request_id)"
+            v-on:click="selectRequest(r.RequestId)"
             class="history-card card"
           >
             <div class="headline">
               <NTag
                 class="method"
                 size="small"
-                :style="`width: 4em; justify-content: center; color: ${badge(store.requests[r.request_id])[1]}`"
-              >{{badge(store.requests[r.request_id])[0]}}</Ntag>
-              <span class='url' style="padding-left: .5em;">{{r.request_id}}</span>
+                :style="`width: 4em; justify-content: center; color: ${badge(store.requests[r.RequestId])[1]}`"
+              >{{badge(store.requests[r.RequestId])[0]}}</Ntag>
+              <span class='url' style="padding-left: .5em;">{{r.RequestId}}</span>
             </div>
             <div class='footer'>
               <span style='color: grey;' class='date'>{{fromNow(r.sent_at)}}</span>
@@ -409,7 +406,7 @@ const sidebarHidden = ref(false);
       />
     </template><template v-else-if='store.request()!.kind === "http"'>
       <RequestHTTP
-        :request="store.request() as RequestHTTPT"
+        :request="store.request() as database.HTTPRequest"
         :response="(store.response.box ?? undefined) as ResponseHTTP | undefined"
         v-on:send="() => store.send(store.requestID.value!)"
         v-on:update="(request) => store.update(store.requestID.value!, request)"

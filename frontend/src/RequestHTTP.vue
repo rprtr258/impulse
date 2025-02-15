@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NEmpty} from "naive-ui";
-import {Method as Methods, Parameter, RequestHTTP, ResponseHTTP} from "./api";
+import {Method as Methods, ResponseHTTP} from "./api";
+import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
+import { h, VNodeChild } from "vue";
+
+type HTTPRequest = Omit<database.HTTPRequest, "createFrom">;
 
 const {request, response} = defineProps<{
-  request: RequestHTTP,
+  request: HTTPRequest,
   response?: ResponseHTTP,
 }>();
 const emit = defineEmits<{
   send: [],
-  update: [request: RequestHTTP],
+  update: [request: HTTPRequest],
 }>();
-function updateRequest(patch: Partial<RequestHTTP>) {
+function updateRequest(patch: Partial<HTTPRequest>) {
   emit("update", {...request, ...patch});
 }
 
@@ -29,10 +33,20 @@ function responseBodyLanguage(contentType: string): string {
   return "text";
 };
 
-function updateHeaders(value: Parameter[]){
+function updateHeaders(value: database.KV[]){
   updateRequest({
     headers: value.filter(({key, value}) => key!=="" || value!==""),
   })
+}
+
+function responseBadge(): VNodeChild {
+  return h(NTag, {
+    type: response.code < 300 ? "success"
+        : response.code < 500 ? "warning"
+        : "error",
+    size: "small",
+    round: true,
+  }, () => response.code ?? "N/A");
 }
 </script>
 
@@ -77,7 +91,7 @@ function updateHeaders(value: Parameter[]){
     >
       <ParamsList
         :value="request.headers"
-        v-on:update="(value: Parameter[]) => updateHeaders(value)"
+        v-on:update="(value: database.KV[]) => updateHeaders(value)"
       />
     </NTabPane>
   </NTabs>
@@ -97,15 +111,10 @@ function updateHeaders(value: Parameter[]){
     >
       <NTabPane
         name="tab-resp-code"
+        :tab="responseBadge"
         disabled
         display-directive="show"
-      ><template #tab>
-        <NTag
-          :type='response.code < 300 ? "success" : response.code < 500 ? "warning" : "error"'
-          size="small"
-          round
-        >{{response.code ?? "N/A"}}</Ntag>
-      </template></NTabPane>
+      ></NTabPane>
       <NTabPane
         name="tab-resp-body"
         tab="Body"

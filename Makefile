@@ -1,4 +1,5 @@
 SHELL := /usr/bin/env bash
+WAILS := go tool github.com/wailsapp/wails/v2/cmd/wails
 
 .DEFAULT_GOAL := dev
 
@@ -17,11 +18,10 @@ db_reinit:
 	${MAKE} db_drop
 	${MAKE} db_init
 
-.PHONY: run
-run:
-	go mod tidy
-	go run cmd/main.go
+.PHONY: build
+build:
+	${WAILS} build
 
 .PHONY: dev
 dev:
-	reflex -sr '(\.go$$)' -- $(MAKE) run
+	${WAILS} dev

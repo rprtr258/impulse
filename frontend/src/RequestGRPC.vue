@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import {computed, ref, watch} from "vue";
+import {computed, h, ref, VNodeChild, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, useNotification} from "naive-ui";
-import {api, RequestGRPC, ResponseGRPC, GRPCCodes, Parameter} from "./api";
+import {api, RequestGRPC, ResponseGRPC, GRPCCodes} from "./api";
+import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
@@ -37,7 +38,7 @@ watch(() => request.target, async () => {
   loadingMethods.value = false;
 }, {immediate: true});
 
-function updateMetadata(value: Parameter[]) {
+function updateMetadata(value: database.KV[]) {
   updateRequest({
     metadata: value.filter(({key, value}) => key !== "" || value !== ""),
   });
@@ -52,6 +53,14 @@ const selectOptions = computed(() => methods.value.map(svc => ({
     value: svc.service + "." + method,
   })),
 })));
+
+function responseBadge(): VNodeChild {
+  return h(NTag, {
+    type: response.code === 0 ? "success" : "error",
+    size: "small",
+    round: true,
+  }, () => `${response.code ?? "N/A"} ${GRPCCodes[response.code]}`);
+}
 </script>
 
 <template>
@@ -97,7 +106,7 @@ const selectOptions = computed(() => methods.value.map(svc => ({
     >
       <ParamsList
         :value="request.metadata"
-        v-on:update="(value: Parameter[]) => updateMetadata(value)"
+        v-on:update="(value: database.KV[]) => updateMetadata(value)"
       />
       <!-- <div
         style="display: flex; flex-direction: row;"
@@ -131,15 +140,10 @@ const selectOptions = computed(() => methods.value.map(svc => ({
     >
       <NTabPane
         name="tab-resp-code"
+        :tab="responseBadge"
         disabled
         display-directive="show"
-      ><template #tab>
-        <NTag
-          :type='response.code === 0 ? "success" : "error"'
-          size="small"
-          round
-        >{{response.code /*TODO: as string*/ ?? "N/A"}} {{GRPCCodes[response.code]}}</Ntag>
-      </template></NTabPane>
+      ></NTabPane>
       <NTabPane
         name="tab-resp-body"
         tab="Body"

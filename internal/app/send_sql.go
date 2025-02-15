@@ -1,7 +1,6 @@
-package service
+package app
 
 import (
-	"context"
 	"database/sql"
 	"reflect"
 	"time"
@@ -9,10 +8,10 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 
-	"github.com/impulse-http/local-backend/internal/database"
+	"github.com/rprtr258/impulse/internal/database"
 )
 
-func (s *Service) sendSQL(ctx context.Context, req database.SQLRequest) (database.SQLResponse, error) {
+func (a *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
 	// TODO: only req.Database="postgres" is tested
 	db, err := sql.Open(string(req.Database), req.DSN)
 	if err != nil {
@@ -20,7 +19,7 @@ func (s *Service) sendSQL(ctx context.Context, req database.SQLRequest) (databas
 	}
 	defer db.Close()
 
-	if err := db.PingContext(ctx); err != nil {
+	if err := db.PingContext(a.ctx); err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "ping database")
 	}
 
