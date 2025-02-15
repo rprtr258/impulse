@@ -11,7 +11,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
-	"github.com/rprtr258/impulse/internal/service"
+	"github.com/rprtr258/impulse/internal/app"
 )
 
 //go:embed all:frontend/dist
@@ -21,7 +21,7 @@ func run() error {
 	fs := afero.NewBasePathFs(afero.NewOsFs(), "dist")
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	app, startup, close := service.New(fs)
+	app, startup, close := app.New(fs)
 	defer close()
 
 	// Create application with options
