@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import {computed} from 'vue';
 import {NDynamicInput} from 'naive-ui';
-import {Parameter} from './api';
+import {database} from '../wailsjs/go/models';
 
 const {value} = defineProps<{
-  value?: Parameter[],
+  value?: database.KV[],
 }>();
 const emit = defineEmits<{
-  update: [value: Parameter[]],
+  update: [value: database.KV[]],
 }>();
 
 const valueNonNull = computed(() => value ?? []);
@@ -16,7 +16,7 @@ const valueNonNull = computed(() => value ?? []);
 <template>
 <NDynamicInput
   :value='valueNonNull.concat([{key: "", value: ""}])'
-  @update:value='value => emit("update", value as Parameter[])'
+  @update:value='value => emit("update", value as database.KV[])'
   preset="pair"
   key-placeholder="Header"
   value-placeholder="Value"

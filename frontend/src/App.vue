@@ -16,7 +16,7 @@ import {CopySharp} from "@vicons/ionicons5";
 import {useStore} from "./store";
 import {
   Method, RequestData, Kinds, Database,
-  ResponseHTTP, RequestHTTP as RequestHTTPT,
+  ResponseHTTP,
   ResponseSQL,  RequestSQL  as RequestSQLT,
   ResponseGRPC, RequestGRPC as RequestGRPCT,
   ResponseJQ,   RequestJQ   as RequestJQT,
@@ -25,7 +25,7 @@ import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
 import RequestGRPC from "./RequestGRPC.vue";
 import RequestJQ from "./RequestJQ.vue";
-import { service } from "wailsjs/go/models";
+import {database, app} from "wailsjs/go/models";
 
 const notification = useNotification();
 const store = useStore();
@@ -37,7 +37,7 @@ function basename(id: string): string {
   return id.split("/").pop() ?? "";
 }
 const treeData = computed(() => {
-  const mapper = (tree: service.Tree): TreeOption[] =>
+  const mapper = (tree: app.Tree): TreeOption[] =>
     Object.entries(tree.Dirs ?? {}).map(([k, v]) => ({
       key: k,
       label: basename(k),
@@ -243,13 +243,13 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
             if (!req) {
               return;
             }
-            const httpToCurl = ({url, method, body, headers}: RequestHTTPT) => {
+            const httpToCurl = ({url, method, body, headers}: database.HTTPRequest) => {
               return `curl -X ${method} ${url}` +
                 (headers.length > 0 ? " " + headers.map(({key, value}) => `-H "${key}: ${value}"`).join(" ") : "") +
                 ((body) ? ` -d '${body}'` : "");
             };
             console.log(req);
-            navigator.clipboard.writeText(httpToCurl(req as RequestHTTPT));
+            navigator.clipboard.writeText(httpToCurl(req as database.HTTPRequest));
           }
         }
       },
@@ -405,7 +405,7 @@ const sidebarHidden = ref(false);
       />
     </template><template v-else-if='store.request()!.kind === "http"'>
       <RequestHTTP
-        :request="store.request() as RequestHTTPT"
+        :request="store.request() as database.HTTPRequest"
         :response="(store.response.box ?? undefined) as ResponseHTTP | undefined"
         v-on:send="() => store.send(store.requestID.value!)"
         v-on:update="(request) => store.update(store.requestID.value!, request)"

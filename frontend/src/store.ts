@@ -4,10 +4,10 @@ import {
   api, type HistoryEntry, RequestData,
   ResponseSQL, ResponseHTTP, ResponseGRPC, ResponseJQ,
 } from "./api";
-import {service} from '../wailsjs/go/models';
+import {app} from '../wailsjs/go/models';
 // import { useTimeoutPoll } from "@vueuse/core";
 
-const requestsTree = ref<service.Tree>(new service.Tree({IDs: [], Dirs: {}}));
+const requestsTree = ref<app.Tree>(new app.Tree({IDs: [], Dirs: {}}));
 const requests = reactive<Record<string, RequestData>>({});
 const history = reactive<HistoryEntry[]>([]);
 const requestID = ref<string | null>(null);

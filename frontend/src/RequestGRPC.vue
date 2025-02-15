@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {computed, ref, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, useNotification} from "naive-ui";
-import {api, RequestGRPC, ResponseGRPC, GRPCCodes, Parameter} from "./api";
+import {api, RequestGRPC, ResponseGRPC, GRPCCodes} from "./api";
+import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
@@ -37,7 +38,7 @@ watch(() => request.target, async () => {
   loadingMethods.value = false;
 }, {immediate: true});
 
-function updateMetadata(value: Parameter[]) {
+function updateMetadata(value: database.KV[]) {
   updateRequest({
     metadata: value.filter(({key, value}) => key !== "" || value !== ""),
   });
@@ -97,7 +98,7 @@ const selectOptions = computed(() => methods.value.map(svc => ({
     >
       <ParamsList
         :value="request.metadata"
-        v-on:update="(value: Parameter[]) => updateMetadata(value)"
+        v-on:update="(value: database.KV[]) => updateMetadata(value)"
       />
       <!-- <div
         style="display: flex; flex-direction: row;"
