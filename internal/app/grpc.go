@@ -186,8 +186,8 @@ type grpcServiceMethods struct {
 	Methods []string `json:"methods"`
 }
 
-func (s *App) GRPCMethods(target string) ([]grpcServiceMethods, error) {
-	reflSource, cc, err := connect(s.ctx, target)
+func (a *App) GRPCMethods(target string) ([]grpcServiceMethods, error) {
+	reflSource, cc, err := connect(a.ctx, target)
 	if err != nil {
 		return nil, errors.Wrap(err, "connect")
 	}
@@ -218,11 +218,11 @@ func (s *App) GRPCMethods(target string) ([]grpcServiceMethods, error) {
 	return res, nil
 }
 
-func (s *App) GRPCQueryFake(
+func (a *App) GRPCQueryFake(
 	Target string,
 	Method string, // NOTE: fully qualified
 ) (string, error) {
-	reflSource, cc, err := connect(s.ctx, Target)
+	reflSource, cc, err := connect(a.ctx, Target)
 	if err != nil {
 		return "", errors.Wrap(err, "connect")
 	}
@@ -294,8 +294,8 @@ func (h *invocationHandler) OnReceiveTrailers(stat *status.Status, md metadata.M
 	}
 }
 
-func (s *App) sendGRPC(req database.GRPCRequest) (database.GRPCResponse, error) {
-	reflSource, cc, err := connect(s.ctx, req.Target)
+func (a *App) sendGRPC(req database.GRPCRequest) (database.GRPCResponse, error) {
+	reflSource, cc, err := connect(a.ctx, req.Target)
 	if err != nil {
 		return database.GRPCResponse{}, errors.Wrap(err, "connect")
 	}
@@ -312,7 +312,7 @@ func (s *App) sendGRPC(req database.GRPCRequest) (database.GRPCResponse, error) 
 	meta := metadata.MD{}
 	r := bytes.NewReader([]byte(req.Payload))
 	if err := grpcurl.InvokeRPC(
-		s.ctx, reflSource, cc, req.Method,
+		a.ctx, reflSource, cc, req.Method,
 		headers,
 		&invocationHandler{
 			onReceiveResponse: func(m proto.Message) {
@@ -360,7 +360,7 @@ func (s *App) sendGRPC(req database.GRPCRequest) (database.GRPCResponse, error) 
 	}, nil
 }
 
-func (s *App) GRPCQueryValidate(
+func (a *App) GRPCQueryValidate(
 	Target string,
 	Method string, // NOTE: fully qualified
 	Payload string,

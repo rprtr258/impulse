@@ -74,7 +74,7 @@ func sendJQ(ctx context.Context, request database.JQRequest) (database.JQRespons
 }
 
 // HandlerSend create a handler that performs call and save result to history
-func (s *App) JQ(json, query string) ([]string, error) {
-	resp, err := sendJQ(s.ctx, database.JQRequest{query, json})
+func (a *App) JQ(json, query string) ([]string, error) {
+	resp, err := sendJQ(a.ctx, database.JQRequest{query, json})
 	return resp.Response, err
 }

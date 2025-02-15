@@ -11,7 +11,7 @@ import (
 	"github.com/rprtr258/impulse/internal/database"
 )
 
-func (s *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
+func (a *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
 	// TODO: only req.Database="postgres" is tested
 	db, err := sql.Open(string(req.Database), req.DSN)
 	if err != nil {
@@ -19,7 +19,7 @@ func (s *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
 	}
 	defer db.Close()
 
-	if err := db.PingContext(s.ctx); err != nil {
+	if err := db.PingContext(a.ctx); err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "ping database")
 	}
 

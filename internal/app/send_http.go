@@ -10,9 +10,9 @@ import (
 	"github.com/rprtr258/impulse/internal/database"
 )
 
-func (s *App) sendHTTP(req database.HTTPRequest) (database.HTTPResponse, error) {
+func (a *App) sendHTTP(req database.HTTPRequest) (database.HTTPResponse, error) {
 	request, err := http.NewRequestWithContext(
-		s.ctx,
+		a.ctx,
 		req.Method,
 		req.URL,
 		strings.NewReader(req.Body),

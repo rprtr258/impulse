@@ -21,11 +21,11 @@ import {
   ResponseGRPC, RequestGRPC as RequestGRPCT,
   ResponseJQ,   RequestJQ   as RequestJQT,
 } from "./api";
+import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
 import RequestGRPC from "./RequestGRPC.vue";
 import RequestJQ from "./RequestJQ.vue";
-import {database, app} from "wailsjs/go/models";
 
 const notification = useNotification();
 const store = useStore();
@@ -46,7 +46,7 @@ const treeData = computed(() => {
       return {
         key: id,
         label: basename(id),
-        children: [],
+        children: null,
       };
     }));
   return mapper(store.requestsTree.value);

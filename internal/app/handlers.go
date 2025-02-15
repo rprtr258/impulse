@@ -13,19 +13,19 @@ import (
 	"github.com/rprtr258/impulse/internal/database"
 )
 
-func (s *App) list(
+func (a *App) list(
 	node database.Tree,
 	requests map[string]database.Request,
 ) error {
 	for _, requestID := range node.RequestIDs {
-		request, err := database.Get(s.ctx, s.DB, requestID)
+		request, err := database.Get(a.ctx, a.DB, requestID)
 		if err != nil {
 			return errors.Wrapf(err, "get request id=%q", requestID)
 		}
 		requests[string(requestID)] = request
 	}
 	for _, subtree := range node.Dirs {
-		if err := s.list(subtree, requests); err != nil {
+		if err := a.list(subtree, requests); err != nil {
 			return err
 		}
 	}
@@ -43,14 +43,14 @@ type ListResponse struct {
 	History  []map[string]any
 }
 
-func (s *App) List() (ListResponse, error) {
-	tree, err := database.List(s.ctx, s.DB)
+func (a *App) List() (ListResponse, error) {
+	tree, err := database.List(a.ctx, a.DB)
 	if err != nil {
 		return ListResponse{}, errors.Wrap(err, "list requests")
 	}
 
 	requests := make(map[string]database.Request)
-	if err := s.list(tree, requests); err != nil { // TODO: batch
+	if err := a.list(tree, requests); err != nil { // TODO: batch
 		return ListResponse{}, errors.Wrap(err, "get requests info")
 	}
 
@@ -93,7 +93,7 @@ type ResponseNewRequest struct {
 	Request database.HTTPRequest `json:"request"`
 }
 
-func (s *App) Create(
+func (a *App) Create(
 	id string,
 	kind string,
 ) (ResponseNewRequest, error) {
@@ -134,7 +134,7 @@ func (s *App) Create(
 		return ResponseNewRequest{}, errors.Errorf("unknown request kind %q", kind)
 	}
 
-	requestID, err := database.Create(s.ctx, s.DB, database.PayloadRequestCreate{database.RequestID(id), req})
+	requestID, err := database.Create(a.ctx, a.DB, database.PayloadRequestCreate{database.RequestID(id), req})
 	if err != nil {
 		return ResponseNewRequest{}, errors.Wrap(err, "error while creating request")
 	}
@@ -147,17 +147,17 @@ func (s *App) Create(
 	}, nil
 }
 
-func (s *App) Duplicate(id string) error {
-	if err := database.Duplicate(s.ctx, s.DB, id); err != nil {
+func (a *App) Duplicate(id string) error {
+	if err := database.Duplicate(a.ctx, a.DB, id); err != nil {
 		return errors.Wrap(err, "error while duplicating")
 	}
 
 	return nil
 }
 
-func (s *App) Read(requestID string) (database.Request, error) {
+func (a *App) Read(requestID string) (database.Request, error) {
 	request, err := database.Get(
-		s.ctx, s.DB,
+		a.ctx, a.DB,
 		database.RequestID(requestID),
 	)
 	if err != nil {
@@ -167,7 +167,7 @@ func (s *App) Read(requestID string) (database.Request, error) {
 	return request, nil
 }
 
-func (s *App) Update(
+func (a *App) Update(
 	RequestID string,
 	Kind string,
 	NewRequestID string, // TODO: rename field
@@ -209,7 +209,7 @@ func (s *App) Update(
 	}
 
 	if err := database.Update(
-		s.ctx, s.DB,
+		a.ctx, a.DB,
 		database.RequestID(RequestID),
 		database.Kind(Kind),
 		database.RequestID(NewRequestID),
@@ -221,9 +221,9 @@ func (s *App) Update(
 	return nil
 }
 
-func (s *App) Delete(requestID string) error {
+func (a *App) Delete(requestID string) error {
 	if err := database.Delete(
-		s.ctx, s.DB,
+		a.ctx, a.DB,
 		database.RequestID(requestID),
 	); err != nil {
 		return errors.Wrap(err, "delete request")
@@ -255,9 +255,9 @@ func toKV(headers http.Header) []database.KV {
 }
 
 // Perform create a handler that performs call and save result to history
-func (s *App) Perform(requestID string) (map[string]any, error) {
+func (a *App) Perform(requestID string) (map[string]any, error) {
 	request, err := database.Get(
-		s.ctx, s.DB,
+		a.ctx, a.DB,
 		database.RequestID(requestID),
 	)
 	if err != nil {
@@ -269,22 +269,22 @@ func (s *App) Perform(requestID string) (map[string]any, error) {
 	var response database.ResponseData
 	switch request := request.Data.(type) {
 	case database.HTTPRequest:
-		response, err = s.sendHTTP(request)
+		response, err = a.sendHTTP(request)
 		if err != nil {
 			return nil, errors.Wrapf(err, "send http request id=%q", requestID)
 		}
 	case database.SQLRequest:
-		response, err = s.sendSQL(request)
+		response, err = a.sendSQL(request)
 		if err != nil {
 			return nil, errors.Wrapf(err, "send sql request id=%q", requestID)
 		}
 	case database.GRPCRequest:
-		response, err = s.sendGRPC(request)
+		response, err = a.sendGRPC(request)
 		if err != nil {
 			return nil, errors.Wrapf(err, "send grpc request id=%q", requestID)
 		}
 	case database.JQRequest:
-		response, err = sendJQ(s.ctx, request)
+		response, err = sendJQ(a.ctx, request)
 		if err != nil {
 			return nil, errors.Wrapf(err, "send jq request id=%q", requestID)
 		}
@@ -294,7 +294,7 @@ func (s *App) Perform(requestID string) (map[string]any, error) {
 
 	receivedAt := time.Now()
 	if err := database.CreateHistoryEntry(
-		s.ctx, s.DB, database.RequestID(requestID),
+		a.ctx, a.DB, database.RequestID(requestID),
 		sentAt, receivedAt,
 		request.Data, response,
 	); err != nil {

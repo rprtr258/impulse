@@ -5,6 +5,7 @@ import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
+import { h, VNodeChild } from "vue";
 
 type HTTPRequest = Omit<database.HTTPRequest, "createFrom">;
 
@@ -36,6 +37,16 @@ function updateHeaders(value: database.KV[]){
   updateRequest({
     headers: value.filter(({key, value}) => key!=="" || value!==""),
   })
+}
+
+function responseBadge(): VNodeChild {
+  return h(NTag, {
+    type: response.code < 300 ? "success"
+        : response.code < 500 ? "warning"
+        : "error",
+    size: "small",
+    round: true,
+  }, () => response.code ?? "N/A");
 }
 </script>
 
@@ -100,15 +111,10 @@ function updateHeaders(value: database.KV[]){
     >
       <NTabPane
         name="tab-resp-code"
+        :tab="responseBadge"
         disabled
         display-directive="show"
-      ><template>
-        <NTag
-          :type='response.code < 300 ? "success" : response.code < 500 ? "warning" : "error"'
-          size="small"
-          round
-        >{{response.code ?? "N/A"}}</Ntag>
-      </template></NTabPane>
+      ></NTabPane>
       <NTabPane
         name="tab-resp-body"
         tab="Body"
