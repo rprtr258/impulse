@@ -3,7 +3,7 @@
     "env.d.ts",
     "src/**/*",
     "src/**/*.vue",
-    "wailsjs/go/**/*.ts",
+    "wailsjs/go/**/*.ts"
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
