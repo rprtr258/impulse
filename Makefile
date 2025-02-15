@@ -1,4 +1,5 @@
 SHELL := /usr/bin/env bash
+WAILS := go tool github.com/wailsapp/wails/v2/cmd/wails
 
 .DEFAULT_GOAL := dev
 
@@ -19,8 +20,8 @@ db_reinit:
 
 .PHONY: build
 build:
-	wails build
+	${WAILS} build
 
 .PHONY: dev
 dev:
-	wails dev
+	${WAILS} dev
