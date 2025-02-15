@@ -59,7 +59,7 @@ function responseBadge(): VNodeChild {
     type: response.code === 0 ? "success" : "error",
     size: "small",
     round: true,
-  }, () => (response.code /*TODO: as string*/ ?? "N/A") + " " + GRPCCodes[response.code]);
+  }, () => `${response.code ?? "N/A"} ${GRPCCodes[response.code]}`);
 }
 </script>
 
