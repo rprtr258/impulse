@@ -17,11 +17,10 @@ db_reinit:
 	${MAKE} db_drop
 	${MAKE} db_init
 
-.PHONY: run
-run:
-	go mod tidy
-	go run cmd/main.go
+.PHONY: build
+build:
+	wails build
 
 .PHONY: dev
 dev:
-	reflex -sr '(\.go$$)' -- $(MAKE) run
+	wails dev

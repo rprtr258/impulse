@@ -2,18 +2,17 @@ package service
 
 import (
 	"bytes"
-	"context"
 	"net/http"
 	"strings"
 
 	"github.com/pkg/errors"
 
-	"github.com/impulse-http/local-backend/internal/database"
+	"github.com/rprtr258/impulse/internal/database"
 )
 
-func (s *Service) sendHTTP(ctx context.Context, req database.HTTPRequest) (database.HTTPResponse, error) {
+func (s *App) sendHTTP(req database.HTTPRequest) (database.HTTPResponse, error) {
 	request, err := http.NewRequestWithContext(
-		ctx,
+		s.ctx,
 		req.Method,
 		req.URL,
 		strings.NewReader(req.Body),

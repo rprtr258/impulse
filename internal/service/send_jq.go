@@ -9,7 +9,7 @@ import (
 	"github.com/itchyny/gojq"
 	"github.com/pkg/errors"
 
-	"github.com/impulse-http/local-backend/internal/database"
+	"github.com/rprtr258/impulse/internal/database"
 )
 
 func jq(ctx context.Context, input any, query string) ([]string, error) {
@@ -49,7 +49,7 @@ func jq(ctx context.Context, input any, query string) ([]string, error) {
 	return result, nil
 }
 
-func (s *Service) sendJQ(ctx context.Context, request database.JQRequest) (database.JQResponse, error) {
+func sendJQ(ctx context.Context, request database.JQRequest) (database.JQResponse, error) {
 	d := json.NewDecoder(strings.NewReader(request.JSON))
 
 	resps := []string{}
@@ -74,10 +74,7 @@ func (s *Service) sendJQ(ctx context.Context, request database.JQRequest) (datab
 }
 
 // HandlerSend create a handler that performs call and save result to history
-func (s *Service) HandlerJQ(ctx context.Context, req struct {
-	JSON  string `json:"json"`
-	Query string `json:"query"`
-}) ([]string, error) {
-	resp, err := s.sendJQ(ctx, database.JQRequest{req.Query, req.JSON})
+func (s *App) JQ(json, query string) ([]string, error) {
+	resp, err := sendJQ(s.ctx, database.JQRequest{query, json})
 	return resp.Response, err
 }

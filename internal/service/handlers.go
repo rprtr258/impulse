@@ -1,81 +1,89 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
 	"github.com/rprtr258/fun"
 
-	"github.com/impulse-http/local-backend/internal/database"
+	"github.com/rprtr258/impulse/internal/database"
 )
 
-func (s *Service) list(
-	ctx context.Context,
+func (s *App) list(
 	node database.Tree,
 	requests map[string]database.Request,
 ) error {
 	for _, requestID := range node.RequestIDs {
-		request, err := database.Get(ctx, s.DB, requestID)
+		request, err := database.Get(s.ctx, s.DB, requestID)
 		if err != nil {
 			return errors.Wrapf(err, "get request id=%q", requestID)
 		}
 		requests[string(requestID)] = request
 	}
 	for _, subtree := range node.Dirs {
-		if err := s.list(ctx, subtree, requests); err != nil {
+		if err := s.list(subtree, requests); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *Service) HandlerList(ctx context.Context, _ struct{}) (fiber.Map, error) {
-	tree, err := database.List(ctx, s.DB)
+type Tree struct {
+	IDs  []string
+	Dirs map[string]Tree
+}
+
+type ListResponse struct {
+	Tree     Tree
+	Requests map[string]database.Request
+	History  []map[string]any
+}
+
+func (s *App) List() (ListResponse, error) {
+	tree, err := database.List(s.ctx, s.DB)
 	if err != nil {
-		return nil, errors.Wrap(err, "list requests")
+		return ListResponse{}, errors.Wrap(err, "list requests")
 	}
 
 	requests := make(map[string]database.Request)
-	if err := s.list(ctx, tree, requests); err != nil { // TODO: batch
-		return nil, errors.Wrap(err, "get requests info")
+	if err := s.list(tree, requests); err != nil { // TODO: batch
+		return ListResponse{}, errors.Wrap(err, "get requests info")
 	}
 
-	history := []fiber.Map{}
+	history := []map[string]any{}
 	for _, req := range requests {
-		history = append(history, fun.Map[fiber.Map](func(h database.HistoryEntry) fiber.Map {
+		history = append(history, fun.Map[map[string]any](func(h database.HistoryEntry) map[string]any {
 			b, _ := json.Marshal(h)
 
 			m, _ := database.DecodeHistory(req.Data, b)
-			m["request_id"] = req.ID
+			m["RequestId"] = req.ID
 			return m
 		}, req.History...)...)
 	}
-	slices.SortFunc(history, func(i, j fiber.Map) int {
+	slices.SortFunc(history, func(i, j map[string]any) int {
 		return strings.Compare(j["sent_at"].(string), i["sent_at"].(string))
 	})
 
-	var mapper func(database.Tree) fiber.Map
-	mapper = func(tree database.Tree) fiber.Map {
-		result := make(map[string]fiber.Map, len(tree.Dirs))
+	var mapper func(database.Tree) Tree
+	mapper = func(tree database.Tree) Tree {
+		result := make(map[string]Tree, len(tree.Dirs))
 		for k, dir := range tree.Dirs {
 			result[k] = mapper(dir)
 		}
 
-		return fiber.Map{
-			"ids":  fun.Map[string](func(id database.RequestID) string { return string(id) }, tree.RequestIDs...),
-			"dirs": result,
+		return Tree{
+			IDs:  fun.Map[string](func(id database.RequestID) string { return string(id) }, tree.RequestIDs...),
+			Dirs: result,
 		}
 	}
-	return fiber.Map{
-		"tree":     mapper(tree),
-		"requests": requests,
-		"history":  history,
+	return ListResponse{
+		Tree:     mapper(tree),
+		Requests: requests,
+		History:  history,
 	}, nil
 }
 
@@ -85,12 +93,12 @@ type ResponseNewRequest struct {
 	Request database.HTTPRequest `json:"request"`
 }
 
-func (s *Service) HandlerNew(ctx context.Context, request struct {
-	ID   string `json:"id"`
-	Kind string `json:"kind"`
-}) (ResponseNewRequest, error) {
+func (s *App) Create(
+	id string,
+	kind string,
+) (ResponseNewRequest, error) {
 	var req database.RequestData
-	switch request.Kind {
+	switch kind {
 	case "http":
 		req = database.HTTPRequest{
 			"",             // URL // TODO: insert last url used
@@ -123,10 +131,10 @@ func (s *Service) HandlerNew(ctx context.Context, request struct {
 }`, // JSON
 		}
 	default:
-		return ResponseNewRequest{}, errors.Errorf("unknown request kind %q", request.Kind)
+		return ResponseNewRequest{}, errors.Errorf("unknown request kind %q", kind)
 	}
 
-	requestID, err := database.Create(ctx, s.DB, database.PayloadRequestCreate{database.RequestID(request.ID), req})
+	requestID, err := database.Create(s.ctx, s.DB, database.PayloadRequestCreate{database.RequestID(id), req})
 	if err != nil {
 		return ResponseNewRequest{}, errors.Wrap(err, "error while creating request")
 	}
@@ -139,95 +147,89 @@ func (s *Service) HandlerNew(ctx context.Context, request struct {
 	}, nil
 }
 
-func (s *Service) HandlerDuplicate(ctx context.Context, request struct {
-	ID string `json:"id"`
-}) (struct{}, error) {
-	if err := database.Duplicate(ctx, s.DB, request.ID); err != nil {
-		return struct{}{}, errors.Wrap(err, "error while duplicating")
+func (s *App) Duplicate(id string) error {
+	if err := database.Duplicate(s.ctx, s.DB, id); err != nil {
+		return errors.Wrap(err, "error while duplicating")
 	}
 
-	return struct{}{}, nil
+	return nil
 }
 
-func (s *Service) HandlerGet(ctx context.Context, req struct {
-	RequestID string `json:"id"`
-}) (database.Request, error) {
+func (s *App) Read(requestID string) (database.Request, error) {
 	request, err := database.Get(
-		ctx, s.DB,
-		database.RequestID(req.RequestID),
+		s.ctx, s.DB,
+		database.RequestID(requestID),
 	)
 	if err != nil {
-		return database.Request{}, errors.Wrapf(err, "get request id=%q", req.RequestID)
+		return database.Request{}, errors.Wrapf(err, "get request id=%q", requestID)
 	}
 
 	return request, nil
 }
 
-func (s *Service) HandlerUpdate(ctx context.Context, request struct {
-	RequestID    string         `json:"id"`
-	Kind         string         `json:"kind"`
-	NewRequestID string         `json:"name"` // TODO: rename field
-	Request      map[string]any `json:"request"`
-}) (struct{}, error) {
-	b, err := json.Marshal(request.Request)
+func (s *App) Update(
+	RequestID string,
+	Kind string,
+	NewRequestID string, // TODO: rename field
+	Request map[string]any,
+) error {
+	b, err := json.Marshal(Request)
 	if err != nil {
-		return struct{}{}, errors.Wrap(err, "huita request")
+		return errors.Wrap(err, "huita request")
 	}
 
 	var requestt database.RequestData
-	switch request.Kind {
+	switch Kind {
 	case "http":
 		var req database.HTTPRequest
 		if err := json.Unmarshal(b, &req); err != nil {
-			return struct{}{}, errors.Wrap(err, "huita 2 request")
+			return errors.Wrap(err, "huita 2 request")
 		}
 		requestt = req
 	case "sql":
 		var req database.SQLRequest
 		if err := json.Unmarshal(b, &req); err != nil {
-			return struct{}{}, errors.Wrap(err, "huita 3 request")
+			return errors.Wrap(err, "huita 3 request")
 		}
 		requestt = req
 	case "grpc":
 		var req database.GRPCRequest
 		if err := json.Unmarshal(b, &req); err != nil {
-			return struct{}{}, errors.Wrap(err, "huita 4 request")
+			return errors.Wrap(err, "huita 4 request")
 		}
 		requestt = req
 	case "jq":
 		var req database.JQRequest
 		if err := json.Unmarshal(b, &req); err != nil {
-			return struct{}{}, errors.Wrap(err, "huita 5 request")
+			return errors.Wrap(err, "huita 5 request")
 		}
 		requestt = req
 	default:
-		return struct{}{}, errors.Errorf("unknown request kind %q", request.Kind)
+		return errors.Errorf("unknown request kind %q", Kind)
 	}
 
 	if err := database.Update(
-		ctx, s.DB,
-		database.RequestID(request.RequestID),
-		database.Kind(request.Kind),
-		database.RequestID(request.NewRequestID),
+		s.ctx, s.DB,
+		database.RequestID(RequestID),
+		database.Kind(Kind),
+		database.RequestID(NewRequestID),
 		requestt,
 	); err != nil {
-		return struct{}{}, errors.Wrap(err, "update request")
+		return errors.Wrap(err, "update request")
 	}
 
-	return struct{}{}, nil
+	return nil
 }
 
-func (s *Service) HandlerDelete(ctx context.Context, req struct {
-	RequestID string `json:"id"`
-}) (struct{}, error) {
+func (s *App) Delete(requestID string) error {
 	if err := database.Delete(
-		ctx, s.DB,
-		database.RequestID(req.RequestID),
+		s.ctx, s.DB,
+		database.RequestID(requestID),
 	); err != nil {
-		return struct{}{}, errors.Wrap(err, "delete request")
+		return errors.Wrap(err, "delete request")
 	}
 
-	return struct{}{}, nil
+	return nil
 }
 
 func fromKV(kvs []database.KV) http.Header {
@@ -252,16 +254,14 @@ func toKV(headers http.Header) []database.KV {
 	return kvs
 }
 
-// HandlerSend create a handler that performs call and save result to history
-func (s *Service) HandlerSend(ctx context.Context, req struct {
-	RequestID string `json:"id"`
-}) (fiber.Map, error) {
+// Perform create a handler that performs call and save result to history
+func (s *App) Perform(requestID string) (map[string]any, error) {
 	request, err := database.Get(
-		ctx, s.DB,
-		database.RequestID(req.RequestID),
+		s.ctx, s.DB,
+		database.RequestID(requestID),
 	)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get request id=%q", req.RequestID)
+		return nil, errors.Wrapf(err, "get request id=%q", requestID)
 	}
 
 	sentAt := time.Now()
@@ -269,32 +269,32 @@ func (s *Service) HandlerSend(ctx context.Context, req struct {
 	var response database.ResponseData
 	switch request := request.Data.(type) {
 	case database.HTTPRequest:
-		response, err = s.sendHTTP(ctx, request)
+		response, err = s.sendHTTP(request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send http request id=%q", req.RequestID)
+			return nil, errors.Wrapf(err, "send http request id=%q", requestID)
 		}
 	case database.SQLRequest:
-		response, err = s.sendSQL(ctx, request)
+		response, err = s.sendSQL(request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send sql request id=%q", req.RequestID)
+			return nil, errors.Wrapf(err, "send sql request id=%q", requestID)
 		}
 	case database.GRPCRequest:
-		response, err = s.sendGRPC(ctx, request)
+		response, err = s.sendGRPC(request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send grpc request id=%q", req.RequestID)
+			return nil, errors.Wrapf(err, "send grpc request id=%q", requestID)
 		}
 	case database.JQRequest:
-		response, err = s.sendJQ(ctx, request)
+		response, err = sendJQ(s.ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send jq request id=%q", req.RequestID)
+			return nil, errors.Wrapf(err, "send jq request id=%q", requestID)
 		}
 	default:
-		return nil, errors.Errorf("unsupported request type %T", req)
+		return nil, errors.Errorf("unsupported request type %T", request)
 	}
 
 	receivedAt := time.Now()
 	if err := database.CreateHistoryEntry(
-		ctx, s.DB, database.RequestID(req.RequestID),
+		s.ctx, s.DB, database.RequestID(requestID),
 		sentAt, receivedAt,
 		request.Data, response,
 	); err != nil {

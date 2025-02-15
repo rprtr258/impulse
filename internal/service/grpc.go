@@ -23,7 +23,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 
-	"github.com/impulse-http/local-backend/internal/database"
+	"github.com/rprtr258/impulse/internal/database"
 )
 
 func connect(
@@ -186,10 +186,8 @@ type grpcServiceMethods struct {
 	Methods []string `json:"methods"`
 }
 
-func (s *Service) HandlerGRPCMethods(ctx context.Context, req struct {
-	Target string `json:"target"`
-}) ([]grpcServiceMethods, error) {
-	reflSource, cc, err := connect(ctx, req.Target)
+func (s *App) GRPCMethods(target string) ([]grpcServiceMethods, error) {
+	reflSource, cc, err := connect(s.ctx, target)
 	if err != nil {
 		return nil, errors.Wrap(err, "connect")
 	}
@@ -220,17 +218,17 @@ func (s *Service) HandlerGRPCMethods(ctx context.Context, req struct {
 	return res, nil
 }
 
-func (s *Service) HandlerGRPCQueryFake(ctx context.Context, req struct {
-	Target string `json:"target"`
-	Method string `json:"method"` // NOTE: fully qualified
-}) (string, error) {
-	reflSource, cc, err := connect(ctx, req.Target)
+func (s *App) GRPCQueryFake(
+	Target string,
+	Method string, // NOTE: fully qualified
+) (string, error) {
+	reflSource, cc, err := connect(s.ctx, Target)
 	if err != nil {
 		return "", errors.Wrap(err, "connect")
 	}
 	defer cc.Close()
 
-	dsc, err := reflSource.FindSymbol(req.Method)
+	dsc, err := reflSource.FindSymbol(Method)
 	if err != nil {
 		return "", errors.Wrap(err, "find method")
 	}
@@ -296,8 +294,8 @@ func (h *invocationHandler) OnReceiveTrailers(stat *status.Status, md metadata.M
 	}
 }
 
-func (s *Service) sendGRPC(ctx context.Context, req database.GRPCRequest) (database.GRPCResponse, error) {
-	reflSource, cc, err := connect(ctx, req.Target)
+func (s *App) sendGRPC(req database.GRPCRequest) (database.GRPCResponse, error) {
+	reflSource, cc, err := connect(s.ctx, req.Target)
 	if err != nil {
 		return database.GRPCResponse{}, errors.Wrap(err, "connect")
 	}
@@ -314,7 +312,7 @@ func (s *Service) sendGRPC(ctx context.Context, req database.GRPCRequest) (datab
 	meta := metadata.MD{}
 	r := bytes.NewReader([]byte(req.Payload))
 	if err := grpcurl.InvokeRPC(
-		ctx, reflSource, cc, req.Method,
+		s.ctx, reflSource, cc, req.Method,
 		headers,
 		&invocationHandler{
 			onReceiveResponse: func(m proto.Message) {
@@ -362,10 +360,10 @@ func (s *Service) sendGRPC(ctx context.Context, req database.GRPCRequest) (datab
 	}, nil
 }
 
-func (s *Service) HandlerGRPCQueryValidate(ctx context.Context, req struct {
-	Target  string `json:"target"`
-	Method  string `json:"method"` // NOTE: fully qualified
-	Payload string `json:"payload"`
-}) (struct{}, error) {
-	return struct{}{}, errors.New("not implemented")
+func (s *App) GRPCQueryValidate(
+	Target string,
+	Method string, // NOTE: fully qualified
+	Payload string,
+) error {
+	return errors.New("not implemented")
 }

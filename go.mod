@@ -1,11 +1,9 @@
-module github.com/impulse-http/local-backend
+module github.com/rprtr258/impulse
 
 go 1.23.0
 
 require (
 	github.com/fullstorydev/grpcurl v1.9.2
-	github.com/gofiber/contrib/fiberzerolog v1.0.2
-	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/golang/protobuf v1.5.4
 	github.com/itchyny/gojq v0.12.17
 	github.com/jhump/protoreflect v1.17.0
@@ -14,30 +12,43 @@ require (
 	github.com/rprtr258/fun v0.0.31
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/afero v1.11.0
+	github.com/wailsapp/wails/v2 v2.10.0
 	go.nhat.io/aferocopy/v2 v2.0.2
 	google.golang.org/grpc v1.61.0
 	google.golang.org/protobuf v1.34.2
 )
 
 require (
-	github.com/andybalholm/brotli v1.0.6 // indirect
+	github.com/bep/debounce v1.2.1 // indirect
 	github.com/bufbuild/protocompile v0.14.1 // indirect
 	github.com/cncf/xds/go v0.0.0-20231109132714-523115ebc101 // indirect
 	github.com/envoyproxy/go-control-plane v0.11.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.0.2 // indirect
-	github.com/google/uuid v1.5.0 // indirect
+	github.com/go-ole/go-ole v1.3.0 // indirect
+	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.6 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/jchv/go-winloader v0.0.0-20210711035445-715c2860da7e // indirect
+	github.com/labstack/echo/v4 v4.13.3 // indirect
+	github.com/labstack/gommon v0.4.2 // indirect
+	github.com/leaanthony/go-ansi-parser v1.6.1 // indirect
+	github.com/leaanthony/gosod v1.0.4 // indirect
+	github.com/leaanthony/slicer v1.6.0 // indirect
+	github.com/leaanthony/u v1.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/samber/lo v1.49.1 // indirect
+	github.com/tkrajina/go-reflector v0.5.8 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.51.0 // indirect
-	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sync v0.9.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
+	github.com/valyala/fasttemplate v1.2.2 // indirect
+	github.com/wailsapp/go-webview2 v1.0.19 // indirect
+	github.com/wailsapp/mimetype v1.4.1 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 )

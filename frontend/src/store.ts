@@ -1,12 +1,13 @@
 import {reactive, ref} from "vue";
 import {useNotification} from "naive-ui";
 import {
-  api, type HistoryEntry, RequestData, Tree,
+  api, type HistoryEntry, RequestData,
   ResponseSQL, ResponseHTTP, ResponseGRPC, ResponseJQ,
 } from "./api";
+import {service} from '../wailsjs/go/models';
 // import { useTimeoutPoll } from "@vueuse/core";
 
-const requestsTree = ref<Tree>({});
+const requestsTree = ref<service.Tree>(new service.Tree({IDs: [], Dirs: {}}));
 const requests = reactive<Record<string, RequestData>>({});
 const history = reactive<HistoryEntry[]>([]);
 const requestID = ref<string | null>(null);
@@ -30,7 +31,7 @@ export function useStore() {
     },
     selectRequest(id: string) {
       requestID.value = id;
-      response.box = history.find((h: HistoryEntry) => h.request_id === id)?.response ?? null;
+      response.box = history.find((h: HistoryEntry) => h.RequestId === id)?.response ?? null;
     },
     async fetch(): Promise<void> {
       const json = await api.collectionRequests();
@@ -40,9 +41,9 @@ export function useStore() {
       }
 
       const res = json.value;
-      requestsTree.value = res.tree;
-      Object.assign(requests, res.requests);
-      Object.assign(history, res.history);
+      requestsTree.value = res.Tree;
+      Object.assign(requests, res.Requests);
+      Object.assign(history, res.History);
       // TODO: unselect request if it does not exist anymore
     },
     async createRequest(id: string, kind: RequestData["kind"]) {

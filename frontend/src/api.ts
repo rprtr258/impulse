@@ -1,4 +1,6 @@
 import {err, ok, Result} from "./result";
+import * as app from "../wailsjs/go/service/App";
+import {database, service} from '../wailsjs/go/models';
 
 const _baseURL = "http://localhost:8090/api";
 
@@ -38,12 +40,7 @@ export const GRPCCodes = {
 } as const;
 export type GRPCCode = keyof typeof GRPCCodes;
 
-export interface RequestHTTP {
-  url: string,
-  method: Method,
-  body?: string,
-  headers: Parameter[],
-}
+export type RequestHTTP = database.HTTPRequest;
 
 export const Database = {
   postgres:   "PG",
@@ -107,7 +104,7 @@ export type ResponseData =
   | {kind: "jq"} & ResponseJQ;
 
 export type HistoryEntry = {
-  request_id: string,
+  RequestId: string,
   sent_at: Date,
   received_at: Date,
 } & ({
@@ -155,31 +152,28 @@ async function apiCall<T>(route: string, params: object): Promise<Result<T>> { /
   }
 }
 
-export interface Tree {
-  ids?: string[],
-  dirs?: Record<string, Tree>,
-}
-
-interface CollectionGetResponse {
-  tree: Tree,
-  requests: Record<string, Request>,
-  history: HistoryEntry[],
-}
-
 function parseTime(s: string): Date {
   const d = new Date();
   d.setTime(Date.parse(s));
   return d;
 };
 
+async function wrap<T>(f: () => Promise<T>): Promise<Result<T>> {
+  try {
+    return ok(await f());
+  } catch (e) {
+    return err(`${e}`);
+  }
+}
+
 export const api = {
-  async collectionRequests(): Promise<Result<CollectionGetResponse>> {
-    const y = await apiCall<CollectionGetResponse>("/list", {});
+  async collectionRequests(): Promise<Result<service.ListResponse>> {
+    const y = await wrap(() => app.List());
     return y.map(x => {
-      for (const req of x.history) {
+      for (const req of x.History) {
         req.sent_at = parseTime(req.sent_at as unknown as string);
       }
-      x.history.sort((a, b) => b.sent_at.getTime() - a.sent_at.getTime());
+      x.History.sort((a, b) => b.sent_at.getTime() - a.sent_at.getTime());
       return x;
     });
   },
@@ -187,19 +181,14 @@ export const api = {
   async requestCreate(
     name: string,
     kind: RequestData["kind"],
-  ): Promise<Result<void>> {
-    return apiCall("/create", {
-      id: name,
-      kind: kind,
-    });
+  ): Promise<Result<service.ResponseNewRequest>> {
+    return await wrap(() => app.Create(name, kind));
   },
 
   async requestDuplicate(
     name: string,
   ): Promise<Result<void>> {
-    return apiCall("/duplicate", {
-      id: name,
-    });
+    return await wrap(() => app.Duplicate(name));
   },
 
   async requestUpdate(
@@ -208,49 +197,29 @@ export const api = {
     req: Omit<RequestData, "kind">,
     name: string | null = null,
   ): Promise<Result<void>> {
-    return await apiCall("/update", {
-      id: reqId,
-      kind: kind,
-      name: name ?? reqId,
-      request: req,
-    });
+    return await wrap(() => app.Update(reqId, kind, name ?? reqId, req));
   },
 
   async requestPerform(
     reqId: string,
   ): Promise<Result<ResponseData>> {
-    return await apiCall("/perform", {
-      id: reqId,
-    });
+    return await wrap(() => app.Perform(reqId)) as Result<ResponseData>;
   },
 
   async requestDelete(
     reqId: string,
   ): Promise<Result<void>> {
-    return await apiCall("/delete", {
-      id: reqId,
-    });
+    return await wrap(() => app.Delete(reqId));
   },
 
   async jq(
     data: string,
     query: string,
   ): Promise<Result<string[]>> {
-    return await apiCall<string[]>("/jq", {
-      json: data,
-      query: query,
-    });
+    return await wrap(() => app.JQ(data, query));
   },
 
-  async grpcMethods(target: string): Promise<Result<{
-    service: string,
-    methods: string[],
-  }[]>> {
-    return await apiCall<{
-      service: string,
-      methods: string[],
-    }[]>("/grpc/methods", {
-      target: target,
-    });
+  async grpcMethods(target: string): Promise<Result<service.grpcServiceMethods[]>> {
+    return await wrap(() => app.GRPCMethods(target));
   },
 };

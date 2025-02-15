@@ -15,7 +15,7 @@ import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
 import {useStore} from "./store";
 import {
-  Method, RequestData, Kinds, Database, Tree,
+  Method, RequestData, Kinds, Database,
   ResponseHTTP, RequestHTTP as RequestHTTPT,
   ResponseSQL,  RequestSQL  as RequestSQLT,
   ResponseGRPC, RequestGRPC as RequestGRPCT,
@@ -25,6 +25,7 @@ import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
 import RequestGRPC from "./RequestGRPC.vue";
 import RequestJQ from "./RequestJQ.vue";
+import { service } from "wailsjs/go/models";
 
 const notification = useNotification();
 const store = useStore();
@@ -36,12 +37,12 @@ function basename(id: string): string {
   return id.split("/").pop() ?? "";
 }
 const treeData = computed(() => {
-  const mapper = (tree: Tree): TreeOption[] =>
-    Object.entries(tree.dirs ?? {}).map(([k, v]) => ({
+  const mapper = (tree: service.Tree): TreeOption[] =>
+    Object.entries(tree.Dirs ?? {}).map(([k, v]) => ({
       key: k,
       label: basename(k),
       children: mapper(v),
-    })).concat((tree.ids ?? []).map(id => {
+    })).concat((tree.IDs ?? []).map(id => {
       return {
         key: id,
         label: basename(id),
@@ -357,16 +358,16 @@ const sidebarHidden = ref(false);
           <NListItem
             v-for="r, i in store.history"
             :key="i"
-            v-on:click="selectRequest(r.request_id)"
+            v-on:click="selectRequest(r.RequestId)"
             class="history-card card"
           >
             <div class="headline">
               <NTag
                 class="method"
                 size="small"
-                :style="`width: 4em; justify-content: center; color: ${badge(store.requests[r.request_id])[1]}`"
-              >{{badge(store.requests[r.request_id])[0]}}</Ntag>
-              <span class='url' style="padding-left: .5em;">{{r.request_id}}</span>
+                :style="`width: 4em; justify-content: center; color: ${badge(store.requests[r.RequestId])[1]}`"
+              >{{badge(store.requests[r.RequestId])[0]}}</Ntag>
+              <span class='url' style="padding-left: .5em;">{{r.RequestId}}</span>
             </div>
             <div class='footer'>
               <span style='color: grey;' class='date'>{{fromNow(r.sent_at)}}</span>
