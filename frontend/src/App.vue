@@ -42,10 +42,11 @@ const treeData = computed(() => {
       key: k,
       label: basename(k),
       children: mapper(v),
-    })).concat((tree.IDs ?? []).map(id => {
+    })).concat(tree.IDs.map(id => {
       return {
         key: id,
         label: basename(id),
+        children: [],
       };
     }));
   return mapper(store.requestsTree.value);
