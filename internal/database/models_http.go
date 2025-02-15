@@ -5,6 +5,7 @@ import json2 "github.com/rprtr258/fun/exp/json"
 const KindHTTP Kind = "http"
 
 func init() {
+	AllKinds = append(AllKinds, enumElem[Kind]{KindHTTP, "HTTP"})
 	decodersRequest[KindHTTP] = json2.Map(decoderRequestMap, decoderRequestHTTP)
 	decodersResponse[KindHTTP] = json2.Map(decoderResponseMap, decoderResponseHTTP)
 }

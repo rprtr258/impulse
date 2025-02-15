@@ -33,11 +33,11 @@ export const GRPCCodes = {
 } as const;
 export type GRPCCode = keyof typeof GRPCCodes;
 
-export const Database = {
-  postgres:   "PG",
-  mysql:      "MY",
-  sqlite:     "LITE",
-  clickhouse: "CH",
+export const Database: Record<database.Database, string> = {
+  [database.Database.POSTGRES]:   "PG",
+  [database.Database.MYSQL]:      "MY",
+  [database.Database.SQLITE]:     "LITE",
+  [database.Database.CLICKHOUSE]: "CH",
 } as const;
 export type Database = keyof typeof Database;
 
@@ -91,7 +91,7 @@ export interface ResponseSQL {
   rows: unknown[][],
 };
 
-export const Kinds = ["http", "sql", "grpc", "jq"] as const;
+export const Kinds = Object.values(database.Kind);
 export type ResponseData =
   | {kind: "http"} & ResponseHTTP
   | {kind: "sql"} & ResponseSQL

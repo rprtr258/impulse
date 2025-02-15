@@ -37,6 +37,12 @@ var decoderKind = json2.Map(func(kind string) Kind {
 func decoderRequestMap[T RequestData](dest T) RequestData    { return dest }
 func decoderResponseMap[T ResponseData](dest T) ResponseData { return dest }
 
+type enumElem[T any] struct {
+	Value  T
+	TSName string
+}
+
+var AllKinds []enumElem[Kind]
 var decodersRequest = map[Kind]json2.Decoder[RequestData]{}
 var decodersResponse = map[Kind]json2.Decoder[ResponseData]{}
 var decoderRequestData = json2.AndThen(

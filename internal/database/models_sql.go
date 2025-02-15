@@ -9,6 +9,7 @@ import (
 const KindSQL Kind = "sql"
 
 func init() {
+	AllKinds = append(AllKinds, enumElem[Kind]{KindSQL, "SQL"})
 	decodersRequest[KindSQL] = json2.Map(decoderRequestMap, decoderRequestSQL)
 	decodersResponse[KindSQL] = json2.Map(decoderResponseMap, decoderResponseSQL)
 }
@@ -66,6 +67,13 @@ const (
 	SQLite     Database = "sqlite"
 	Clickhouse Database = "clickhouse"
 )
+
+var AllDatabases = []enumElem[Database]{
+	{Postgres, "POSTGRES"},
+	{MySQL, "MYSQL"},
+	{SQLite, "SQLITE"},
+	{Clickhouse, "CLICKHOUSE"},
+}
 
 type SQLRequest struct {
 	DSN      string   `json:"dsn"`

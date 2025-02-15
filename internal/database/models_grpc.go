@@ -7,6 +7,7 @@ import (
 const KindGRPC Kind = "grpc"
 
 func init() {
+	AllKinds = append(AllKinds, enumElem[Kind]{KindGRPC, "GRPC"})
 	decodersRequest[KindGRPC] = json2.Map(decoderRequestMap, decoderRequestGRPC)
 	decodersResponse[KindGRPC] = json2.Map(decoderResponseMap, decoderResponseGRPC)
 }

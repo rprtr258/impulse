@@ -120,6 +120,18 @@ export namespace app {
 
 export namespace database {
 	
+	export enum Kind {
+	    GRPC = "grpc",
+	    HTTP = "http",
+	    JQ = "jq",
+	    SQL = "sql",
+	}
+	export enum Database {
+	    POSTGRES = "postgres",
+	    MYSQL = "mysql",
+	    SQLITE = "sqlite",
+	    CLICKHOUSE = "clickhouse",
+	}
 	export class KV {
 	    key: string;
 	    value: string;

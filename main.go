@@ -12,6 +12,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
 	"github.com/rprtr258/impulse/internal/app"
+	"github.com/rprtr258/impulse/internal/database"
 )
 
 //go:embed all:frontend/dist
@@ -34,9 +35,8 @@ func run() error {
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        startup,
-		Bind: []interface{}{
-			app,
-		},
+		Bind:             []any{app},
+		EnumBind:         []any{database.AllKinds, database.AllDatabases},
 	})
 }
 

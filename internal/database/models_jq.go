@@ -5,6 +5,7 @@ import json2 "github.com/rprtr258/fun/exp/json"
 const KindJQ Kind = "jq"
 
 func init() {
+	AllKinds = append(AllKinds, enumElem[Kind]{KindJQ, "JQ"})
 	decodersRequest[KindJQ] = json2.Map(decoderRequestMap, decoderRequestJQ)
 	decodersResponse[KindJQ] = json2.Map(decoderResponseMap, decoderResponseJQ)
 }
