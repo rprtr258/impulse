@@ -67,7 +67,7 @@ function responseBadge(): VNodeChild {
     <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
   </NInputGroup>
   <NTabs
-    type="card"
+    type="line"
     size="small"
     class="h100"
   >

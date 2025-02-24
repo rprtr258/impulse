@@ -52,7 +52,8 @@ const treeData = computed(() => {
   return mapper(store.requestsTree.value);
 });
 function renameRequest(id: string, newID: string) {
-  const selectedID = store.requestID.value;
+  const tabs = store.tabs.value!;
+  const selectedID = tabs[0].list[tabs[1]];
   store.rename(id, newID);
   if (selectedID !== null && id === selectedID) {
     selectRequest(newID);
@@ -82,8 +83,19 @@ function selectRequest(id: string) {
   store.selectRequest(id);
   location.value.hash = id;
 }
+function handleClose(id: string) {
+  store.tabs.value!.map.remove(id);
+  store.tabs.value = {map: store.tabs.value?.map, index: store.tabs.value?.index};
+}
 onMounted(() => {
   store.fetch().then(() => {
+    const oldTabs = localStorage.getItem("tabs");
+    if (oldTabs !== null) {
+      for (const id of JSON.parse(oldTabs)) {
+        store.selectRequest(id);
+      }
+    }
+
     if (location.value.hash !== "#") {
       const id = decodeURI((location.value.hash ?? "").slice(1)); // remove '#'
       if (store.requests[id] === undefined) {
@@ -95,6 +107,13 @@ onMounted(() => {
     }
   });
 });
+watch(() => store.tabs.value, () => {
+  if (store.tabs.value) {
+    localStorage.setItem("tabs", JSON.stringify(store.tabs.value?.map.list ?? []));
+  } else {
+    localStorage.removeItem("tabs");
+  }
+}, {deep: true});
 
 function fromNow(date: Date): string {
   const now = new Date();
@@ -331,7 +350,7 @@ const sidebarHidden = ref(false);
           <NTree
             block-line
             expand-on-click
-            :selected-keys='[(store.requestID.value ?? "")]'
+            :selected-keys='[(store.tabs.value ? store.tabs.value.map.list[store.tabs.value.index] : "")]'
             :show-line="true"
             :data="treeData"
             :draggable="true"
@@ -396,43 +415,58 @@ const sidebarHidden = ref(false);
     </NButton>
   </aside>
   <div style="color: rgba(255, 255, 255, 0.82); background-color: rgb(16, 16, 20); overflow: hidden;">
-    <template v-if="store.request() === null">
-      <NResult
-        status="info"
-        title="Pick request"
-        description="Pick request to see it, edit and send and do other fun things."
-        class="h100"
-        style="align-content: center;"
-      />
-    </template><template v-else-if='store.request()!.kind === "http"'>
+    <NResult
+      v-if="store.tabs.value === null"
+      status="info"
+      title="Pick request"
+      description="Pick request to see it, edit and send and do other fun things."
+      class="h100"
+      style="align-content: center;"
+    />
+    <NTabs
+      v-else
+      closable
+      v-on:close="handleClose"
+      type="card"
+      size="small"
+      :value="store.tabs.value.map.list[store.tabs.value.index]"
+      v-on:update-value="(id) => selectRequest(id)"
+    ><NTabPane
+      v-for="id in store.tabs.value.map.list"
+      :key="id"
+      :name="id"
+      :tab="id"
+      display-directive="if"
+    >
       <RequestHTTP
+        v-if='store.request()!.kind === "http"'
         :request="store.request() as database.HTTPRequest"
-        :response="(store.response.box ?? undefined) as ResponseHTTP | undefined"
-        v-on:send="() => store.send(store.requestID.value!)"
-        v-on:update="(request) => store.update(store.requestID.value!, request)"
+        :response="store.tabs.value.map[id] as ResponseHTTP | undefined"
+        v-on:send="() => store.send(id)"
+        v-on:update="(request) => store.update(id, request)"
       />
-    </template><template v-else-if='store.request()!.kind === "sql"'>
       <RequestSQL
+        v-else-if='store.request()!.kind === "sql"'
         :request="store.request() as RequestSQLT"
-        :response="(store.response.box ?? undefined) as ResponseSQL | undefined"
-        v-on:send="() => store.send(store.requestID.value!)"
-        v-on:update="(request) => store.update(store.requestID.value!, request)"
+        :response="store.tabs.value.map[id] as ResponseSQL | undefined"
+        v-on:send="() => store.send(id)"
+        v-on:update="(request) => store.update(id, request)"
       />
-    </template><template v-else-if='store.request()!.kind === "grpc"'>
       <RequestGRPC
+        v-else-if='store.request()!.kind === "grpc"'
         :request="store.request() as RequestGRPCT"
-        :response="(store.response.box ?? undefined) as ResponseGRPC | undefined"
-        v-on:send="() => store.send(store.requestID.value!)"
-        v-on:update="(request) => store.update(store.requestID.value!, request)"
+        :response="store.tabs.value.map[id] as ResponseGRPC | undefined"
+        v-on:send="() => store.send(id)"
+        v-on:update="(request) => store.update(id, request)"
       />
-    </template><template v-else-if='store.request()!.kind === "jq"'>
       <RequestJQ
+        v-else-if='store.request()!.kind === "jq"'
         :request="store.request() as RequestJQT"
-        :response="(store.response.box ?? undefined) as ResponseJQ | undefined"
-        v-on:send="() => store.send(store.requestID.value!)"
-        v-on:update="(request) => store.update(store.requestID.value!, request)"
+        :response="store.tabs.value.map[id] as ResponseJQ | undefined"
+        v-on:send="() => store.send(id)"
+        v-on:update="(request) => store.update(id, request)"
       />
-    </template>
+    </NTabPane></NTabs>
   </div>
 </div>
 </template>

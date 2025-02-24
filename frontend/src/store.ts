@@ -5,33 +5,110 @@ import {
   ResponseSQL, ResponseHTTP, ResponseGRPC, ResponseJQ,
 } from "./api";
 import {app} from '../wailsjs/go/models';
-// import { useTimeoutPoll } from "@vueuse/core";
+
+interface OrderedMap<V> {
+  list: string[],
+  map: Record<string, V>,
+  length(): number,
+  has(key: string): boolean,
+  index(key: string): number | null,
+  add(key: string, value: V): void,
+  remove(key: string): void,
+  removeAt(index: number): void,
+  clear(): void,
+}
+
+function orderedMap<V>(map: Record<string, V>): OrderedMap<V> {
+  const list: string[] = Object.keys(map);
+  return {
+    list,
+    map,
+    length(): number {
+      return list.length;
+    },
+    has(key: string): boolean {
+      return map.hasOwnProperty(key);
+    },
+    index(key: string): number | null {
+      const index = list.indexOf(key);
+      return index === -1 ? null : index;
+    },
+    add(key: string, value: V) {
+      if (this.has(key)) {
+        return;
+      }
+      list.push(key);
+      map[key] = value;
+    },
+    remove(key: string) {
+      const index = list.indexOf(key);
+      if (index === -1) {
+        return;
+      }
+      this.removeAt(index);
+    },
+    removeAt(index: number) {
+      list.splice(index, 1);
+      delete map[list[index]];
+    },
+    clear() {
+      list.splice(0, list.length);
+      map = {};
+    },
+  };
+}
 
 const requestsTree = ref<app.Tree>(new app.Tree({IDs: [], Dirs: {}}));
 const requests = reactive<Record<string, RequestData>>({});
 const history = reactive<HistoryEntry[]>([]);
-const requestID = ref<string | null>(null);
-const response = reactive<{box: ResponseHTTP | ResponseSQL | ResponseGRPC | ResponseJQ | null}>({box: null});
 
 export function useStore() {
   const notify = (...args) => useNotification().error({title: "Error", content: args.map(arg => arg.toString()).join("\n")});
+  const tabs = reactive<{value: {
+    map: OrderedMap<ResponseHTTP | ResponseSQL | ResponseGRPC | ResponseJQ | null>,
+    index: number,
+  } | null}>({value: null});
 
   return {
     requestsTree,
     requests,
     history,
-    requestID,
-    response,
+    tabs,
     request(): RequestData | null {
-      const id = requestID.value;
-      if (id === null) {
+      const tabsValue = tabs.value;
+      if (tabsValue === null) {
         return null;
       }
-      return requests[id] ?? null;
+      const {map: requestIDs, index} = tabsValue;
+      return requests[requestIDs.list[index]] ?? null;
     },
     selectRequest(id: string) {
-      requestID.value = id;
-      response.box = history.find((h: HistoryEntry) => h.RequestId === id)?.response ?? null;
+      function getResponse() {
+        return history.find((h: HistoryEntry) => h.RequestId === id)?.response ?? null;
+      }
+
+      const tabsValue = tabs.value;
+      if (tabsValue === null) {
+        // no tabs open, create one
+        return tabs.value = {
+          map: orderedMap({[id]: getResponse()}),
+          index: 0,
+        };
+      }
+
+      const requestIDs = tabsValue.map;
+      const indexNew = requestIDs.index(id);
+      if (indexNew === null) {
+        // tab with such id not found, add new
+        requestIDs.add(id, getResponse());
+        tabs.value = {
+          map: requestIDs,
+          index: requestIDs.length() - 1,
+        };
+        return;
+      }
+
+      tabsValue.index = indexNew;
     },
     async fetch(): Promise<void> {
       const json = await api.collectionRequests();
@@ -83,12 +160,12 @@ export function useStore() {
         return;
       }
 
-      response.box = res.value;
+      tabs.value!.map.map[id] = res.value;
       await this.fetch();
       this.selectRequest(id);
     },
     async update(id: string, req: Omit<RequestData, "kind">) {
-      requestID.value = id;
+      this.selectRequest(id);
       const request = this.request();
       if (request === null) {
         notify(`Could update request: ${id}`);
@@ -116,10 +193,3 @@ export function useStore() {
     },
   };
 }
-
-// TODO: use SSE
-// const {} = useTimeoutPoll(() => {
-//   if (store) {
-//     store.fetch();
-//   }
-// }, 1000);

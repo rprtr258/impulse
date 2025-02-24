@@ -42,7 +42,7 @@ watch(() => response, () => {
   buttonDisabled.value = false;
 });
 
-watch(() => store.requestID, () => {
+watch(() => store.tabs, () => {
   dsn.value = request.dsn;
   query.value = request.query;
   buttonDisabled.value = false;
