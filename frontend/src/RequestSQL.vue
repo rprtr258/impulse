@@ -112,7 +112,7 @@ const data = computed(() => {
   <NLayoutHeader>
     <NInputGroup>
       <NSelect
-        :options="Object.keys(Database).map(db => ({label: Database[db], value: db}))"
+        :options="Object.keys(Database).map(db => ({label: Database[db as keyof typeof Database], value: db}))"
         :value="request.database"
         v-on:update:value="(database: Database) => updateRequest({database: database})"
         style="width: 10%;"

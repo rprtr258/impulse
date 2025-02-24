@@ -40,13 +40,14 @@ function updateHeaders(value: database.KV[]){
 }
 
 function responseBadge(): VNodeChild {
+  const code = response!.code;
   return h(NTag, {
-    type: response.code < 300 ? "success"
-        : response.code < 500 ? "warning"
+    type: code < 300 ? "success"
+        : code < 500 ? "warning"
         : "error",
     size: "small",
     round: true,
-  }, () => response.code ?? "N/A");
+  }, () => code ?? "N/A");
 }
 </script>
 

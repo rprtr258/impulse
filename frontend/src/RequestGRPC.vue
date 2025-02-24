@@ -55,11 +55,12 @@ const selectOptions = computed(() => methods.value.map(svc => ({
 })));
 
 function responseBadge(): VNodeChild {
+  const code = response!.code;
   return h(NTag, {
-    type: response.code === 0 ? "success" : "error",
+    type: code === 0 ? "success" : "error",
     size: "small",
     round: true,
-  }, () => `${response.code ?? "N/A"} ${GRPCCodes[response.code]}`);
+  }, () => `${code ?? "N/A"} ${GRPCCodes[code]}`);
 }
 </script>
 

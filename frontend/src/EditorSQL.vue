@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {onMounted, useTemplateRef, watch} from "vue";
-import {EditorState} from "@codemirror/state";
+import {ChangeSpec, EditorState} from "@codemirror/state";
 import {EditorView} from "@codemirror/view";
 import {PostgreSQL, sql} from "@codemirror/lang-sql";
 import {defaultEditorExtensions, defaultExtensions} from "./editor";
@@ -36,7 +36,7 @@ watch(() => value, () => {
   if (value === editor.state.doc.toString()) return;
 
   editor.dispatch({
-    changes: {from: 0, to: editor.state.doc.length, insert: value},
+    changes: {from: 0, to: editor.state.doc.length, insert: value} as ChangeSpec,
   });
 });
 </script>

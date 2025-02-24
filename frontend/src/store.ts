@@ -58,7 +58,7 @@ const requests = reactive<Record<string, RequestData>>({});
 const history = reactive<HistoryEntry[]>([]);
 
 export function useStore() {
-  const notify = (...args) => useNotification().error({title: "Error", content: args.map(arg => arg.toString()).join("\n")});
+  const notify = (...args: any[]) => useNotification().error({title: "Error", content: args.map(arg => arg.toString()).join("\n")});
   const tabs = reactive<{value: {
     map: OrderedMap<ResponseHTTP | ResponseSQL | ResponseGRPC | ResponseJQ | null>,
     index: number,
