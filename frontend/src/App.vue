@@ -46,14 +46,14 @@ const treeData = computed(() => {
       return {
         key: id,
         label: basename(id),
-        children: null,
+        children: [],
       };
     }));
   return mapper(store.requestsTree.value);
 });
 function renameRequest(id: string, newID: string) {
   const tabs = store.tabs.value!;
-  const selectedID = tabs[0].list[tabs[1]];
+  const selectedID = tabs.map.list[tabs.index];
   store.rename(id, newID);
   if (selectedID !== null && id === selectedID) {
     selectRequest(newID);
@@ -219,7 +219,7 @@ function rename() {
 
 function badge(req: RequestData): [string, string] {
   switch (req.kind) {
-  case "http": return [Method[req.method], "lime"];
+  case "http": return [Method[req.method as keyof typeof Method], "lime"];
   case "sql": return [Database[req.database], "bluewhite"];
   case "grpc": return ["GRPC", "cyan"];
   case "jq": return ["JQ", "violet"];
@@ -459,28 +459,28 @@ const sidebarHidden = ref(false);
       <RequestHTTP
         v-if='store.request()!.kind === "http"'
         :request="store.request() as database.HTTPRequest"
-        :response="store.tabs.value.map[id] as ResponseHTTP | undefined"
+        :response="store.tabs.value.map.map[id] as ResponseHTTP | undefined"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestSQL
         v-else-if='store.request()!.kind === "sql"'
         :request="store.request() as RequestSQLT"
-        :response="store.tabs.value.map[id] as ResponseSQL | undefined"
+        :response="store.tabs.value.map.map[id] as ResponseSQL | undefined"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestGRPC
         v-else-if='store.request()!.kind === "grpc"'
         :request="store.request() as RequestGRPCT"
-        :response="store.tabs.value.map[id] as ResponseGRPC | undefined"
+        :response="store.tabs.value.map.map[id] as ResponseGRPC | undefined"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestJQ
         v-else-if='store.request()!.kind === "jq"'
         :request="store.request() as RequestJQT"
-        :response="store.tabs.value.map[id] as ResponseJQ | undefined"
+        :response="store.tabs.value.map.map[id] as ResponseJQ | undefined"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
