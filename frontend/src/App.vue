@@ -84,8 +84,26 @@ function selectRequest(id: string) {
   location.value.hash = id;
 }
 function handleClose(id: string) {
-  store.tabs.value!.map.remove(id);
-  store.tabs.value = {map: store.tabs.value?.map, index: store.tabs.value?.index};
+  const v = store.tabs.value;
+  if (v === null) {
+    return;
+  }
+  if (v.map.list.length === 1) {
+    store.tabs.value = null;
+    return;
+  }
+
+  // adjust index
+  const idx = v.map.index(id);
+  if (idx === null) {
+    return;
+  }
+  if (idx <= v.index) {
+    v.index = Math.max(v.index - 1, 0);
+  }
+  v!.map.remove(id);
+  store.tabs.value = {map: v.map, index: v.index};
+  selectRequest(v.map.list[v.index]);
 }
 onMounted(() => {
   store.fetch().then(() => {

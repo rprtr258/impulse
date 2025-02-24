@@ -15,7 +15,6 @@ interface OrderedMap<V> {
   add(key: string, value: V): void,
   remove(key: string): void,
   removeAt(index: number): void,
-  clear(): void,
 }
 
 function orderedMap<V>(map: Record<string, V>): OrderedMap<V> {
@@ -50,10 +49,6 @@ function orderedMap<V>(map: Record<string, V>): OrderedMap<V> {
     removeAt(index: number) {
       list.splice(index, 1);
       delete map[list[index]];
-    },
-    clear() {
-      list.splice(0, list.length);
-      map = {};
     },
   };
 }
