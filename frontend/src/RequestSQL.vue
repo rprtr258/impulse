@@ -11,7 +11,7 @@ const store = useStore();
 
 const {request, response} = defineProps<{
   request: RequestSQL,
-  response?: ResponseSQL,
+  response: ResponseSQL | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -49,7 +49,7 @@ watch(() => store.tabs, () => {
 });
 
 const columns = computed(() => {
-  if (response === undefined) {
+  if (response === null) {
     return [];
   }
 
@@ -93,7 +93,7 @@ const columns = computed(() => {
 });
 // TODO: fix duplicate column names
 const data = computed(() => {
-  if (response === undefined) {
+  if (response === null) {
     return [];
   }
 
@@ -139,7 +139,7 @@ const data = computed(() => {
         />
       </template>
       <template #2>
-        <template v-if="response === undefined">
+        <template v-if="response === null">
           <NEmpty
             description="Run query or choose one from history."
             class="h100"

@@ -9,7 +9,7 @@ import ParamsList from "./ParamsList.vue";
 
 const {request, response} = defineProps<{
   request: RequestGRPC,
-  response?: ResponseGRPC,
+  response: ResponseGRPC | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -125,7 +125,7 @@ function responseBadge(): VNodeChild {
       </div> -->
     </NTabPane>
   </NTabs>
-  <template v-if="response === undefined">
+  <template v-if="response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"

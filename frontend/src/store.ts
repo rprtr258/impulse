@@ -1,4 +1,4 @@
-import {reactive, ref} from "vue";
+import {onUpdated, reactive, ref, watch} from "vue";
 import {useNotification} from "naive-ui";
 import {
   api, type HistoryEntry, RequestData,
@@ -63,6 +63,27 @@ export function useStore() {
     map: OrderedMap<ResponseHTTP | ResponseSQL | ResponseGRPC | ResponseJQ | null>,
     index: number,
   } | null}>({value: null});
+  watch(() => requests, () => {
+    if (!tabs.value) {
+      return;
+    }
+
+    const idsToRemove = tabs.value.map.list.filter((id: string) => !requests[id]);
+    if (idsToRemove.length === 0) {
+      return;
+    } else if (idsToRemove.length === tabs.value.map.length()) {
+      tabs.value = null;
+      return;
+    }
+
+    for (const id of idsToRemove) {
+      const i = tabs.value.map.index(id)!;
+      tabs.value.map.removeAt(i);
+      if (tabs.value.index === i && tabs.value.index > 0) {
+        tabs.value.index--;
+      }
+    }
+  }, {immediate: true, deep: true});
 
   return {
     requestsTree,
@@ -142,7 +163,6 @@ export function useStore() {
         notify(`Could not delete request: ${res.value}`);
         return;
       }
-
       if (requests[id]) {
         delete requests[id];
       }

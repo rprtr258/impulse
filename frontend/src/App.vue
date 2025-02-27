@@ -460,28 +460,28 @@ const sidebarHidden = ref(false);
       <RequestHTTP
         v-if='store.request()!.kind === "http"'
         :request="store.request() as database.HTTPRequest"
-        :response="store.tabs.value.map.map[id] as ResponseHTTP | undefined"
+        :response="store.tabs.value.map.map[id] as ResponseHTTP ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestSQL
         v-else-if='store.request()!.kind === "sql"'
         :request="store.request() as RequestSQLT"
-        :response="store.tabs.value.map.map[id] as ResponseSQL | undefined"
+        :response="store.tabs.value.map.map[id] as ResponseSQL ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestGRPC
         v-else-if='store.request()!.kind === "grpc"'
         :request="store.request() as RequestGRPCT"
-        :response="store.tabs.value.map.map[id] as ResponseGRPC | undefined"
+        :response="store.tabs.value.map.map[id] as ResponseGRPC ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestJQ
         v-else-if='store.request()!.kind === "jq"'
         :request="store.request() as RequestJQT"
-        :response="store.tabs.value.map.map[id] as ResponseJQ | undefined"
+        :response="store.tabs.value.map.map[id] as ResponseJQ ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />

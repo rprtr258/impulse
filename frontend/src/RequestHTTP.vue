@@ -11,7 +11,7 @@ type HTTPRequest = Omit<database.HTTPRequest, "createFrom">;
 
 const {request, response} = defineProps<{
   request: HTTPRequest,
-  response?: ResponseHTTP,
+  response: ResponseHTTP | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -96,7 +96,7 @@ function responseBadge(): VNodeChild {
       />
     </NTabPane>
   </NTabs>
-  <template v-if="response === undefined">
+  <template v-if="response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"

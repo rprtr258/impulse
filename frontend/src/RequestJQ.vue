@@ -7,7 +7,7 @@ import EditorJSON from "./EditorJSON.vue";
 
 const {request, response} = defineProps<{
   request: RequestJQ,
-  response?: ResponseJQ,
+  response: ResponseJQ | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -40,7 +40,7 @@ const responseText = computed(() => (response?.response ?? []).join("\n"));
     v-on:update="(value: string) => updateRequest({json: value})"
   />
   <div v-if="jqerror !== null" style="position: fixed; color: red; bottom: 3em;">{{jqerror}}</div>
-  <template v-if="response === undefined">
+  <template v-if="response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
