@@ -444,6 +444,7 @@ const sidebarHidden = ref(false);
       v-else
       closable
       v-on:close="handleClose"
+      class="h100"
       type="card"
       size="small"
       :value="store.tabs.value.map.list[store.tabs.value.index]"
@@ -453,6 +454,7 @@ const sidebarHidden = ref(false);
       :key="id"
       :name="id"
       :tab="id"
+      class="h100"
       display-directive="if"
     >
       <RequestHTTP
