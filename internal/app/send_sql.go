@@ -5,15 +5,95 @@ import (
 	"reflect"
 	"time"
 
+	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 
+	"github.com/rprtr258/fun"
 	"github.com/rprtr258/impulse/internal/database"
 )
 
-func (a *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
-	// TODO: only req.Database="postgres" is tested
-	db, err := sql.Open(string(req.Database), req.DSN)
+func convertTypes(columns int, rows [][]any) []database.ColumnType {
+	types := make([]database.ColumnType, columns) // TODO: fix get types
+	if len(rows) > 0 {
+		for i := range columns {
+			for _, row := range rows {
+				if row[i] == nil {
+					continue
+				}
+
+				types[i] = func() database.ColumnType {
+					switch row[i].(type) {
+					case string:
+						return database.ColumnTypeString
+					case uint8, uint16, uint32, uint64, int8, int16, int32, int64:
+						return database.ColumnTypeNumber
+					case time.Time:
+						return database.ColumnTypeTime
+					case bool:
+						return database.ColumnTypeBoolean
+					default:
+						return database.ColumnType(reflect.TypeOf(row[i]).String())
+					}
+				}()
+				break
+			}
+		}
+	}
+	return types
+}
+
+func (a *App) sendSQLClickhouse(req database.SQLRequest) (database.SQLResponse, error) {
+	opts, err := clickhouse.ParseDSN(req.DSN)
+	if err != nil {
+		return database.SQLResponse{}, errors.Wrap(err, "parse DSN")
+	}
+
+	db := clickhouse.OpenDB(opts)
+	defer db.Close()
+	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(10)
+	db.SetConnMaxLifetime(time.Hour)
+
+	if err := db.PingContext(a.ctx); err != nil {
+		return database.SQLResponse{}, errors.Wrap(err, "ping database")
+	}
+
+	// TODO: add limit
+	rows, err := db.Query(req.Query)
+	if err != nil {
+		return database.SQLResponse{}, errors.Wrap(err, "query")
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return database.SQLResponse{}, errors.Wrap(err, "get columns")
+	}
+
+	var rowsData [][]any
+	for rows.Next() {
+		rowDest := make([]any, len(columns))
+
+		dest := fun.Map[any](func(_ any, i int) any {
+			return &rowDest[i]
+		}, rowDest...)
+		if err := rows.Scan(dest...); err != nil {
+			return database.SQLResponse{}, errors.Wrap(err, "scan row")
+		}
+
+		rowsData = append(rowsData, rowDest)
+	}
+
+	return database.SQLResponse{
+		columns,
+		convertTypes(len(columns), rowsData),
+		rowsData,
+	}, nil
+}
+
+func (a *App) sendSQLPostgres(req database.SQLRequest) (database.SQLResponse, error) {
+	db, err := sql.Open("postgres", req.DSN)
 	if err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "connect to database")
 	}
@@ -39,47 +119,30 @@ func (a *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
 	for rows.Next() {
 		rowDest := make([]any, len(columns))
 
-		rowPtrs := make([]any, len(columns))
-		for i := range rowPtrs {
-			rowPtrs[i] = &rowDest[i]
-		}
-
-		if err := rows.Scan(rowPtrs...); err != nil {
+		dest := fun.Map[any](func(_ any, i int) any {
+			return &rowDest[i]
+		}, rowDest...)
+		if err := rows.Scan(dest...); err != nil {
 			return database.SQLResponse{}, errors.Wrap(err, "scan row")
 		}
 
 		rowsData = append(rowsData, rowDest)
 	}
 
-	types := make([]database.ColumnType, len(columns)) // TODO: fix get types
-	if len(rowsData) > 0 {
-		n := len(columns)
-		for i := range n {
-			for _, row := range rowsData {
-				if row[i] == nil {
-					continue
-				}
-
-				switch row[i].(type) {
-				case string:
-					types[i] = database.ColumnTypeString
-				case int64:
-					types[i] = database.ColumnTypeNumber
-				case time.Time:
-					types[i] = database.ColumnTypeTime
-				case bool:
-					types[i] = database.ColumnTypeBoolean
-				default:
-					types[i] = database.ColumnType(reflect.TypeOf(row[i]).String())
-				}
-				break
-			}
-		}
-	}
-
 	return database.SQLResponse{
 		columns,
-		types,
+		convertTypes(len(columns), rowsData),
 		rowsData,
 	}, nil
+}
+
+func (a *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
+	switch req.Database {
+	case database.Postgres:
+		return a.sendSQLPostgres(req)
+	case database.Clickhouse:
+		return a.sendSQLClickhouse(req)
+	default:
+		return database.SQLResponse{}, errors.Errorf("unsupported database: %s", req.Database)
+	}
 }
