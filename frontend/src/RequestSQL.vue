@@ -9,12 +9,12 @@ import {useStore} from "./store";
 
 const store = useStore();
 
-const {request, response} = defineProps<{
+const {id, request, response} = defineProps<{
+  id: string,
   request: RequestSQL,
   response: ResponseSQL | null,
 }>();
 const emit = defineEmits<{
-  send: [],
   update: [request: RequestSQL],
 }>();
 function updateRequest(patch: Partial<RequestSQL>) {
@@ -35,12 +35,11 @@ function onQueryChange(newValue: string) {
 
 const buttonDisabled = ref(false);
 function onButtonClick() {
-  emit("send");
+  store.send(id).then(() => {
+    buttonDisabled.value = false;
+  });
   buttonDisabled.value = true;
 }
-watch(() => response, () => {
-  buttonDisabled.value = false;
-});
 
 watch(() => store.tabs, () => {
   dsn.value = request.dsn;

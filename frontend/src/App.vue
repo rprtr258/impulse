@@ -466,9 +466,9 @@ const sidebarHidden = ref(false);
       />
       <RequestSQL
         v-else-if='store.request()!.kind === "sql"'
+        :id="id"
         :request="store.request() as RequestSQLT"
         :response="store.tabs.value.map.map[id] as ResponseSQL ?? null"
-        v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestGRPC
