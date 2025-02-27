@@ -8,6 +8,7 @@ import (
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
+	_ "modernc.org/sqlite"
 
 	"github.com/rprtr258/fun"
 	"github.com/rprtr258/impulse/internal/database"
@@ -54,6 +55,50 @@ func (a *App) sendSQLClickhouse(req database.SQLRequest) (database.SQLResponse, 
 	db.SetMaxIdleConns(5)
 	db.SetMaxOpenConns(10)
 	db.SetConnMaxLifetime(time.Hour)
+
+	if err := db.PingContext(a.ctx); err != nil {
+		return database.SQLResponse{}, errors.Wrap(err, "ping database")
+	}
+
+	// TODO: add limit
+	rows, err := db.Query(req.Query)
+	if err != nil {
+		return database.SQLResponse{}, errors.Wrap(err, "query")
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return database.SQLResponse{}, errors.Wrap(err, "get columns")
+	}
+
+	var rowsData [][]any
+	for rows.Next() {
+		rowDest := make([]any, len(columns))
+
+		dest := fun.Map[any](func(_ any, i int) any {
+			return &rowDest[i]
+		}, rowDest...)
+		if err := rows.Scan(dest...); err != nil {
+			return database.SQLResponse{}, errors.Wrap(err, "scan row")
+		}
+
+		rowsData = append(rowsData, rowDest)
+	}
+
+	return database.SQLResponse{
+		columns,
+		convertTypes(len(columns), rowsData),
+		rowsData,
+	}, nil
+}
+
+func (a *App) sendSQLSqlite(req database.SQLRequest) (database.SQLResponse, error) {
+	db, err := sql.Open("sqlite", req.DSN)
+	if err != nil {
+		return database.SQLResponse{}, errors.Wrap(err, "connect to database")
+	}
+	defer db.Close()
 
 	if err := db.PingContext(a.ctx); err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "ping database")
@@ -142,6 +187,8 @@ func (a *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
 		return a.sendSQLPostgres(req)
 	case database.Clickhouse:
 		return a.sendSQLClickhouse(req)
+	case database.SQLite:
+		return a.sendSQLSqlite(req)
 	default:
 		return database.SQLResponse{}, errors.Errorf("unsupported database: %s", req.Database)
 	}
