@@ -7,6 +7,7 @@ tool github.com/wailsapp/wails/v2/cmd/wails
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.32.2
 	github.com/fullstorydev/grpcurl v1.9.2
+	github.com/go-sql-driver/mysql v1.9.0
 	github.com/golang/protobuf v1.5.4
 	github.com/itchyny/gojq v0.12.17
 	github.com/jhump/protoreflect v1.17.0
@@ -28,6 +29,7 @@ require (
 	atomicgo.dev/keyboard v0.2.9 // indirect
 	atomicgo.dev/schedule v0.1.0 // indirect
 	dario.cat/mergo v1.0.1 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/ClickHouse/ch-go v0.65.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect

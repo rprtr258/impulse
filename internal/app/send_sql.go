@@ -6,6 +6,7 @@ import (
 	"time"
 
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 	_ "modernc.org/sqlite"
@@ -44,8 +45,8 @@ func convertTypes(columns int, rows [][]any) []database.ColumnType {
 	return types
 }
 
-func (a *App) sendSQLClickhouse(req database.SQLRequest) (database.SQLResponse, error) {
-	opts, err := clickhouse.ParseDSN(req.DSN)
+func (a *App) sendSQLClickhouse(dsn, query string) (database.SQLResponse, error) {
+	opts, err := clickhouse.ParseDSN(dsn)
 	if err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "parse DSN")
 	}
@@ -61,7 +62,7 @@ func (a *App) sendSQLClickhouse(req database.SQLRequest) (database.SQLResponse, 
 	}
 
 	// TODO: add limit
-	rows, err := db.Query(req.Query)
+	rows, err := db.Query(query)
 	if err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "query")
 	}
@@ -93,19 +94,13 @@ func (a *App) sendSQLClickhouse(req database.SQLRequest) (database.SQLResponse, 
 	}, nil
 }
 
-func (a *App) sendSQLSqlite(req database.SQLRequest) (database.SQLResponse, error) {
-	db, err := sql.Open("sqlite", req.DSN)
-	if err != nil {
-		return database.SQLResponse{}, errors.Wrap(err, "connect to database")
-	}
-	defer db.Close()
-
+func (a *App) sendSQLSTD(db *sql.DB, query string) (database.SQLResponse, error) {
 	if err := db.PingContext(a.ctx); err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "ping database")
 	}
 
 	// TODO: add limit
-	rows, err := db.Query(req.Query)
+	rows, err := db.Query(query)
 	if err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "query")
 	}
@@ -137,58 +132,47 @@ func (a *App) sendSQLSqlite(req database.SQLRequest) (database.SQLResponse, erro
 	}, nil
 }
 
-func (a *App) sendSQLPostgres(req database.SQLRequest) (database.SQLResponse, error) {
-	db, err := sql.Open("postgres", req.DSN)
+func (a *App) sendSQLMysql(dsn, query string) (database.SQLResponse, error) {
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return database.SQLResponse{}, errors.Wrap(err, "connect to database")
 	}
 	defer db.Close()
 
-	if err := db.PingContext(a.ctx); err != nil {
-		return database.SQLResponse{}, errors.Wrap(err, "ping database")
-	}
+	return a.sendSQLSTD(db, query)
+}
 
-	// TODO: add limit
-	rows, err := db.Query(req.Query)
+func (a *App) sendSQLSqlite(dsn, query string) (database.SQLResponse, error) {
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return database.SQLResponse{}, errors.Wrap(err, "query")
+		return database.SQLResponse{}, errors.Wrap(err, "connect to database")
 	}
-	defer rows.Close()
+	defer db.Close()
 
-	columns, err := rows.Columns()
+	return a.sendSQLSTD(db, query)
+}
+
+func (a *App) sendSQLPostgres(dsn, query string) (database.SQLResponse, error) {
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		return database.SQLResponse{}, errors.Wrap(err, "get columns")
+		return database.SQLResponse{}, errors.Wrap(err, "connect to database")
 	}
+	defer db.Close()
 
-	var rowsData [][]any
-	for rows.Next() {
-		rowDest := make([]any, len(columns))
-
-		dest := fun.Map[any](func(_ any, i int) any {
-			return &rowDest[i]
-		}, rowDest...)
-		if err := rows.Scan(dest...); err != nil {
-			return database.SQLResponse{}, errors.Wrap(err, "scan row")
-		}
-
-		rowsData = append(rowsData, rowDest)
-	}
-
-	return database.SQLResponse{
-		columns,
-		convertTypes(len(columns), rowsData),
-		rowsData,
-	}, nil
+	return a.sendSQLSTD(db, query)
 }
 
 func (a *App) sendSQL(req database.SQLRequest) (database.SQLResponse, error) {
+	dsn, query := req.DSN, req.Query
 	switch req.Database {
 	case database.Postgres:
-		return a.sendSQLPostgres(req)
+		return a.sendSQLPostgres(dsn, query)
 	case database.Clickhouse:
-		return a.sendSQLClickhouse(req)
+		return a.sendSQLClickhouse(dsn, query)
 	case database.SQLite:
-		return a.sendSQLSqlite(req)
+		return a.sendSQLSqlite(dsn, query)
+	case database.MySQL:
+		return a.sendSQLMysql(dsn, query)
 	default:
 		return database.SQLResponse{}, errors.Errorf("unsupported database: %s", req.Database)
 	}

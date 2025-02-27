@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"fmt"
 	"time"
 
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/kr/pretty"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -44,6 +46,12 @@ func run() error {
 	db.SetMaxIdleConns(5)
 	db.SetMaxOpenConns(10)
 	db.SetConnMaxLifetime(time.Hour)
+	defer db.Close()
+
+	db, err = sql.Open("mysql", "root:my-secret-pw@tcp(127.0.0.1:3306)/")
+	if err != nil {
+		return errors.Wrap(err, "connect to database")
+	}
 	defer db.Close()
 
 	if err := db.PingContext(context.Background()); err != nil {
