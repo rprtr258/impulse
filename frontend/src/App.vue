@@ -14,14 +14,7 @@ import {DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined, D
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
 import {useStore} from "./store";
-import {
-  Method, RequestData, Kinds, Database,
-  ResponseHTTP,
-  ResponseSQL,   RequestSQL   as RequestSQLT,
-  ResponseGRPC,  RequestGRPC  as RequestGRPCT,
-  ResponseJQ,    RequestJQ    as RequestJQT,
-  ResponseRedis, RequestRedis as RequestRedisT,
-} from "./api";
+import {Method, RequestData, Kinds, Database} from "./api";
 import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
@@ -464,35 +457,35 @@ const sidebarHidden = ref(false);
       <RequestHTTP
         v-if='store.request()!.kind === "http"'
         :request="store.request() as database.HTTPRequest"
-        :response="store.tabs.value.map.map[id] as ResponseHTTP ?? null"
+        :response="store.getResponse(id) as database.HTTPResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestSQL
         v-else-if='store.request()!.kind === "sql"'
         :id="id"
-        :request="store.request() as RequestSQLT"
-        :response="store.tabs.value.map.map[id] as ResponseSQL ?? null"
+        :request="store.request() as database.SQLRequest"
+        :response="store.getResponse(id) as database.SQLResponse ?? null"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestGRPC
         v-else-if='store.request()!.kind === "grpc"'
-        :request="store.request() as RequestGRPCT"
-        :response="store.tabs.value.map.map[id] as ResponseGRPC ?? null"
+        :request="store.request() as database.GRPCRequest"
+        :response="store.getResponse(id) as database.GRPCResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestJQ
         v-else-if='store.request()!.kind === "jq"'
-        :request="store.request() as RequestJQT"
-        :response="store.tabs.value.map.map[id] as ResponseJQ ?? null"
+        :request="store.request() as database.JQRequest"
+        :response="store.getResponse(id) as database.JQResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestRedis
         v-else-if='store.request()!.kind === "redis"'
-        :request="store.request() as RequestRedisT"
-        :response="store.tabs.value.map.map[id] as ResponseRedis ?? null"
+        :request="store.request() as database.RedisRequest"
+        :response="store.getResponse(id) as database.RedisResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />

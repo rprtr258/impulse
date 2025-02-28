@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {NButton, NInputGroup, NInput, NEmpty} from "naive-ui";
-import {ResponseRedis} from "./api";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
@@ -9,7 +8,7 @@ type Request = Omit<database.RedisRequest, "createFrom">;
 
 const {request, response} = defineProps<{
   request: Request,
-  response: ResponseRedis | null,
+  response: database.RedisResponse | null,
 }>();
 const emit = defineEmits<{
   send: [],

@@ -6,38 +6,38 @@ import {
 } from "./api";
 import {app} from '../wailsjs/go/models';
 
-interface OrderedMap<V> {
+interface OrderedSet {
   list: string[],
-  map: Record<string, V>,
+  set: Set<string>,
   length(): number,
   has(key: string): boolean,
   index(key: string): number | null,
-  add(key: string, value: V): void,
+  add(key: string): void,
   remove(key: string): void,
   removeAt(index: number): void,
 }
 
-function orderedMap<V>(map: Record<string, V>): OrderedMap<V> {
-  const list: string[] = Object.keys(map);
+function orderedMap(...list: string[]): OrderedSet {
+  const set = new Set(list);
   return {
     list,
-    map,
+    set,
     length(): number {
       return list.length;
     },
     has(key: string): boolean {
-      return map.hasOwnProperty(key);
+      return set.has(key);
     },
     index(key: string): number | null {
       const index = list.indexOf(key);
       return index === -1 ? null : index;
     },
-    add(key: string, value: V) {
+    add(key: string) {
       if (this.has(key)) {
         return;
       }
       list.push(key);
-      map[key] = value;
+      set.add(key);
     },
     remove(key: string) {
       const index = list.indexOf(key);
@@ -48,7 +48,7 @@ function orderedMap<V>(map: Record<string, V>): OrderedMap<V> {
     },
     removeAt(index: number) {
       list.splice(index, 1);
-      delete map[list[index]];
+      set.delete(list[index]);
     },
   };
 }
@@ -61,7 +61,7 @@ export function useStore() {
   const usenotification = useNotification();
   const notify = (...args: any[]) => usenotification.error({title: "Error", content: args.map(arg => arg.toString()).join("\n")});
   const tabs = reactive<{value: {
-    map: OrderedMap<Omit<ResponseData, 'kind'> | null>,
+    map: OrderedSet,
     index: number,
   } | null}>({value: null});
   watch(() => requests, () => {
@@ -99,16 +99,15 @@ export function useStore() {
       const {map: requestIDs, index} = tabsValue;
       return requests[requestIDs.list[index]] ?? null;
     },
+    getResponse(id: string): Omit<ResponseData, "kind"> | null {
+      return history.find((h: HistoryEntry) => h.RequestId === id)?.response ?? null;
+    },
     selectRequest(id: string) {
-      function getResponse() {
-        return history.find((h: HistoryEntry) => h.RequestId === id)?.response ?? null;
-      }
-
       const tabsValue = tabs.value;
       if (tabsValue === null) {
         // no tabs open, create one
         return tabs.value = {
-          map: orderedMap({[id]: getResponse()}),
+          map: orderedMap(id),
           index: 0,
         };
       }
@@ -117,7 +116,7 @@ export function useStore() {
       const indexNew = requestIDs.index(id);
       if (indexNew === null) {
         // tab with such id not found, add new
-        requestIDs.add(id, getResponse());
+        requestIDs.add(id);
         tabs.value = {
           map: requestIDs,
           index: requestIDs.length() - 1,
@@ -176,7 +175,6 @@ export function useStore() {
         return;
       }
 
-      tabs.value!.map.map[id] = res.value;
       await this.fetch();
       this.selectRequest(id);
     },
