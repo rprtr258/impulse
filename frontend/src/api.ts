@@ -41,75 +41,25 @@ export const Database: Record<database.Database, string> = {
 } as const;
 export type Database = keyof typeof Database;
 
-export interface RequestSQL {
-  dsn: string,
-  database: keyof typeof Database,
-  query: string
-}
-
-export interface ResponseHTTP {
-  code: number,
-  body: string,
-  headers: database.KV[],
-}
-
-export interface RequestGRPC {
-  target: string,
-  method: string,
-  payload: string,
-  metadata: database.KV[],
-}
-
-export interface ResponseGRPC {
-  response: string,
-  code: GRPCCode,
-  metadata: database.KV[],
-}
-
-export interface RequestJQ {
-  query: string,
-  json: string,
-}
-
-export interface ResponseJQ {
-  response: string[],
-}
-
-export interface RequestRedis {
-  dsn: string,
-  command: string,
-  args: string[],
-}
-
-export interface ResponseRedis {
-  response: string,
-}
-
 export type RequestData =
-  | {kind: "http"} & database.HTTPRequest
-  | {kind: "sql"} & RequestSQL
-  | {kind: "grpc"} & RequestGRPC
-  | {kind: "jq"} & RequestJQ
-  | {kind: "redis"} & RequestRedis
+  | {kind: database.Kind.HTTP} & database.HTTPRequest
+  | {kind: database.Kind.SQL} & database.SQLRequest
+  | {kind: database.Kind.GRPC} & database.GRPCRequest
+  | {kind: database.Kind.JQ} & database.JQRequest
+  | {kind: database.Kind.REDIS} & database.RedisRequest
 ;
 
 export type Request = {
   id: string,
 } & RequestData;
 
-export interface ResponseSQL {
-  columns: string[],
-  types: ("number" | "string" | "time" | "bool")[],
-  rows: unknown[][],
-};
-
 export const Kinds = Object.values(database.Kind);
 export type ResponseData =
-  | {kind: "http"} & ResponseHTTP
-  | {kind: "sql"} & ResponseSQL
-  | {kind: "grpc"} & ResponseGRPC
-  | {kind: "jq"} & ResponseJQ
-  | {kind: "redis"} & ResponseRedis
+  | {kind: database.Kind.HTTP} & database.HTTPResponse
+  | {kind: database.Kind.SQL} & database.SQLResponse
+  | {kind: database.Kind.GRPC} & database.GRPCResponse
+  | {kind: database.Kind.JQ} & database.JQResponse
+  | {kind: database.Kind.REDIS} & database.RedisResponse
 ;
 
 export type HistoryEntry = {
@@ -117,25 +67,25 @@ export type HistoryEntry = {
   sent_at: Date,
   received_at: Date,
 } & ({
-  kind: "http",
+  kind: database.Kind.HTTP,
   request: database.HTTPRequest,
-  response: ResponseHTTP,
+  response: database.HTTPResponse,
 } | {
-  kind: "sql",
-  request: RequestSQL,
-  response: ResponseSQL,
+  kind: database.Kind.SQL,
+  request: database.SQLRequest,
+  response: database.SQLResponse,
 } | {
-  kind: "grpc",
-  request: RequestGRPC,
-  response: ResponseGRPC,
+  kind: database.Kind.GRPC,
+  request: database.GRPCRequest,
+  response: database.GRPCResponse,
 } | {
-  kind: "jq",
-  request: RequestJQ,
-  response: ResponseJQ,
+  kind: database.Kind.JQ,
+  request: database.JQRequest,
+  response: database.JQResponse,
 } | {
-  kind: "redis",
-  request: RequestRedis,
-  response: ResponseRedis,
+  kind: database.Kind.REDIS,
+  request: database.RedisRequest,
+  response: database.RedisResponse,
 })
 
 function parseTime(s: string): Date {
@@ -166,7 +116,7 @@ export const api = {
 
   async requestCreate(
     name: string,
-    kind: RequestData["kind"],
+    kind: database.Kind,
   ): Promise<Result<app.ResponseNewRequest>> {
     return await wrap(() => App.Create(name, kind));
   },
@@ -179,7 +129,7 @@ export const api = {
 
   async requestUpdate(
     reqId: string,
-    kind: RequestData["kind"],
+    kind: database.Kind,
     req: Omit<RequestData, "kind">,
     name: string | null = null,
   ): Promise<Result<void>> {

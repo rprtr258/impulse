@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {h, VNodeChild} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NEmpty} from "naive-ui";
-import {Method as Methods, ResponseHTTP} from "./api";
+import {Method as Methods} from "./api";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
@@ -11,7 +11,7 @@ type Request = Omit<database.HTTPRequest, "createFrom">;
 
 const {request, response} = defineProps<{
   request: Request,
-  response: ResponseHTTP | null,
+  response: database.HTTPResponse | null,
 }>();
 const emit = defineEmits<{
   send: [],

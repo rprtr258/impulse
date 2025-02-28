@@ -1,21 +1,23 @@
 <script setup lang="ts">
 import {computed, h, ref, VNodeChild, watch} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, useNotification} from "naive-ui";
-import {api, RequestGRPC, ResponseGRPC, GRPCCodes} from "./api";
+import {api, GRPCCodes} from "./api";
 import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
 
+type Request = Omit<database.GRPCRequest, "createFrom">;
+
 const {request, response} = defineProps<{
-  request: RequestGRPC,
-  response: ResponseGRPC | null,
+  request: Request,
+  response: database.GRPCResponse | null,
 }>();
 const emit = defineEmits<{
   send: [],
-  update: [request: RequestGRPC],
+  update: [request: Request],
 }>();
-function updateRequest(patch: Partial<RequestGRPC>) {
+function updateRequest(patch: Partial<Request>) {
   emit("update", {...request, ...patch});
 }
 
@@ -60,7 +62,7 @@ function responseBadge(): VNodeChild {
     type: code === 0 ? "success" : "error",
     size: "small",
     round: true,
-  }, () => `${code ?? "N/A"} ${GRPCCodes[code]}`);
+  }, () => `${code ?? "N/A"} ${GRPCCodes[code as keyof typeof GRPCCodes]}`);
 }
 </script>
 

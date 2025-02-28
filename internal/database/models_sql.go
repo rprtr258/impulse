@@ -85,6 +85,13 @@ func (SQLRequest) isRequestData() Kind { return KindSQL }
 
 type ColumnType string
 
+var AllColumnTypes = []enumElem[ColumnType]{
+	{ColumnTypeString, "STRING"},
+	{ColumnTypeNumber, "NUMBER"},
+	{ColumnTypeTime, "TIME"},
+	{ColumnTypeBoolean, "BOOLEAN"},
+}
+
 const (
 	ColumnTypeString  ColumnType = "string"
 	ColumnTypeNumber  ColumnType = "number"

@@ -98,6 +98,12 @@ export namespace app {
 
 export namespace database {
 	
+	export enum ColumnType {
+	    STRING = "string",
+	    NUMBER = "number",
+	    TIME = "time",
+	    BOOLEAN = "boolean",
+	}
 	export enum Kind {
 	    GRPC = "grpc",
 	    HTTP = "http",
@@ -125,6 +131,76 @@ export namespace database {
 	        this.value = source["value"];
 	    }
 	}
+	export class GRPCRequest {
+	    target: string;
+	    method: string;
+	    payload: string;
+	    metadata: KV[];
+	
+	    static createFrom(source: any = {}) {
+	        return new GRPCRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.target = source["target"];
+	        this.method = source["method"];
+	        this.payload = source["payload"];
+	        this.metadata = this.convertValues(source["metadata"], KV);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class GRPCResponse {
+	    response: string;
+	    code: number;
+	    metadata: KV[];
+	
+	    static createFrom(source: any = {}) {
+	        return new GRPCResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.response = source["response"];
+	        this.code = source["code"];
+	        this.metadata = this.convertValues(source["metadata"], KV);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class HTTPRequest {
 	    url: string;
 	    method: string;
@@ -139,6 +215,40 @@ export namespace database {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.url = source["url"];
 	        this.method = source["method"];
+	        this.body = source["body"];
+	        this.headers = this.convertValues(source["headers"], KV);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class HTTPResponse {
+	    code: number;
+	    body: string;
+	    headers: KV[];
+	
+	    static createFrom(source: any = {}) {
+	        return new HTTPResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.code = source["code"];
 	        this.body = source["body"];
 	        this.headers = this.convertValues(source["headers"], KV);
 	    }
@@ -199,6 +309,32 @@ export namespace database {
 		    return a;
 		}
 	}
+	export class JQRequest {
+	    query: string;
+	    json: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new JQRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.query = source["query"];
+	        this.json = source["json"];
+	    }
+	}
+	export class JQResponse {
+	    response: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new JQResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.response = source["response"];
+	    }
+	}
 	
 	export class RedisRequest {
 	    dsn: string;
@@ -212,6 +348,18 @@ export namespace database {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.dsn = source["dsn"];
 	        this.query = source["query"];
+	    }
+	}
+	export class RedisResponse {
+	    response: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RedisResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.response = source["response"];
 	    }
 	}
 	export class Request {
@@ -247,6 +395,38 @@ export namespace database {
 		    }
 		    return a;
 		}
+	}
+	export class SQLRequest {
+	    dsn: string;
+	    database: Database;
+	    query: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SQLRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dsn = source["dsn"];
+	        this.database = source["database"];
+	        this.query = source["query"];
+	    }
+	}
+	export class SQLResponse {
+	    columns: string[];
+	    types: string[];
+	    rows: any[][];
+	
+	    static createFrom(source: any = {}) {
+	        return new SQLResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.columns = source["columns"];
+	        this.types = source["types"];
+	        this.rows = source["rows"];
+	    }
 	}
 
 }

@@ -21,8 +21,11 @@ var assets embed.FS
 type export struct{}
 
 func (export) ExportTypes(
-	database.HTTPRequest,
-	database.RedisRequest,
+	database.HTTPRequest, database.HTTPResponse,
+	database.SQLRequest, database.SQLResponse,
+	database.GRPCRequest, database.GRPCResponse,
+	database.JQRequest, database.JQResponse,
+	database.RedisRequest, database.RedisResponse,
 ) {
 }
 
@@ -44,8 +47,12 @@ func run() error {
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        startup,
 		Bind:             []any{app, &export{}},
-		EnumBind:         []any{database.AllKinds, database.AllDatabases},
-		StartHidden:      true,
+		EnumBind: []any{
+			database.AllKinds,
+			database.AllDatabases,
+			database.AllColumnTypes,
+		},
+		StartHidden: true,
 	})
 }
 

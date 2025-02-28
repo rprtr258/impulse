@@ -1,8 +1,8 @@
-import {onUpdated, reactive, ref, watch} from "vue";
+import {reactive, ref, watch} from "vue";
 import {useNotification} from "naive-ui";
 import {
   api, type HistoryEntry, RequestData,
-  ResponseSQL, ResponseHTTP, ResponseGRPC, ResponseJQ,
+  ResponseData,
 } from "./api";
 import {app} from '../wailsjs/go/models';
 
@@ -60,9 +60,8 @@ const history = reactive<HistoryEntry[]>([]);
 export function useStore() {
   const usenotification = useNotification();
   const notify = (...args: any[]) => usenotification.error({title: "Error", content: args.map(arg => arg.toString()).join("\n")});
-
   const tabs = reactive<{value: {
-    map: OrderedMap<ResponseHTTP | ResponseSQL | ResponseGRPC | ResponseJQ | null>,
+    map: OrderedMap<Omit<ResponseData, 'kind'> | null>,
     index: number,
   } | null}>({value: null});
   watch(() => requests, () => {

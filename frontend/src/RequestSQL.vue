@@ -3,7 +3,8 @@ import {computed, h, ref, watch} from "vue";
 import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NScrollbar, NSelect, NSplit, NTooltip} from "naive-ui";
 import {TableBaseColumn} from "naive-ui/es/data-table/src/interface";
 import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
-import {Database, RequestSQL, ResponseSQL} from "./api";
+import {database} from "wailsjs/go/models";
+import {Database} from "./api";
 import EditorSQL from "./EditorSQL.vue";
 import {useStore} from "./store";
 
@@ -11,13 +12,13 @@ const store = useStore();
 
 const {id, request, response} = defineProps<{
   id: string,
-  request: RequestSQL,
-  response: ResponseSQL | null,
+  request: database.SQLRequest,
+  response: database.SQLResponse | null,
 }>();
 const emit = defineEmits<{
-  update: [request: RequestSQL],
+  update: [request: database.SQLRequest],
 }>();
-function updateRequest(patch: Partial<RequestSQL>) {
+function updateRequest(patch: Partial<database.SQLRequest>) {
   emit("update", {...request, ...patch});
 }
 

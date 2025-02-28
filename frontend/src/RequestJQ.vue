@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
 import {NInput, NButton, NInputGroup, NEmpty} from "naive-ui";
-import {RequestJQ, ResponseJQ} from "./api";
+import {database} from "wailsjs/go/models";
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 
 const {request, response} = defineProps<{
-  request: RequestJQ,
-  response: ResponseJQ | null,
+  request: database.JQRequest,
+  response: database.JQResponse | null,
 }>();
 const emit = defineEmits<{
   send: [],
-  update: [request: RequestJQ],
+  update: [request: database.JQRequest],
 }>();
-function updateRequest(patch: Partial<RequestJQ>) {
+function updateRequest(patch: Partial<database.JQRequest>) {
   emit("update", {...request, ...patch});
 }
 
