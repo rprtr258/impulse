@@ -1,4 +1,5 @@
-import {EditorState, Transaction, TransactionSpec} from "@codemirror/state";
+import type { Extension, Transaction, TransactionSpec} from "@codemirror/state";
+import {EditorState} from "@codemirror/state";
 import {EditorView, highlightSpecialChars, keymap, drawSelection, lineNumbers, highlightActiveLineGutter, dropCursor, highlightActiveLine} from "@codemirror/view";
 import {defaultKeymap, historyKeymap, standardKeymap, history, indentMore} from "@codemirror/commands";
 import {foldGutter, syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldKeymap} from "@codemirror/language";
@@ -25,7 +26,7 @@ export const defaultExtensions = [
   EditorView.darkTheme.of(true),
   EditorView.lineWrapping,
 ];
-export function defaultEditorExtensions(onChange: (doc: string) => void) {
+export function defaultEditorExtensions(onChange: (doc: string) => void): Extension[] {
   return [
     keymap.of([
       ...closeBracketsKeymap,
@@ -41,7 +42,7 @@ export function defaultEditorExtensions(onChange: (doc: string) => void) {
     closeBrackets(),
     autocompletion(),
     highlightActiveLine(),
-    EditorState.transactionFilter.of((tr: Transaction): TransactionSpec => {
+    EditorState.transactionFilter.of((tr: Readonly<Transaction>): TransactionSpec => {
       onChange(tr.newDoc.toString());
       return tr;
     }),

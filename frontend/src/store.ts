@@ -1,62 +1,63 @@
 import {reactive, ref, watch} from "vue";
 import {useNotification} from "naive-ui";
+import type { RequestData,
+  ResponseData} from "./api";
 import {
-  api, type HistoryEntry, RequestData,
-  ResponseData,
+  api, type HistoryEntry
 } from "./api";
 import {app} from '../wailsjs/go/models';
 
 interface OrderedSet {
   list: string[],
   set: Set<string>,
-  length(): number,
-  has(key: string): boolean,
-  index(key: string): number | null,
-  add(key: string): void,
-  remove(key: string): void,
-  removeAt(index: number): void,
-  rename(keyOld: string, keyNew: string): void,
+  length: () => number,
+  has: (key: string) => boolean,
+  index: (key: string) => number | null,
+  add: (key: string) => void,
+  remove: (key: string) => void,
+  removeAt: (index: number) => void,
+  rename: (keyOld: string, keyNew: string) => void,
 }
 
-function orderedMap(...list: string[]): OrderedSet {
-  const set = new Set(list);
+function orderedMap(...elems: readonly string[]): OrderedSet {
+  const set = new Set(elems);
   return {
-    list,
+    list: [...elems],
     set,
     length(): number {
-      return list.length;
+      return this.list.length;
     },
     has(key: string): boolean {
       return set.has(key);
     },
     index(key: string): number | null {
-      const index = list.indexOf(key);
+      const index = this.list.indexOf(key);
       return index === -1 ? null : index;
     },
-    add(key: string) {
+    add(key: string): void {
       if (this.has(key)) {
         return;
       }
-      list.push(key);
+      this.list.push(key);
       set.add(key);
     },
-    remove(key: string) {
-      const index = list.indexOf(key);
+    remove(key: string): void {
+      const index = this.list.indexOf(key);
       if (index === -1) {
         return;
       }
       this.removeAt(index);
     },
-    removeAt(index: number) {
-      list.splice(index, 1);
-      set.delete(list[index]);
+    removeAt(index: number): void {
+      this.list.splice(index, 1);
+      set.delete(this.list[index]);
     },
-    rename(keyOld, keyNew) {
-      const index = list.indexOf(keyOld);
+    rename(keyOld, keyNew): void {
+      const index = this.list.indexOf(keyOld);
       if (index === -1) {
         return;
       }
-      list[index] = keyNew;
+      this.list[index] = keyNew;
       set.delete(keyOld);
       set.add(keyNew);
     },
@@ -69,7 +70,9 @@ const history = reactive<HistoryEntry[]>([]);
 
 export function useStore() {
   const usenotification = useNotification();
-  const notify = (...args: any[]) => usenotification.error({title: "Error", content: args.map(arg => arg.toString()).join("\n")});
+  const notify = (...args: readonly unknown[]): void => {
+    usenotification.error({title: "Error", content: args.map(arg => String(arg)).join("\n")});
+  };
   const tabs = reactive<{value: {
     map: OrderedSet,
     index: number,
@@ -79,16 +82,18 @@ export function useStore() {
       return;
     }
 
-    const idsToRemove = tabs.value.map.list.filter((id: string) => !requests[id]);
-    if (idsToRemove.length === 0) {
+    const indexesToRemove = tabs.value.map.list
+      .map((id: string, i: number) => [id, i] as [string, number])
+      .filter(([id]: readonly [string, number]) => requests.hasOwnProperty(id))
+      .map(([, i]: readonly [string, number]) => i);
+    if (indexesToRemove.length === 0) {
       return;
-    } else if (idsToRemove.length === tabs.value.map.length()) {
+    } else if (indexesToRemove.length === tabs.value.map.length()) {
       tabs.value = null;
       return;
     }
 
-    for (const id of idsToRemove) {
-      const i = tabs.value.map.index(id)!;
+    for (const i of indexesToRemove) {
       tabs.value.map.removeAt(i);
       if (tabs.value.index === i && tabs.value.index > 0) {
         tabs.value.index--;
@@ -110,16 +115,17 @@ export function useStore() {
       return requests[requestIDs.list[index]] ?? null;
     },
     getResponse(id: string): Omit<ResponseData, "kind"> | null {
-      return history.find((h: HistoryEntry) => h.RequestId === id)?.response ?? null;
+      return history.find((h: Readonly<HistoryEntry>) => h.RequestId === id)?.response ?? null;
     },
-    selectRequest(id: string) {
+    selectRequest(id: string): void {
       const tabsValue = tabs.value;
       if (tabsValue === null) {
         // no tabs open, create one
-        return tabs.value = {
+        tabs.value = {
           map: orderedMap(id),
           index: 0,
         };
+        return;
       }
 
       const requestIDs = tabsValue.map;
@@ -149,7 +155,7 @@ export function useStore() {
       Object.assign(history, res.History);
       // TODO: unselect request if it does not exist anymore
     },
-    async createRequest(id: string, kind: RequestData["kind"]) {
+    async createRequest(id: string, kind: RequestData["kind"]): Promise<void> {
       const res = await api.requestCreate(id, kind);
       if (res.kind === "err") {
         notify(`Could not create request: ${res.value}`);
@@ -158,7 +164,7 @@ export function useStore() {
 
       await this.fetch();
     },
-    async duplicate(id: string) {
+    async duplicate(id: string): Promise<void> {
       const res = await api.requestDuplicate(id);
       if (res.kind === "err") {
         notify(`Could not duplicate: ${res.value}`);
@@ -167,18 +173,18 @@ export function useStore() {
 
       await this.fetch();
     },
-    async deleteRequest(id: string) {
+    async deleteRequest(id: string): Promise<void> {
       const res = await api.requestDelete(id);
       if (res.kind === "err") {
         notify(`Could not delete request: ${res.value}`);
         return;
       }
-      if (requests[id]) {
+      if (requests.hasOwnProperty(id)) {
         delete requests[id];
       }
       await this.fetch();
     },
-    async send(id: string) {
+    async send(id: string): Promise<void> {
       const res = await api.requestPerform(id);
       if (res.kind === "err") {
         notify(`Could not perform request: ${res.value}`);
@@ -188,7 +194,7 @@ export function useStore() {
       await this.fetch();
       this.selectRequest(id);
     },
-    async update(id: string, req: Omit<RequestData, "kind">) {
+    async update(id: string, req: Omit<RequestData, "kind">): Promise<void> {
       this.selectRequest(id);
       const request = this.request();
       if (request === null) {
@@ -205,7 +211,7 @@ export function useStore() {
 
       await this.fetch();
     },
-    async rename(id: string, newID: string) {
+    async rename(id: string, newID: string): Promise<void> {
       const request = requests[id];
       const res = await api.requestUpdate(id, request.kind, request, newID);
       if (res.kind === "err") {

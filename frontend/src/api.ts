@@ -1,6 +1,8 @@
-import {err, ok, Result} from "./result";
+import type { Result} from "./result";
+import {err, ok} from "./result";
 import * as App from "../wailsjs/go/app/App";
-import {database, app} from '../wailsjs/go/models';
+import type { app} from '../wailsjs/go/models';
+import {database} from '../wailsjs/go/models';
 
 export const Method = {
   GET:     "GET",
@@ -98,14 +100,14 @@ async function wrap<T>(f: () => Promise<T>): Promise<Result<T>> {
   try {
     return ok(await f());
   } catch (e) {
-    return err(`${e}`);
+    return err(String(e));
   }
 }
 
 export const api = {
   async collectionRequests(): Promise<Result<app.ListResponse>> {
-    const y = await wrap(() => App.List());
-    return y.map(x => {
+    const y = await wrap(async () => App.List());
+    return y.map((x: app.ListResponse): app.ListResponse => {
       for (const req of x.History) {
         req.sent_at = parseTime(req.sent_at as unknown as string);
       }

@@ -1,22 +1,19 @@
 import pluginVue from 'eslint-plugin-vue'
 import {defineConfigWithVueTs, vueTsConfigs} from '@vue/eslint-config-typescript'
 
-export default [
+export default defineConfigWithVueTs(
   {
     name: 'app/files-to-lint',
     files: ['**/*.{ts,mts,tsx,vue}'],
   },
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**'],
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/wailsjs/**'],
   },
   {
     name: 'vue/multi-word-component-names',
     ignores: ['**/*.vue'],
   },
-
-
   ...pluginVue.configs['flat/essential'],
-  ...defineConfigWithVueTs(),
-  ...vueTsConfigs(),
-]
+  vueTsConfigs.recommended,
+);

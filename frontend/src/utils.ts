@@ -1,8 +1,9 @@
 import {api} from "./api";
-import {ok, Result} from "./result";
+import type { Result} from "./result";
+import {ok} from "./result";
 
 function formatResponse(response: string): string {
-  const value = (() => {
+  const value = ((): unknown => {
     try {
       return JSON.parse(response);
     } catch {
@@ -21,5 +22,5 @@ export async function transform(body: string, query: string): Promise<Result<str
   }
 
   const res = await api.jq(body, query);
-  return res.map(res => res.map(v => formatResponse(v)).join("\n"));
+  return res.map((item: readonly string[]) => item.map(v => formatResponse(v)).join("\n"));
 };
