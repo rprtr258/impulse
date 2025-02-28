@@ -45,14 +45,6 @@ const treeData = computed(() => {
     }));
   return mapper(store.requestsTree.value);
 });
-function renameRequest(id: string, newID: string) {
-  const tabs = store.tabs.value!;
-  const selectedID = tabs.map.list[tabs.index];
-  store.rename(id, newID);
-  if (selectedID !== null && id === selectedID) {
-    selectRequest(newID);
-  }
-}
 function drag({node, dragNode, dropPosition}: {
   node: TreeOption,
   dragNode: TreeOption,
@@ -64,10 +56,10 @@ function drag({node, dragNode, dropPosition}: {
   switch (dropPosition) {
     case "before":
     case "after":
-      renameRequest(oldID, dir(dirname(into)) + basename(oldID));
+      store.rename(oldID, dir(dirname(into)) + basename(oldID));
       break;
     case "inside":
-      renameRequest(oldID, dir(into) + basename(oldID));
+      store.rename(oldID, dir(into) + basename(oldID));
       break;
   }
 }
@@ -207,7 +199,7 @@ function rename() {
     return;
   }
 
-  renameRequest(fromID, toID);
+  store.rename(fromID, toID);
   renameCancel();
 }
 

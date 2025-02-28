@@ -15,6 +15,7 @@ interface OrderedSet {
   add(key: string): void,
   remove(key: string): void,
   removeAt(index: number): void,
+  rename(keyOld: string, keyNew: string): void,
 }
 
 function orderedMap(...list: string[]): OrderedSet {
@@ -49,6 +50,15 @@ function orderedMap(...list: string[]): OrderedSet {
     removeAt(index: number) {
       list.splice(index, 1);
       set.delete(list[index]);
+    },
+    rename(keyOld, keyNew) {
+      const index = list.indexOf(keyOld);
+      if (index === -1) {
+        return;
+      }
+      list[index] = keyNew;
+      set.delete(keyOld);
+      set.add(keyNew);
     },
   };
 }
@@ -202,6 +212,8 @@ export function useStore() {
         notify(`Could not rename request: ${res.value}`);
         return;
       }
+
+      tabs.value?.map.rename(id, newID);
 
       await this.fetch();
     },
