@@ -75,11 +75,23 @@ export interface ResponseJQ {
   response: string[],
 }
 
+export interface RequestRedis {
+  dsn: string,
+  command: string,
+  args: string[],
+}
+
+export interface ResponseRedis {
+  response: string,
+}
+
 export type RequestData =
   | {kind: "http"} & database.HTTPRequest
   | {kind: "sql"} & RequestSQL
   | {kind: "grpc"} & RequestGRPC
-  | {kind: "jq"} & RequestJQ;
+  | {kind: "jq"} & RequestJQ
+  | {kind: "redis"} & RequestRedis
+;
 
 export type Request = {
   id: string,
@@ -96,7 +108,9 @@ export type ResponseData =
   | {kind: "http"} & ResponseHTTP
   | {kind: "sql"} & ResponseSQL
   | {kind: "grpc"} & ResponseGRPC
-  | {kind: "jq"} & ResponseJQ;
+  | {kind: "jq"} & ResponseJQ
+  | {kind: "redis"} & ResponseRedis
+;
 
 export type HistoryEntry = {
   RequestId: string,
@@ -118,6 +132,10 @@ export type HistoryEntry = {
   kind: "jq",
   request: RequestJQ,
   response: ResponseJQ,
+} | {
+  kind: "redis",
+  request: RequestRedis,
+  response: ResponseRedis,
 })
 
 function parseTime(s: string): Date {

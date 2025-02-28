@@ -17,15 +17,17 @@ import {useStore} from "./store";
 import {
   Method, RequestData, Kinds, Database,
   ResponseHTTP,
-  ResponseSQL,  RequestSQL  as RequestSQLT,
-  ResponseGRPC, RequestGRPC as RequestGRPCT,
-  ResponseJQ,   RequestJQ   as RequestJQT,
+  ResponseSQL,   RequestSQL   as RequestSQLT,
+  ResponseGRPC,  RequestGRPC  as RequestGRPCT,
+  ResponseJQ,    RequestJQ    as RequestJQT,
+  ResponseRedis, RequestRedis as RequestRedisT,
 } from "./api";
 import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
 import RequestGRPC from "./RequestGRPC.vue";
 import RequestJQ from "./RequestJQ.vue";
+import RequestRedis from "./RequestRedis.vue";
 
 const notification = useNotification();
 const store = useStore();
@@ -219,10 +221,12 @@ function rename() {
 function badge(req: RequestData): [string, string] {
   switch (req.kind) {
   case "http": return [Method[req.method as keyof typeof Method], "lime"];
-  case "sql": return [Database[req.database], "bluewhite"];
+  case "sql": return [Database[req.database as keyof typeof Database], "bluewhite"];
   case "grpc": return ["GRPC", "cyan"];
   case "jq": return ["JQ", "violet"];
+  case "redis": return ["REDIS", "red"];
   }
+  throw "unreachable";
 }
 function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boolean}): VNodeChild {
   const option = info.option;
@@ -482,6 +486,13 @@ const sidebarHidden = ref(false);
         v-else-if='store.request()!.kind === "jq"'
         :request="store.request() as RequestJQT"
         :response="store.tabs.value.map.map[id] as ResponseJQ ?? null"
+        v-on:send="() => store.send(id)"
+        v-on:update="(request) => store.update(id, request)"
+      />
+      <RequestRedis
+        v-else-if='store.request()!.kind === "redis"'
+        :request="store.request() as RequestRedisT"
+        :response="store.tabs.value.map.map[id] as ResponseRedis ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />

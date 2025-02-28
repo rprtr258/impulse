@@ -88,38 +88,36 @@ func (a *App) List() (ListResponse, error) {
 }
 
 type ResponseNewRequest struct {
-	Id      database.RequestID   `json:"id"`
-	Name    string               `json:"name"`
-	Request database.HTTPRequest `json:"request"`
+	ID database.RequestID `json:"id"`
 }
 
 func (a *App) Create(
 	id string,
-	kind string,
+	kind database.Kind,
 ) (ResponseNewRequest, error) {
 	var req database.RequestData
 	switch kind {
-	case "http":
+	case database.KindHTTP:
 		req = database.HTTPRequest{
 			"",             // URL // TODO: insert last url used
 			http.MethodGet, // Method
 			"",             // Body
 			nil,            // Headers
 		}
-	case "sql":
+	case database.KindSQL:
 		req = database.SQLRequest{
 			"",                // DSN // TODO: insert last dsn used
 			database.Postgres, // Database
 			"",                // Query
 		}
-	case "grpc":
+	case database.KindGRPC:
 		req = database.GRPCRequest{
 			"",  // Target
 			"",  // Method
 			"",  // Payload
 			nil, // Metadata
 		}
-	case "jq":
+	case database.KindJQ:
 		req = database.JQRequest{
 			".", // Query
 			`{
@@ -130,6 +128,11 @@ func (a *App) Create(
 	"null": null
 }`, // JSON
 		}
+	case database.KindRedis:
+		req = database.RedisRequest{
+			"localhost:6379",
+			`KEYS`,
+		}
 	default:
 		return ResponseNewRequest{}, errors.Errorf("unknown request kind %q", kind)
 	}
@@ -139,11 +142,8 @@ func (a *App) Create(
 		return ResponseNewRequest{}, errors.Wrap(err, "error while creating request")
 	}
 
-	_ = requestID
 	return ResponseNewRequest{
-		// requestID,
-		// request.Name,
-		// request.Request,
+		ID: requestID,
 	}, nil
 }
 
@@ -168,51 +168,57 @@ func (a *App) Read(requestID string) (database.Request, error) {
 }
 
 func (a *App) Update(
-	RequestID string,
-	Kind string,
-	NewRequestID string, // TODO: rename field
-	Request map[string]any,
+	requestID string,
+	kind database.Kind,
+	newRequestID string, // TODO: rename field
+	request map[string]any,
 ) error {
-	b, err := json.Marshal(Request)
+	b, err := json.Marshal(request)
 	if err != nil {
 		return errors.Wrap(err, "huita request")
 	}
 
 	var requestt database.RequestData
-	switch Kind {
-	case "http":
+	switch kind {
+	case database.KindHTTP:
 		var req database.HTTPRequest
 		if err := json.Unmarshal(b, &req); err != nil {
 			return errors.Wrap(err, "huita 2 request")
 		}
 		requestt = req
-	case "sql":
+	case database.KindSQL:
 		var req database.SQLRequest
 		if err := json.Unmarshal(b, &req); err != nil {
 			return errors.Wrap(err, "huita 3 request")
 		}
 		requestt = req
-	case "grpc":
+	case database.KindGRPC:
 		var req database.GRPCRequest
 		if err := json.Unmarshal(b, &req); err != nil {
 			return errors.Wrap(err, "huita 4 request")
 		}
 		requestt = req
-	case "jq":
+	case database.KindJQ:
 		var req database.JQRequest
 		if err := json.Unmarshal(b, &req); err != nil {
 			return errors.Wrap(err, "huita 5 request")
 		}
 		requestt = req
+	case database.KindRedis:
+		var req database.RedisRequest
+		if err := json.Unmarshal(b, &req); err != nil {
+			return errors.Wrap(err, "huita 6 request")
+		}
+		requestt = req
 	default:
-		return errors.Errorf("unknown request kind %q", Kind)
+		return errors.Errorf("unknown request kind %q", kind)
 	}
 
 	if err := database.Update(
 		a.ctx, a.DB,
-		database.RequestID(RequestID),
-		database.Kind(Kind),
-		database.RequestID(NewRequestID),
+		database.RequestID(requestID),
+		database.Kind(kind),
+		database.RequestID(newRequestID),
 		requestt,
 	); err != nil {
 		return errors.Wrap(err, "update request")
@@ -287,6 +293,11 @@ func (a *App) Perform(requestID string) (map[string]any, error) {
 		response, err = sendJQ(a.ctx, request)
 		if err != nil {
 			return nil, errors.Wrapf(err, "send jq request id=%q", requestID)
+		}
+	case database.RedisRequest:
+		response, err = sendRedis(a.ctx, request)
+		if err != nil {
+			return nil, errors.Wrapf(err, "send redis request id=%q", requestID)
 		}
 	default:
 		return nil, errors.Errorf("unsupported request type %T", request)

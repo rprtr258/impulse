@@ -1,23 +1,23 @@
 <script setup lang="ts">
+import {h, VNodeChild} from "vue";
 import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NEmpty} from "naive-ui";
 import {Method as Methods, ResponseHTTP} from "./api";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
-import { h, VNodeChild } from "vue";
 
-type HTTPRequest = Omit<database.HTTPRequest, "createFrom">;
+type Request = Omit<database.HTTPRequest, "createFrom">;
 
 const {request, response} = defineProps<{
-  request: HTTPRequest,
+  request: Request,
   response: ResponseHTTP | null,
 }>();
 const emit = defineEmits<{
   send: [],
-  update: [request: HTTPRequest],
+  update: [request: Request],
 }>();
-function updateRequest(patch: Partial<HTTPRequest>) {
+function updateRequest(patch: Partial<Request>) {
   emit("update", {...request, ...patch});
 }
 

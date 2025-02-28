@@ -18,6 +18,14 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+type export struct{}
+
+func (export) ExportTypes(
+	database.HTTPRequest,
+	database.RedisRequest,
+) {
+}
+
 func run() error {
 	fs := afero.NewBasePathFs(afero.NewOsFs(), "dist")
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
@@ -35,8 +43,9 @@ func run() error {
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        startup,
-		Bind:             []any{app},
+		Bind:             []any{app, &export{}},
 		EnumBind:         []any{database.AllKinds, database.AllDatabases},
+		StartHidden:      true,
 	})
 }
 

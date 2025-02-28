@@ -68,8 +68,6 @@ export namespace app {
 	}
 	export class ResponseNewRequest {
 	    id: string;
-	    name: string;
-	    request: database.HTTPRequest;
 	
 	    static createFrom(source: any = {}) {
 	        return new ResponseNewRequest(source);
@@ -78,27 +76,7 @@ export namespace app {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.request = this.convertValues(source["request"], database.HTTPRequest);
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 	
 	export class grpcServiceMethods {
@@ -124,6 +102,7 @@ export namespace database {
 	    GRPC = "grpc",
 	    HTTP = "http",
 	    JQ = "jq",
+	    REDIS = "redis",
 	    SQL = "sql",
 	}
 	export enum Database {
@@ -221,6 +200,20 @@ export namespace database {
 		}
 	}
 	
+	export class RedisRequest {
+	    dsn: string;
+	    query: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RedisRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dsn = source["dsn"];
+	        this.query = source["query"];
+	    }
+	}
 	export class Request {
 	    ID: string;
 	    Data: any;
