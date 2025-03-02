@@ -4,10 +4,10 @@ import json2 "github.com/rprtr258/fun/exp/json"
 
 const KindRedis Kind = "redis"
 
-func init() {
-	AllKinds = append(AllKinds, enumElem[Kind]{KindRedis, "REDIS"})
-	decodersRequest[KindRedis] = json2.Map(decoderRequestMap, decoderRequestRedis)
-	decodersResponse[KindRedis] = json2.Map(decoderResponseMap, decoderResponseRedis)
+var pluginRedis = plugin[RedisRequest, RedisResponse]{
+	enumElem[Kind]{KindRedis, "REDIS"},
+	decoderRequestRedis,
+	decoderResponseRedis,
 }
 
 var decoderRequestRedis = json2.Map2(

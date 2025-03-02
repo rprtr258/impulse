@@ -1,15 +1,13 @@
 package database
 
-import (
-	json2 "github.com/rprtr258/fun/exp/json"
-)
+import json2 "github.com/rprtr258/fun/exp/json"
 
 const KindGRPC Kind = "grpc"
 
-func init() {
-	AllKinds = append(AllKinds, enumElem[Kind]{KindGRPC, "GRPC"})
-	decodersRequest[KindGRPC] = json2.Map(decoderRequestMap, decoderRequestGRPC)
-	decodersResponse[KindGRPC] = json2.Map(decoderResponseMap, decoderResponseGRPC)
+var pluginGRPC = plugin[GRPCRequest, GRPCResponse]{
+	enumElem[Kind]{KindGRPC, "GRPC"},
+	decoderRequestGRPC,
+	decoderResponseGRPC,
 }
 
 var decoderRequestGRPC = json2.Map4(

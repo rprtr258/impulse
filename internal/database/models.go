@@ -24,6 +24,34 @@ var decoderKVs = json2.Map(func(m fun.Option[[]KV]) []KV {
 	json2.Field("value", json2.String),
 ))))
 
+type plugin[Req RequestData, Resp ResponseData] struct {
+	kind            enumElem[Kind]
+	decoderRequest  json2.Decoder[Req]
+	decoderResponse json2.Decoder[Resp]
+}
+
+func usePlugin[Req RequestData, Resp ResponseData](plug plugin[Req, Resp]) {
+	plugins[plug.kind.Value] = plugin[RequestData, ResponseData]{
+		kind:            plug.kind,
+		decoderRequest:  json2.Map(decoderRequestMap, plug.decoderRequest),
+		decoderResponse: json2.Map(decoderResponseMap, plug.decoderResponse),
+	}
+}
+
+func init() {
+	usePlugin(pluginRedis)
+	usePlugin(pluginSql)
+	usePlugin(pluginJQ)
+	usePlugin(pluginGRPC)
+	usePlugin(pluginHTTP)
+
+	for _, plugin := range plugins {
+		decodersRequest[plugin.kind.Value] = plugin.decoderRequest
+		decodersResponse[plugin.kind.Value] = plugin.decoderResponse
+		AllKinds = append(AllKinds, plugin.kind)
+	}
+}
+
 type Kind string
 
 type RequestData interface {
@@ -42,6 +70,7 @@ type enumElem[T any] struct {
 	TSName string
 }
 
+var plugins map[Kind]plugin[RequestData, ResponseData]
 var AllKinds []enumElem[Kind]
 var decodersRequest = map[Kind]json2.Decoder[RequestData]{}
 var decodersResponse = map[Kind]json2.Decoder[ResponseData]{}

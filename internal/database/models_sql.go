@@ -8,10 +8,10 @@ import (
 
 const KindSQL Kind = "sql"
 
-func init() {
-	AllKinds = append(AllKinds, enumElem[Kind]{KindSQL, "SQL"})
-	decodersRequest[KindSQL] = json2.Map(decoderRequestMap, decoderRequestSQL)
-	decodersResponse[KindSQL] = json2.Map(decoderResponseMap, decoderResponseSQL)
+var pluginSql = plugin[SQLRequest, SQLResponse]{
+	enumElem[Kind]{KindSQL, "SQL"},
+	decoderRequestSQL,
+	decoderResponseSQL,
 }
 
 var decoderRequestSQL = json2.Map3(
