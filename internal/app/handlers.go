@@ -57,11 +57,13 @@ func (a *App) List() (ListResponse, error) {
 	history := []map[string]any{}
 	for _, req := range requests {
 		history = append(history, fun.Map[map[string]any](func(h database.HistoryEntry) map[string]any {
-			b, _ := json.Marshal(h)
-
-			m, _ := database.DecodeHistory(req.Data, b)
-			m["RequestId"] = req.ID
-			return m
+			return map[string]any{
+				"RequestId":   req.ID,
+				"sent_at":     h.SentAt.Format(time.RFC3339),
+				"received_at": h.ReceivedAt.Format(time.RFC3339),
+				"request":     h.Request,
+				"response":    h.Response,
+			}
 		}, req.History...)...)
 	}
 	slices.SortFunc(history, func(i, j map[string]any) int {

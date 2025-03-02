@@ -130,17 +130,7 @@ func Get(
 			return
 		}
 
-		kind := request.Data.isRequestData()
-		decoderHistory := json2.List(json2.Map4(
-			func(sentAt, receivedAt time.Time, request RequestData, response ResponseData) HistoryEntry {
-				return HistoryEntry{sentAt, receivedAt, request, response}
-			},
-			json2.Required("sent_at", json2.Time),
-			json2.Required("received_at", json2.Time),
-			json2.Required("request", plugins[kind].decoderRequest),
-			json2.Required("response", plugins[kind].decoderResponse),
-		))
-		history, err := decoderHistory.ParseBytes(b)
+		history, err := json2.List(DecodeHistory(request.Data)).ParseBytes(b)
 		if err != nil {
 			panic("unknown history type: " + err.Error())
 		}

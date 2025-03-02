@@ -156,17 +156,16 @@ func ResponseDataWithKind(resp ResponseData) (map[string]any, error) {
 	return m, nil
 }
 
-func DecodeHistory(req RequestData, b []byte) (map[string]any, error) {
+func DecodeHistory(req RequestData) json2.Decoder[HistoryEntry] {
 	kind := req.isRequestData()
-	decoderHistory := json2.Map4(
-		func(sentAt, receivedAt time.Time, request RequestData, response ResponseData) map[string]any {
-			res, _ := gavnischtsche(HistoryEntry{sentAt, receivedAt, request, response})
-			return res
+	plugin := plugins[kind]
+	return json2.Map4(
+		func(sentAt, receivedAt time.Time, request RequestData, response ResponseData) HistoryEntry {
+			return HistoryEntry{sentAt, receivedAt, request, response}
 		},
 		json2.Required("sent_at", json2.Time),
 		json2.Required("received_at", json2.Time),
-		json2.Required("request", plugins[kind].decoderRequest),
-		json2.Required("response", plugins[kind].decoderResponse),
+		json2.Required("request", plugin.decoderRequest),
+		json2.Required("response", plugin.decoderResponse),
 	)
-	return decoderHistory.ParseBytes(b)
 }
