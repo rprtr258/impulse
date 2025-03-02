@@ -30,6 +30,9 @@ type plugin[Req RequestData, Resp ResponseData] struct {
 	decoderResponse json2.Decoder[Resp]
 }
 
+var plugins = map[Kind]plugin[RequestData, ResponseData]{}
+var AllKinds []enumElem[Kind]
+
 func usePlugin[Req RequestData, Resp ResponseData](plug plugin[Req, Resp]) {
 	plugins[plug.kind.Value] = plugin[RequestData, ResponseData]{
 		kind:            plug.kind,
@@ -68,8 +71,6 @@ type enumElem[T any] struct {
 	TSName string
 }
 
-var plugins map[Kind]plugin[RequestData, ResponseData]
-var AllKinds []enumElem[Kind]
 var decoderRequestData = json2.AndThen(decoderKind, func(kind Kind) json2.Decoder[RequestData] {
 	plugin, ok := plugins[kind]
 	if !ok {
@@ -143,17 +144,6 @@ func (e Request) MarshalJSON2() ([]byte, error) {
 	m["kind"] = e.Data.isRequestData()
 
 	return json.Marshal(m)
-}
-
-func ResponseDataWithKind(resp ResponseData) (map[string]any, error) {
-	m, err := gavnischtsche(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	m["kind"] = resp.isResponseData()
-
-	return m, nil
 }
 
 func DecodeHistory(req RequestData) json2.Decoder[HistoryEntry] {

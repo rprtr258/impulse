@@ -263,13 +263,13 @@ func toKV(headers http.Header) []database.KV {
 }
 
 // Perform create a handler that performs call and save result to history
-func (a *App) Perform(requestID string) (map[string]any, error) {
+func (a *App) Perform(requestID string) error {
 	request, err := database.Get(
 		a.ctx, a.DB,
 		database.RequestID(requestID),
 	)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get request id=%q", requestID)
+		return errors.Wrapf(err, "get request id=%q", requestID)
 	}
 
 	sentAt := time.Now()
@@ -279,30 +279,30 @@ func (a *App) Perform(requestID string) (map[string]any, error) {
 	case database.HTTPRequest:
 		response, err = a.sendHTTP(request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send http request id=%q", requestID)
+			return errors.Wrapf(err, "send http request id=%q", requestID)
 		}
 	case database.SQLRequest:
 		response, err = a.sendSQL(request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send sql request id=%q", requestID)
+			return errors.Wrapf(err, "send sql request id=%q", requestID)
 		}
 	case database.GRPCRequest:
 		response, err = a.sendGRPC(request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send grpc request id=%q", requestID)
+			return errors.Wrapf(err, "send grpc request id=%q", requestID)
 		}
 	case database.JQRequest:
 		response, err = sendJQ(a.ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send jq request id=%q", requestID)
+			return errors.Wrapf(err, "send jq request id=%q", requestID)
 		}
 	case database.RedisRequest:
 		response, err = sendRedis(a.ctx, request)
 		if err != nil {
-			return nil, errors.Wrapf(err, "send redis request id=%q", requestID)
+			return errors.Wrapf(err, "send redis request id=%q", requestID)
 		}
 	default:
-		return nil, errors.Errorf("unsupported request type %T", request)
+		return errors.Errorf("unsupported request type %T", request)
 	}
 
 	receivedAt := time.Now()
@@ -311,8 +311,8 @@ func (a *App) Perform(requestID string) (map[string]any, error) {
 		sentAt, receivedAt,
 		request.Data, response,
 	); err != nil {
-		return nil, errors.Wrap(err, "insert into database")
+		return errors.Wrap(err, "insert into database")
 	}
 
-	return database.ResponseDataWithKind(response)
+	return nil
 }

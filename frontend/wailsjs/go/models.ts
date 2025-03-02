@@ -10,11 +10,11 @@ export namespace app {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.IDs = source.IDs;
-	        this.Dirs = this.convertValues(source.Dirs, Tree, true);
+	        this.IDs = source["IDs"];
+	        this.Dirs = this.convertValues(source["Dirs"], Tree, true);
 	    }
 	
-		convertValues(a: any, classs: any, asMap = false): any {
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
@@ -43,12 +43,12 @@ export namespace app {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Tree = this.convertValues(source.Tree, Tree);
-	        this.Requests = this.convertValues(source.Requests, database.Request, true);
-	        this.History = source.History;
+	        this.Tree = this.convertValues(source["Tree"], Tree);
+	        this.Requests = this.convertValues(source["Requests"], database.Request, true);
+	        this.History = source["History"];
 	    }
 	
-		convertValues(a: any, classs: any, asMap = false): any {
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
@@ -75,7 +75,7 @@ export namespace app {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source.id;
+	        this.id = source["id"];
 	    }
 	}
 	
@@ -89,8 +89,8 @@ export namespace app {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.service = source.service;
-	        this.methods = source.methods;
+	        this.service = source["service"];
+	        this.methods = source["methods"];
 	    }
 	}
 
@@ -98,24 +98,24 @@ export namespace app {
 
 export namespace database {
 	
-	export enum ColumnType {
-	    STRING = "string",
-	    NUMBER = "number",
-	    TIME = "time",
-	    BOOLEAN = "boolean",
-	}
 	export enum Kind {
-	    GRPC = "grpc",
-	    HTTP = "http",
-	    JQ = "jq",
 	    REDIS = "redis",
 	    SQL = "sql",
+	    JQ = "jq",
+	    GRPC = "grpc",
+	    HTTP = "http",
 	}
 	export enum Database {
 	    POSTGRES = "postgres",
 	    MYSQL = "mysql",
 	    SQLITE = "sqlite",
 	    CLICKHOUSE = "clickhouse",
+	}
+	export enum ColumnType {
+	    STRING = "string",
+	    NUMBER = "number",
+	    TIME = "time",
+	    BOOLEAN = "boolean",
 	}
 	export class KV {
 	    key: string;
@@ -127,8 +127,8 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.key = source.key;
-	        this.value = source.value;
+	        this.key = source["key"];
+	        this.value = source["value"];
 	    }
 	}
 	export class GRPCRequest {
@@ -143,13 +143,13 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.target = source.target;
-	        this.method = source.method;
-	        this.payload = source.payload;
-	        this.metadata = this.convertValues(source.metadata, KV);
+	        this.target = source["target"];
+	        this.method = source["method"];
+	        this.payload = source["payload"];
+	        this.metadata = this.convertValues(source["metadata"], KV);
 	    }
 	
-		convertValues(a: any, classs: any, asMap = false): any {
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
@@ -178,12 +178,12 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.response = source.response;
-	        this.code = source.code;
-	        this.metadata = this.convertValues(source.metadata, KV);
+	        this.response = source["response"];
+	        this.code = source["code"];
+	        this.metadata = this.convertValues(source["metadata"], KV);
 	    }
 	
-		convertValues(a: any, classs: any, asMap = false): any {
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
@@ -213,13 +213,13 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.url = source.url;
-	        this.method = source.method;
-	        this.body = source.body;
-	        this.headers = this.convertValues(source.headers, KV);
+	        this.url = source["url"];
+	        this.method = source["method"];
+	        this.body = source["body"];
+	        this.headers = this.convertValues(source["headers"], KV);
 	    }
 	
-		convertValues(a: any, classs: any, asMap = false): any {
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
@@ -248,12 +248,12 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.code = source.code;
-	        this.body = source.body;
-	        this.headers = this.convertValues(source.headers, KV);
+	        this.code = source["code"];
+	        this.body = source["body"];
+	        this.headers = this.convertValues(source["headers"], KV);
 	    }
 	
-		convertValues(a: any, classs: any, asMap = false): any {
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
@@ -285,13 +285,13 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.sent_at = this.convertValues(source.sent_at, null);
-	        this.received_at = this.convertValues(source.received_at, null);
-	        this.request = source.request;
-	        this.response = source.response;
+	        this.sent_at = this.convertValues(source["sent_at"], null);
+	        this.received_at = this.convertValues(source["received_at"], null);
+	        this.request = source["request"];
+	        this.response = source["response"];
 	    }
 	
-		convertValues(a: any, classs: any, asMap = false): any {
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
@@ -319,8 +319,8 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.query = source.query;
-	        this.json = source.json;
+	        this.query = source["query"];
+	        this.json = source["json"];
 	    }
 	}
 	export class JQResponse {
@@ -332,7 +332,7 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.response = source.response;
+	        this.response = source["response"];
 	    }
 	}
 	
@@ -346,8 +346,8 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.dsn = source.dsn;
-	        this.query = source.query;
+	        this.dsn = source["dsn"];
+	        this.query = source["query"];
 	    }
 	}
 	export class RedisResponse {
@@ -359,7 +359,7 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.response = source.response;
+	        this.response = source["response"];
 	    }
 	}
 	export class Request {
@@ -373,12 +373,12 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.ID = source.ID;
-	        this.Data = source.Data;
-	        this.History = this.convertValues(source.History, HistoryEntry);
+	        this.ID = source["ID"];
+	        this.Data = source["Data"];
+	        this.History = this.convertValues(source["History"], HistoryEntry);
 	    }
 	
-		convertValues(a: any, classs: any, asMap = false): any {
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
@@ -407,9 +407,9 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.dsn = source.dsn;
-	        this.database = source.database;
-	        this.query = source.query;
+	        this.dsn = source["dsn"];
+	        this.database = source["database"];
+	        this.query = source["query"];
 	    }
 	}
 	export class SQLResponse {
@@ -423,9 +423,9 @@ export namespace database {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.columns = source.columns;
-	        this.types = source.types;
-	        this.rows = source.rows;
+	        this.columns = source["columns"];
+	        this.types = source["types"];
+	        this.rows = source["rows"];
 	    }
 	}
 

@@ -140,8 +140,8 @@ export const api = {
 
   async requestPerform(
     reqId: string,
-  ): Promise<Result<ResponseData>> {
-    return await wrap(() => App.Perform(reqId)) as Result<ResponseData>;
+  ): Promise<Result<void>> {
+    return await wrap(() => App.Perform(reqId)) as Result<void>;
   },
 
   async requestDelete(
