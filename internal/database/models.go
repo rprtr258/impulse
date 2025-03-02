@@ -46,8 +46,6 @@ func init() {
 	usePlugin(pluginHTTP)
 
 	for _, plugin := range plugins {
-		decodersRequest[plugin.kind.Value] = plugin.decoderRequest
-		decodersResponse[plugin.kind.Value] = plugin.decoderResponse
 		AllKinds = append(AllKinds, plugin.kind)
 	}
 }
@@ -72,17 +70,18 @@ type enumElem[T any] struct {
 
 var plugins map[Kind]plugin[RequestData, ResponseData]
 var AllKinds []enumElem[Kind]
-var decodersRequest = map[Kind]json2.Decoder[RequestData]{}
-var decodersResponse = map[Kind]json2.Decoder[ResponseData]{}
-var decoderRequestData = json2.AndThen(
-	decoderKind,
-	func(kind Kind) json2.Decoder[RequestData] {
-		decoder, ok := decodersRequest[kind]
-		if !ok {
-			return json2.Fail[RequestData](fmt.Sprintf("unknown request kind %q", kind))
-		}
-		return decoder
-	})
+var decoderRequestData = json2.AndThen(decoderKind, func(kind Kind) json2.Decoder[RequestData] {
+	plugin, ok := plugins[kind]
+	if !ok {
+		return json2.Fail[RequestData](fmt.Sprintf("unknown request kind %q", kind))
+	}
+	return plugin.decoderRequest
+})
+var decoderRequest = json2.AndThen(decoderKind, func(kind Kind) json2.Decoder[Request] {
+	return json2.Map(func(req RequestData) Request {
+		return Request{"", req, nil}
+	}, decoderRequestData)
+})
 
 type ResponseData interface {
 	isResponseData() Kind
@@ -102,19 +101,6 @@ type Request struct {
 	Data    RequestData
 	History []HistoryEntry // TODO: []HistoryEntry[HTTPRequest, HTTPResponse] | []HistoryEntry[SQLRequest, SQLResponse] aligned w/ Data field
 }
-
-var decoderRequest = json2.AndThen(
-	decoderKind,
-	func(kind Kind) json2.Decoder[Request] {
-		decoderRequest, ok := decodersRequest[kind]
-		if !ok {
-			return json2.Fail[Request](fmt.Sprintf("unknown kind %q", kind))
-		}
-
-		return json2.Map(func(req RequestData) Request {
-			return Request{"", req, nil}
-		}, decoderRequest)
-	})
 
 func (e *Request) UnmarshalJSON(b []byte) error {
 	var err error
@@ -179,8 +165,8 @@ func DecodeHistory(req RequestData, b []byte) (map[string]any, error) {
 		},
 		json2.Required("sent_at", json2.Time),
 		json2.Required("received_at", json2.Time),
-		json2.Required("request", decodersRequest[kind]),
-		json2.Required("response", decodersResponse[kind]),
+		json2.Required("request", plugins[kind].decoderRequest),
+		json2.Required("response", plugins[kind].decoderResponse),
 	)
 	return decoderHistory.ParseBytes(b)
 }

@@ -137,8 +137,8 @@ func Get(
 			},
 			json2.Required("sent_at", json2.Time),
 			json2.Required("received_at", json2.Time),
-			json2.Required("request", decodersRequest[kind]),
-			json2.Required("response", decodersResponse[kind]),
+			json2.Required("request", plugins[kind].decoderRequest),
+			json2.Required("response", plugins[kind].decoderResponse),
 		))
 		history, err := decoderHistory.ParseBytes(b)
 		if err != nil {
