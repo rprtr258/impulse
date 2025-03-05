@@ -84,8 +84,9 @@ export function useStore() {
 
     const indexesToRemove = tabs.value.map.list
       .map((id: string, i: number) => [id, i] as [string, number])
-      .filter(([id]: readonly [string, number]) => requests.hasOwnProperty(id))
+      .filter(([id]: readonly [string, number]) => !requests.hasOwnProperty(id))  // Changed condition here
       .map(([, i]: readonly [string, number]) => i);
+
     if (indexesToRemove.length === 0) {
       return;
     } else if (indexesToRemove.length === tabs.value.map.length()) {
@@ -93,7 +94,8 @@ export function useStore() {
       return;
     }
 
-    for (const i of indexesToRemove) {
+    // Remove tabs from highest index to lowest to avoid shifting issues
+    for (const i of indexesToRemove.sort((a, b) => b - a)) {
       tabs.value.map.removeAt(i);
       if (tabs.value.index === i && tabs.value.index > 0) {
         tabs.value.index--;
@@ -151,9 +153,20 @@ export function useStore() {
 
       const res = json.value;
       requestsTree.value = res.Tree;
-      Object.assign(requests, res.Requests);
+
+      // Don't overwrite currently edited request
+      const currentRequest = this.request();
+      const currentRequestId = currentRequest ? tabs.value?.map.list[tabs.value.index] : null;
+
+      // Update requests, preserving the current one if it exists
+      Object.entries(res.Requests).forEach(([id, request]) => {
+        if (id !== currentRequestId) {
+          requests[id] = request;
+        }
+      });
+
+      // Update history
       Object.assign(history, res.History);
-      // TODO: unselect request if it does not exist anymore
     },
     async createRequest(id: string, kind: RequestData["kind"]): Promise<void> {
       const res = await api.requestCreate(id, kind);
