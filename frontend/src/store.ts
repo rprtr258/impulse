@@ -84,7 +84,7 @@ export function useStore() {
 
     const indexesToRemove = tabs.value.map.list
       .map((id: string, i: number) => [id, i] as [string, number])
-      .filter(([id]: readonly [string, number]) => requests.hasOwnProperty(id))
+      .filter(([id]: readonly [string, number]) => !requests.hasOwnProperty(id))
       .map(([, i]: readonly [string, number]) => i);
     if (indexesToRemove.length === 0) {
       return;
@@ -113,6 +113,14 @@ export function useStore() {
       }
       const {map: requestIDs, index} = tabsValue;
       return requests[requestIDs.list[index]] ?? null;
+    },
+    requestID(): string | null {
+      const tabsValue = tabs.value;
+      if (tabsValue === null) {
+        return null;
+      }
+      const {map: requestIDs, index} = tabsValue;
+      return requestIDs.list[index];
     },
     getResponse(id: string): Omit<ResponseData, "kind"> | null {
       return history.find((h: Readonly<HistoryEntry>) => h.RequestId === id)?.response ?? null;
@@ -151,9 +159,21 @@ export function useStore() {
 
       const res = json.value;
       requestsTree.value = res.Tree;
-      Object.assign(requests, res.Requests);
+
+      const currentRequestId = this.requestID();
+
+      for (const id in res.Requests) {
+        if (id !== currentRequestId) {
+          requests[id] = res.Requests[id];
+        }
+      }
+      for (const id in requests) {
+        if (!res.Requests.hasOwnProperty(id)) {
+          delete requests[id];
+        }
+      }
+
       Object.assign(history, res.History);
-      // TODO: unselect request if it does not exist anymore
     },
     async createRequest(id: string, kind: RequestData["kind"]): Promise<void> {
       const res = await api.requestCreate(id, kind);

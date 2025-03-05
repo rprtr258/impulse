@@ -5,7 +5,7 @@ import {EditorView} from "@codemirror/view";
 import {PostgreSQL, sql} from "@codemirror/lang-sql";
 import {defaultEditorExtensions, defaultExtensions} from "./editor";
 
-const {value = null} = defineProps<{
+const {value} = defineProps<{
   value: string,
 }>();
 const emit = defineEmits<{
@@ -14,7 +14,7 @@ const emit = defineEmits<{
 
 const editorRef = useTemplateRef("editorRef");
 
-let editor: EditorView;
+let editor: EditorView | null = null;
 onMounted(() => {
   const state = EditorState.create({
     doc: value ?? "",
@@ -29,16 +29,16 @@ onMounted(() => {
 
   editor = new EditorView({
     parent: editorRef.value as Element,
-    state: state as EditorState,
+    state: state,
   });
 });
-watch(() => value, () => {
-  if (value === editor.state.doc.toString()) return;
+watch(() => value, (newValue) => {
+  if (!editor || newValue === editor.state.doc.toString()) return;
 
   editor.dispatch({
-    changes: {from: 0, to: editor.state.doc.length, insert: value} as ChangeSpec,
+    changes: {from: 0, to: editor.state.doc.length, insert: newValue}
   });
-});
+}, {immediate: true});
 </script>
 
 <template>
