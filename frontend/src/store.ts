@@ -84,9 +84,8 @@ export function useStore() {
 
     const indexesToRemove = tabs.value.map.list
       .map((id: string, i: number) => [id, i] as [string, number])
-      .filter(([id]: readonly [string, number]) => !requests.hasOwnProperty(id))  // Changed condition here
+      .filter(([id]: readonly [string, number]) => !requests.hasOwnProperty(id))
       .map(([, i]: readonly [string, number]) => i);
-
     if (indexesToRemove.length === 0) {
       return;
     } else if (indexesToRemove.length === tabs.value.map.length()) {
@@ -94,8 +93,7 @@ export function useStore() {
       return;
     }
 
-    // Remove tabs from highest index to lowest to avoid shifting issues
-    for (const i of indexesToRemove.sort((a, b) => b - a)) {
+    for (const i of indexesToRemove) {
       tabs.value.map.removeAt(i);
       if (tabs.value.index === i && tabs.value.index > 0) {
         tabs.value.index--;
@@ -115,6 +113,14 @@ export function useStore() {
       }
       const {map: requestIDs, index} = tabsValue;
       return requests[requestIDs.list[index]] ?? null;
+    },
+    requestID(): string | null {
+      const tabsValue = tabs.value;
+      if (tabsValue === null) {
+        return null;
+      }
+      const {map: requestIDs, index} = tabsValue;
+      return requestIDs.list[index];
     },
     getResponse(id: string): Omit<ResponseData, "kind"> | null {
       return history.find((h: Readonly<HistoryEntry>) => h.RequestId === id)?.response ?? null;
@@ -154,18 +160,19 @@ export function useStore() {
       const res = json.value;
       requestsTree.value = res.Tree;
 
-      // Don't overwrite currently edited request
-      const currentRequest = this.request();
-      const currentRequestId = currentRequest ? tabs.value?.map.list[tabs.value.index] : null;
+      const currentRequestId = this.requestID();
 
-      // Update requests, preserving the current one if it exists
-      Object.entries(res.Requests).forEach(([id, request]) => {
+      for (const id in res.Requests) {
         if (id !== currentRequestId) {
-          requests[id] = request;
+          requests[id] = res.Requests[id];
         }
-      });
+      }
+      for (const id in requests) {
+        if (!res.Requests.hasOwnProperty(id)) {
+          delete requests[id];
+        }
+      }
 
-      // Update history
       Object.assign(history, res.History);
     },
     async createRequest(id: string, kind: RequestData["kind"]): Promise<void> {
