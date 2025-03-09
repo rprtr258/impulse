@@ -14,7 +14,7 @@ import {DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined, D
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
 import {useStore} from "./store";
-import {Method, RequestData, Kinds, Database} from "./api";
+import {Method, RequestData, Kinds, Database, api} from "./api";
 import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
@@ -203,10 +203,10 @@ function rename() {
   renameCancel();
 }
 
-function badge(req: RequestData): [string, string] {
-  switch (req.kind) {
-  case "http": return [Method[req.method as keyof typeof Method], "lime"];
-  case "sql": return [Database[req.database as keyof typeof Database], "bluewhite"];
+function badge(req: app.requestPreview): [string, string] {
+  switch (req.Kind) {
+  case "http": return [Method[req.SubKind as keyof typeof Method], "lime"];
+  case "sql": return [Database[req.SubKind as keyof typeof Database], "bluewhite"];
   case "grpc": return ["GRPC", "cyan"];
   case "jq": return ["JQ", "violet"];
   case "redis": return ["REDIS", "red"];
@@ -225,7 +225,7 @@ function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boo
   }
   const [method, color] = badge(req);
   return h(NTag, {
-    type: req.kind === "http" ? "success" : "info", // TODO: replace with color
+    type: req.Kind === "http" ? "success" : "info", // TODO: replace with color
     class: 'method',
     style: `width: 4em; justify-content: center; color: ${color};`,
     size: "small",
@@ -262,7 +262,7 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
         label: "Copy as curl",
         key: "copy-as-curl",
         icon: () => h(NIcon, {component: ContentCopyFilled}),
-        show: store.requests[id]?.kind === "http",
+        show: store.requests[id]?.Kind === "http",
         props: {
           onClick: () => {
             const req = store.requests[id];
@@ -297,6 +297,28 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 }
 
 const sidebarHidden = ref(false);
+
+const request = ref<RequestData | null>(null);
+const requestKind = computed(() => {
+  const requestID = store.requestID();
+  if (requestID === null) {
+    return null;
+  }
+  return store.requests[requestID].Kind;
+});
+watch(() => store.requestID(), (id) => {
+  if (id === null) {
+    request.value = null;
+    return;
+  }
+  api.get(id).then((r) => {
+    if (r.kind === "ok") {
+      request.value = r.value;
+    } else {
+      useNotification().error({title: "Error", content: `Failed to load request: ${r.value}`});
+    }
+  })
+});
 </script>
 
 <template>
@@ -422,7 +444,7 @@ const sidebarHidden = ref(false);
   </aside>
   <div style="color: rgba(255, 255, 255, 0.82); background-color: rgb(16, 16, 20); overflow: hidden;">
     <NResult
-      v-if="store.tabs.value === null"
+      v-if="request === null || store.tabs.value === null"
       status="info"
       title="Pick request"
       description="Pick request to see it, edit and send and do other fun things."
@@ -447,36 +469,36 @@ const sidebarHidden = ref(false);
       display-directive="if"
     >
       <RequestHTTP
-        v-if='store.request()!.kind === "http"'
-        :request="store.request() as database.HTTPRequest"
+        v-if='requestKind === "http"'
+        :request="request as database.HTTPRequest"
         :response="store.getResponse(id) as database.HTTPResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestSQL
-        v-else-if='store.request()!.kind === "sql"'
+        v-else-if='requestKind === "sql"'
         :id="id"
-        :request="store.request() as database.SQLRequest"
+        :request="request as database.SQLRequest"
         :response="store.getResponse(id) as database.SQLResponse ?? null"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestGRPC
-        v-else-if='store.request()!.kind === "grpc"'
-        :request="store.request() as database.GRPCRequest"
+        v-else-if='requestKind === "grpc"'
+        :request="request as database.GRPCRequest"
         :response="store.getResponse(id) as database.GRPCResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestJQ
-        v-else-if='store.request()!.kind === "jq"'
-        :request="store.request() as database.JQRequest"
+        v-else-if='requestKind === "jq"'
+        :request="request as database.JQRequest"
         :response="store.getResponse(id) as database.JQResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestRedis
-        v-else-if='store.request()!.kind === "redis"'
-        :request="store.request() as database.RedisRequest"
+        v-else-if='requestKind === "redis"'
+        :request="request as database.RedisRequest"
         :response="store.getResponse(id) as database.RedisResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"

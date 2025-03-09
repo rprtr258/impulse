@@ -1,10 +1,7 @@
 import {reactive, ref, watch} from "vue";
 import {useNotification} from "naive-ui";
-import type { RequestData,
-  ResponseData} from "./api";
-import {
-  api, type HistoryEntry
-} from "./api";
+import type {RequestData, ResponseData, HistoryEntry} from "./api";
+import {api} from "./api";
 import {app} from '../wailsjs/go/models';
 
 interface OrderedSet {
@@ -65,7 +62,7 @@ function orderedMap(...elems: readonly string[]): OrderedSet {
 }
 
 const requestsTree = ref<app.Tree>(new app.Tree({IDs: [], Dirs: {}}));
-const requests = reactive<Record<string, RequestData>>({});
+const requests = reactive<Record<string, app.requestPreview>>({});
 const history = reactive<HistoryEntry[]>([]);
 
 export function useStore() {
@@ -106,14 +103,6 @@ export function useStore() {
     requests,
     history,
     tabs,
-    request(): RequestData | null {
-      const tabsValue = tabs.value;
-      if (tabsValue === null) {
-        return null;
-      }
-      const {map: requestIDs, index} = tabsValue;
-      return requests[requestIDs.list[index]] ?? null;
-    },
     requestID(): string | null {
       const tabsValue = tabs.value;
       if (tabsValue === null) {
@@ -121,6 +110,13 @@ export function useStore() {
       }
       const {map: requestIDs, index} = tabsValue;
       return requestIDs.list[index];
+    },
+    request(): Promise<RequestData> | null {
+      const requestID = this.requestID();
+      if (requestID === null) {
+        return null;
+      }
+      return api.get(requestID).then(res => res.kind === "ok" ? res.value.Data : null);
     },
     getResponse(id: string): Omit<ResponseData, "kind"> | null {
       return history.find((h: Readonly<HistoryEntry>) => h.RequestId === id)?.response ?? null;
@@ -173,7 +169,7 @@ export function useStore() {
         }
       }
 
-      Object.assign(history, res.History);
+      // Object.assign(history, res.History); // TODO: get back
     },
     async createRequest(id: string, kind: RequestData["kind"]): Promise<void> {
       const res = await api.requestCreate(id, kind);
@@ -216,13 +212,12 @@ export function useStore() {
     },
     async update(id: string, req: Omit<RequestData, "kind">): Promise<void> {
       this.selectRequest(id);
-      const request = this.request();
+      const request = await this.request();
       if (request === null) {
         notify(`Could update request: ${id}`);
         return;
       }
 
-      requests[id] = {kind: request.kind, ...req} as RequestData;
       const res = await api.requestUpdate(id, request.kind, req);
       if (res.kind === "err") {
         notify(`Could not save current request: ${res.value}`);
@@ -233,7 +228,7 @@ export function useStore() {
     },
     async rename(id: string, newID: string): Promise<void> {
       const request = requests[id];
-      const res = await api.requestUpdate(id, request.kind, request, newID);
+      const res = await api.requestUpdate(id, request.Kind, request, newID);
       if (res.kind === "err") {
         notify(`Could not rename request: ${res.value}`);
         return;

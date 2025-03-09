@@ -27,7 +27,7 @@ type JQRequest struct {
 	JSON  string `json:"json"`
 }
 
-func (JQRequest) isRequestData() Kind { return KindJQ }
+func (JQRequest) Kind() Kind { return KindJQ }
 
 type JQResponse struct {
 	Response []string `json:"response"`

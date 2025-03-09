@@ -36,7 +36,7 @@ type HTTPRequest struct {
 	Headers []KV   `json:"headers"`
 }
 
-func (HTTPRequest) isRequestData() Kind { return KindHTTP }
+func (HTTPRequest) Kind() Kind { return KindHTTP }
 
 type HTTPResponse struct {
 	Code    int    `json:"code"`

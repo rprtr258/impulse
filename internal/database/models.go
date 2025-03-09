@@ -56,7 +56,7 @@ func init() {
 type Kind string
 
 type RequestData interface {
-	isRequestData() Kind
+	Kind() Kind
 }
 
 var decoderKind = json2.Map(func(kind string) Kind {
@@ -130,7 +130,7 @@ func (e Request) MarshalJSON() ([]byte, error) {
 	}
 
 	m["id"] = e.ID
-	m["kind"] = e.Data.isRequestData()
+	m["kind"] = e.Data.Kind()
 
 	return json.Marshal(m)
 }
@@ -141,13 +141,13 @@ func (e Request) MarshalJSON2() ([]byte, error) {
 		return nil, err
 	}
 
-	m["kind"] = e.Data.isRequestData()
+	m["kind"] = e.Data.Kind()
 
 	return json.Marshal(m)
 }
 
 func DecodeHistory(req RequestData) json2.Decoder[HistoryEntry] {
-	kind := req.isRequestData()
+	kind := req.Kind()
 	plugin := plugins[kind]
 	return json2.Map4(
 		func(sentAt, receivedAt time.Time, request RequestData, response ResponseData) HistoryEntry {
