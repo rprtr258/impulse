@@ -90,11 +90,11 @@ export type HistoryEntry = {
   response: database.RedisResponse,
 })
 
-function parseTime(s: string): Date {
-  const d = new Date();
-  d.setTime(Date.parse(s));
-  return d;
-};
+// function parseTime(s: string): Date {
+//   const d = new Date();
+//   d.setTime(Date.parse(s));
+//   return d;
+// };
 
 async function wrap<T>(f: () => Promise<T>): Promise<Result<T>> {
   try {
@@ -106,15 +106,23 @@ async function wrap<T>(f: () => Promise<T>): Promise<Result<T>> {
 
 export const api = {
   async collectionRequests(): Promise<Result<app.ListResponse>> {
-    const y = await wrap(async () => App.List());
-    return y.map((x: app.ListResponse): app.ListResponse => {
-      for (const req of x.History) {
-        req.sent_at = parseTime(req.sent_at as unknown as string);
-      }
-      x.History.sort((a, b) => b.sent_at.getTime() - a.sent_at.getTime());
-      return x;
-    });
+    return await wrap(async () => App.List());
   },
+
+  async get(id: string): Promise<Result<database.Request>> {
+    return await wrap(async () => App.Get(id));
+  },
+
+  // async history(): Promise<Result<app.ListResponse>> {
+  //   const y = await wrap(async () => App.List());
+  //   return y.map((x: app.ListResponse): app.ListResponse => {
+  //     for (const req of x.History) {
+  //       req.sent_at = parseTime(req.sent_at as unknown as string);
+  //     }
+  //     x.History.sort((a, b) => b.sent_at.getTime() - a.sent_at.getTime());
+  //     return x;
+  //   });
+  // },
 
   async requestCreate(
     name: string,

@@ -13,16 +13,37 @@ import (
 	"github.com/rprtr258/impulse/internal/database"
 )
 
+type requestPreview struct {
+	Kind    database.Kind
+	SubKind string
+}
+
 func (a *App) list(
 	node database.Tree,
-	requests map[string]database.Request,
+	requests map[string]requestPreview,
 ) error {
 	for _, requestID := range node.RequestIDs {
 		request, err := database.Get(a.ctx, a.DB, requestID)
 		if err != nil {
 			return errors.Wrapf(err, "get request id=%q", requestID)
 		}
-		requests[string(requestID)] = request
+		requests[string(requestID)] = requestPreview{
+			Kind: request.Data.Kind(),
+			SubKind: func() string {
+				switch v := request.Data.(type) {
+				case database.HTTPRequest:
+					return v.Method
+				case database.SQLRequest:
+					return string(v.Database)
+				case database.GRPCRequest:
+					return "GRPC"
+				case database.JQRequest:
+					return "JQ"
+				default:
+					return ""
+				}
+			}(),
+		}
 	}
 	for _, subtree := range node.Dirs {
 		if err := a.list(subtree, requests); err != nil {
@@ -39,8 +60,7 @@ type Tree struct {
 
 type ListResponse struct {
 	Tree     Tree
-	Requests map[string]database.Request
-	History  []map[string]any
+	Requests map[string]requestPreview
 }
 
 func (a *App) List() (ListResponse, error) {
@@ -49,10 +69,43 @@ func (a *App) List() (ListResponse, error) {
 		return ListResponse{}, errors.Wrap(err, "list requests")
 	}
 
-	requests := make(map[string]database.Request)
+	requests := make(map[string]requestPreview)
 	if err := a.list(tree, requests); err != nil { // TODO: batch
 		return ListResponse{}, errors.Wrap(err, "get requests info")
 	}
+
+	var mapper func(database.Tree) Tree
+	mapper = func(tree database.Tree) Tree {
+		result := make(map[string]Tree, len(tree.Dirs))
+		for k, dir := range tree.Dirs {
+			result[k] = mapper(dir)
+		}
+
+		return Tree{
+			IDs:  fun.Map[string](func(id database.RequestID) string { return string(id) }, tree.RequestIDs...),
+			Dirs: result,
+		}
+	}
+	return ListResponse{
+		Tree:     mapper(tree),
+		Requests: requests,
+	}, nil
+}
+
+func (a *App) Get(id string) (database.Request, error) {
+	request, err := database.Get(a.ctx, a.DB, database.RequestID(id))
+	if err != nil {
+		return database.Request{}, errors.Wrapf(err, "get request id=%q", id)
+	}
+
+	return request, nil
+}
+
+func (a *App) History() ([]map[string]any, error) {
+	requests := make(map[string]database.Request)
+	// if err := a.list(tree, requests); err != nil { // TODO: batch
+	// 	return ListResponse{}, errors.Wrap(err, "get requests info")
+	// }
 
 	history := []map[string]any{}
 	for _, req := range requests {
@@ -70,23 +123,7 @@ func (a *App) List() (ListResponse, error) {
 		return strings.Compare(j["sent_at"].(string), i["sent_at"].(string))
 	})
 
-	var mapper func(database.Tree) Tree
-	mapper = func(tree database.Tree) Tree {
-		result := make(map[string]Tree, len(tree.Dirs))
-		for k, dir := range tree.Dirs {
-			result[k] = mapper(dir)
-		}
-
-		return Tree{
-			IDs:  fun.Map[string](func(id database.RequestID) string { return string(id) }, tree.RequestIDs...),
-			Dirs: result,
-		}
-	}
-	return ListResponse{
-		Tree:     mapper(tree),
-		Requests: requests,
-		History:  history,
-	}, nil
+	return history, nil
 }
 
 type ResponseNewRequest struct {

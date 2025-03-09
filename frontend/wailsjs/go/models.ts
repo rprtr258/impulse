@@ -1,5 +1,19 @@
 export namespace app {
 	
+	export class requestPreview {
+	    Kind: database.Kind;
+	    SubKind: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new requestPreview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Kind = source["Kind"];
+	        this.SubKind = source["SubKind"];
+	    }
+	}
 	export class Tree {
 	    IDs: string[];
 	    Dirs: Record<string, Tree>;
@@ -34,8 +48,7 @@ export namespace app {
 	}
 	export class ListResponse {
 	    Tree: Tree;
-	    Requests: Record<string, database.Request>;
-	    History: any[];
+	    Requests: Record<string, requestPreview>;
 	
 	    static createFrom(source: any = {}) {
 	        return new ListResponse(source);
@@ -44,8 +57,7 @@ export namespace app {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Tree = this.convertValues(source["Tree"], Tree);
-	        this.Requests = this.convertValues(source["Requests"], database.Request, true);
-	        this.History = source["History"];
+	        this.Requests = this.convertValues(source["Requests"], requestPreview, true);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -99,11 +111,11 @@ export namespace app {
 export namespace database {
 	
 	export enum Kind {
+	    REDIS = "redis",
+	    SQL = "sql",
 	    JQ = "jq",
 	    GRPC = "grpc",
 	    HTTP = "http",
-	    REDIS = "redis",
-	    SQL = "sql",
 	}
 	export enum Database {
 	    POSTGRES = "postgres",
