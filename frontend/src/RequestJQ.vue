@@ -17,7 +17,7 @@ const emit = defineEmits<{
 const request = use_request<database.JQRequest>(id);
 const response = use_response<database.JQResponse>(id);
 function updateRequest(patch: Partial<database.JQRequest>) {
-  emit("update", {...request.value, ...patch});
+  emit("update", {...request.value!, ...patch});
 }
 
 const jqerror = ref<string | null>(null); // TODO: use

@@ -20,16 +20,14 @@ const emit = defineEmits<{
 const request = use_request<database.SQLRequest>(id);
 const response = use_response<database.SQLResponse>(id);
 function updateRequest(patch: Partial<database.SQLRequest>) {
-  emit("update", {...request.value, ...patch});
+  emit("update", {...request.value!, ...patch});
 }
 
 function onInputChange(newValue: string) {
-  request.value.dsn = newValue;
   updateRequest({dsn: newValue});
 }
 
 function onQueryChange(newValue: string) {
-  request.value.query = newValue;
   updateRequest({query: newValue});
 }
 

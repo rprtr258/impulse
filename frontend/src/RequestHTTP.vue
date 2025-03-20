@@ -20,7 +20,7 @@ const emit = defineEmits<{
 const request = use_request<database.HTTPRequest>(id);
 const response = use_response<database.HTTPResponse>(id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value, ...patch});
+  emit("update", {...request.value!, ...patch});
 }
 
 function responseBodyLanguage(contentType: string): string {

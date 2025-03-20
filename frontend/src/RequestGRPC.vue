@@ -21,7 +21,7 @@ const emit = defineEmits<{
 const request = use_request<database.GRPCRequest>(id);
 const response = use_response<database.GRPCResponse>(id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value, ...patch});
+  emit("update", {...request.value!, ...patch});
 }
 
 const methods = ref<{
@@ -34,7 +34,7 @@ const notification = useNotification();
 
 watch(() => request.value?.target, async () => {
   loadingMethods.value = true;
-  const res = await api.grpcMethods(request.value.target);
+  const res = await api.grpcMethods(request.value!.target);
   if (res.kind === "ok") {
     methods.value = res.value;
   } else {
