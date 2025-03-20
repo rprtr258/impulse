@@ -3,6 +3,7 @@ import {useNotification} from "naive-ui";
 import type {RequestData, ResponseData, HistoryEntry} from "./api";
 import {api} from "./api";
 import {app} from '../wailsjs/go/models';
+import { request } from "http";
 
 interface OrderedSet {
   list: string[],
@@ -112,7 +113,7 @@ export function useStore() {
         return null;
       }
       const {map: requestIDs, index} = tabsValue;
-      return requestIDs.list[index];
+      return requestIDs.list[index] ?? null;
     },
     request(): Promise<RequestData> | null {
       const requestID = this.requestID();
@@ -250,26 +251,32 @@ export function use_request<R extends object>(request_id: string): Reactive<{val
   return request;
 }
 
-export function use_history(request_id: string): Ref<HistoryEntry[]> {
+export function use_history(request_id: () => string): Reactive<{value: HistoryEntry[]}> {
   const notify = useNotify();
 
-  const response = ref<HistoryEntry[]>([]);
-  api.history(request_id).then(history => {
-    if (history.kind === "err") {
-      notify("load history:", history.value);
-      return null;
+  const response = reactive<{value: HistoryEntry[]}>({value: []});
+  watch(request_id, (id) => {
+    if (id === null) {
+      return;
     }
 
-    if (history.value.length === 0) {
-      return null;
-    }
+    api.history(id).then(history => {
+      if (history.kind === "err") {
+        notify("load history", request_id, history.value);
+        return null;
+      }
 
-    response.value = history.value;
-  });
+      if (history.value.length === 0) {
+        return null;
+      }
+
+      response.value = history.value ?? [];
+    });
+  }, {immediate: true});
   return response;
 }
 
-export function use_response<R>(request_id: string): Ref<Omit<R, "kind"> | null> {
+export function use_response<R>(request_id: () => string): Ref<Omit<R, "kind"> | null> {
   const history = use_history(request_id);
 
   const response = ref<Omit<R, "kind"> | null>(null) as Ref<Omit<R, "kind"> | null>;

@@ -15,7 +15,7 @@ const emit = defineEmits<{
   update: [request: Request],
 }>();
 const request = use_request<database.RedisRequest>(id);
-const response = use_response<database.RedisResponse>(id);
+const response = use_response<database.RedisResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
   emit("update", {...request.value!, ...patch});
 }

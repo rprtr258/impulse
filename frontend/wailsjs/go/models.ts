@@ -111,11 +111,11 @@ export namespace app {
 export namespace database {
 	
 	export enum Kind {
+	    REDIS = "redis",
+	    SQL = "sql",
 	    JQ = "jq",
 	    GRPC = "grpc",
 	    HTTP = "http",
-	    REDIS = "redis",
-	    SQL = "sql",
 	}
 	export enum Database {
 	    POSTGRES = "postgres",

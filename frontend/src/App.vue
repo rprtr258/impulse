@@ -9,12 +9,13 @@ import {
   NInput, NModal, NDropdown, NButton,
   NTree, TreeOption,
   useNotification,
+  NEmpty,
 } from "naive-ui";
 import {DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined, DownOutlined} from "@vicons/antd";
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
-import {useStore} from "./store";
-import {Method, RequestData, Kinds, Database, api} from "./api";
+import {use_history, useStore} from "./store";
+import {Method, Kinds, Database, api} from "./api";
 import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
@@ -301,6 +302,7 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 
 const sidebarHidden = ref(false);
 
+const history = use_history(() => store.requestID()!);
 const requestKind = computed(() => {
   const requestID = store.requestID();
   if (requestID === null) {
@@ -386,24 +388,26 @@ const requestKind = computed(() => {
         style="flex: 1;"
         display-directive="show"
       >
-        <NList hoverable :border="false">
+        <NEmpty
+          v-if="store.requestID() === null"
+          description="No request picked yet"
+          class="h100"
+          style="justify-content: center;"
+        />
+        <NEmpty
+          v-else-if="history.value.length === 0"
+          description="No history yet"
+          class="h100"
+          style="justify-content: center;"
+        />
+        <NList v-else hoverable :border="false">
           <NListItem
-            v-for="r, i in store.history"
+            v-for="r, i in history.value"
             :key="i"
-            v-on:click="selectRequest(r.RequestId)"
             class="history-card card"
           >
-            <div class="headline">
-              <NTag
-                class="method"
-                size="small"
-                :style="`width: 4em; justify-content: center; color: ${badge(store.requests[r.RequestId])[1]}`"
-              >{{badge(store.requests[r.RequestId])[0]}}</Ntag>
-              <span class='url' style="padding-left: .5em;">{{r.RequestId}}</span>
-            </div>
-            <div class='footer'>
-              <span style='color: grey;' class='date'>{{fromNow(r.sent_at)}}</span>
-            </div>
+            <!-- v-on:click="selectRequest(r.RequestId)" -->
+            <span style='color: grey;' class='date'>{{fromNow(r.sent_at)}}</span>
           </NListItem>
         </NList>
       </NTabPane>

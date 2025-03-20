@@ -19,7 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const request = use_request<database.GRPCRequest>(id);
-const response = use_response<database.GRPCResponse>(id);
+const response = use_response<database.GRPCResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
   emit("update", {...request.value!, ...patch});
 }

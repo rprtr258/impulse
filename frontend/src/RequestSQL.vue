@@ -18,7 +18,7 @@ const emit = defineEmits<{
 }>();
 
 const request = use_request<database.SQLRequest>(id);
-const response = use_response<database.SQLResponse>(id);
+const response = use_response<database.SQLResponse>(() => id);
 function updateRequest(patch: Partial<database.SQLRequest>) {
   emit("update", {...request.value!, ...patch});
 }
