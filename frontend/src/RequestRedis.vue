@@ -3,12 +3,13 @@ import {NButton, NInputGroup, NInput, NEmpty} from "naive-ui";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
+import {useResponse} from "./store";
 
 type Request = Omit<database.RedisRequest, "createFrom">;
 
-const {request, response} = defineProps<{
+const {id, request} = defineProps<{
+  id: string,
   request: Request,
-  response: database.RedisResponse | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 function updateRequest(patch: Partial<Request>) {
   emit("update", {...request, ...patch});
 }
+const response = useResponse<database.RedisResponse>(id);
 </script>
 
 <template>

@@ -6,14 +6,13 @@ import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOut
 import {database} from "wailsjs/go/models";
 import {Database} from "./api";
 import EditorSQL from "./EditorSQL.vue";
-import {useStore} from "./store";
+import {useStore, useResponse} from "./store";
 
 const store = useStore();
 
-const {id, request, response} = defineProps<{
+const {id, request} = defineProps<{
   id: string,
   request: database.SQLRequest,
-  response: database.SQLResponse | null,
 }>();
 const emit = defineEmits<{
   update: [request: database.SQLRequest],
@@ -21,6 +20,7 @@ const emit = defineEmits<{
 function updateRequest(patch: Partial<database.SQLRequest>) {
   emit("update", {...request, ...patch});
 }
+const response = useResponse<database.SQLResponse>(id);
 
 const dsn = ref(request.dsn);
 function onInputChange(newValue: string) {
@@ -49,15 +49,16 @@ watch(() => store.tabs, () => {
 });
 
 const columns = computed(() => {
-  if (response === null) {
+  const resp = response.value;
+  if (resp === null) {
     return [];
   }
 
-  return (response.columns ?? []).map(c => {
+  return (resp.columns ?? []).map(c => {
     return {
       key: c,
       title: (_: TableBaseColumn) => {
-        const type = response.types[response.columns.indexOf(c)];
+        const type = resp.types[resp.columns.indexOf(c)];
         return h(NTooltip, {trigger: "hover", placement: "bottom-start"}, {
           trigger: () => h("div", {}, [
             h(NIcon, {size: "15", color: "grey"}, () => [
@@ -93,14 +94,15 @@ const columns = computed(() => {
 });
 // TODO: fix duplicate column names
 const data = computed(() => {
-  if (response === null) {
+  const resp = response.value;
+  if (resp === null) {
     return [];
   }
 
-  return (response.rows ?? [])
+  return (resp.rows ?? [])
     .map(row =>
       Object.fromEntries(row
-        .map((v, i) => [response.columns[i], v])));
+        .map((v, i) => [resp.columns[i], v])));
 });
 </script>
 

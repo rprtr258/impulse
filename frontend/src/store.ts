@@ -1,4 +1,4 @@
-import {reactive, ref, watch} from "vue";
+import {reactive, Ref, ref, watch} from "vue";
 import {useNotification} from "naive-ui";
 import type {RequestData, ResponseData, HistoryEntry} from "./api";
 import {api} from "./api";
@@ -240,10 +240,10 @@ export function useStore() {
   };
 }
 
-export function useResponse<R>(id: string) {
+export function useResponse<R>(id: string): Ref<Omit<R, "kind"> | null> {
   const notify = useNotify();
 
-  const response = ref<Omit<R, "kind"> | null>(null);
+  const response = ref<Omit<R, "kind"> | null>(null) as Ref<Omit<R, "kind"> | null>;
   api.history(id).then(history => {
     if (history.kind === "err") {
       notify("load history:", history.value);

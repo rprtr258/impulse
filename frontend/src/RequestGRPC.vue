@@ -6,12 +6,13 @@ import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
+import {useResponse} from "./store";
 
 type Request = Omit<database.GRPCRequest, "createFrom">;
 
-const {request, response} = defineProps<{
+const {id, request} = defineProps<{
+  id: string,
   request: Request,
-  response: database.GRPCResponse | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 function updateRequest(patch: Partial<Request>) {
   emit("update", {...request, ...patch});
 }
+const response = useResponse<database.GRPCResponse>(id);
 
 const methods = ref<{
   service: string,
@@ -57,7 +59,7 @@ const selectOptions = computed(() => methods.value.map(svc => ({
 })));
 
 function responseBadge(): VNodeChild {
-  const code = response!.code;
+  const code = response.value!.code;
   return h(NTag, {
     type: code === 0 ? "success" : "error",
     size: "small",

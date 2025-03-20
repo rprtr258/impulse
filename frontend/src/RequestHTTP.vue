@@ -6,12 +6,13 @@ import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
+import {useResponse} from "./store";
 
 type Request = Omit<database.HTTPRequest, "createFrom">;
 
-const {request, response} = defineProps<{
+const {id, request} = defineProps<{
+  id: string,
   request: Request,
-  response: database.HTTPResponse | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -20,6 +21,8 @@ const emit = defineEmits<{
 function updateRequest(patch: Partial<Request>) {
   emit("update", {...request, ...patch});
 }
+
+const response = useResponse<database.HTTPResponse>(id);
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
@@ -40,7 +43,7 @@ function updateHeaders(value: database.KV[]){
 }
 
 function responseBadge(): VNodeChild {
-  const code = response!.code;
+  const code = response.value!.code;
   return h(NTag, {
     type: code < 300 ? "success"
         : code < 500 ? "warning"

@@ -470,8 +470,8 @@ watch(() => store.requestID(), (id) => {
     >
       <RequestHTTP
         v-if='requestKind === "http"'
+        :id="id"
         :request="request as database.HTTPRequest"
-        :response="store.getResponse(id) as database.HTTPResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
@@ -479,13 +479,12 @@ watch(() => store.requestID(), (id) => {
         v-else-if='requestKind === "sql"'
         :id="id"
         :request="request as database.SQLRequest"
-        :response="store.getResponse(id) as database.SQLResponse ?? null"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestGRPC
         v-else-if='requestKind === "grpc"'
+        :id="id"
         :request="request as database.GRPCRequest"
-        :response="store.getResponse(id) as database.GRPCResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
@@ -498,8 +497,8 @@ watch(() => store.requestID(), (id) => {
       />
       <RequestRedis
         v-else-if='requestKind === "redis"'
+        :id="id"
         :request="request as database.RedisRequest"
-        :response="store.getResponse(id) as database.RedisResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
