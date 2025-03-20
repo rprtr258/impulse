@@ -1,7 +1,7 @@
-import type { Result} from "./result";
+import type {Result} from "./result";
 import {err, ok} from "./result";
 import * as App from "../wailsjs/go/app/App";
-import type { app} from '../wailsjs/go/models';
+import type {app} from '../wailsjs/go/models';
 import {database} from '../wailsjs/go/models';
 
 export const Method = {
@@ -90,11 +90,11 @@ export type HistoryEntry = {
   response: database.RedisResponse,
 })
 
-// function parseTime(s: string): Date {
-//   const d = new Date();
-//   d.setTime(Date.parse(s));
-//   return d;
-// };
+function parseTime(s: string): Date {
+  const d = new Date();
+  d.setTime(Date.parse(s));
+  return d;
+};
 
 async function wrap<T>(f: () => Promise<T>): Promise<Result<T>> {
   try {
@@ -113,16 +113,16 @@ export const api = {
     return await wrap(async () => App.Get(id));
   },
 
-  // async history(): Promise<Result<app.ListResponse>> {
-  //   const y = await wrap(async () => App.List());
-  //   return y.map((x: app.ListResponse): app.ListResponse => {
-  //     for (const req of x.History) {
-  //       req.sent_at = parseTime(req.sent_at as unknown as string);
-  //     }
-  //     x.History.sort((a, b) => b.sent_at.getTime() - a.sent_at.getTime());
-  //     return x;
-  //   });
-  // },
+  async history(id: string): Promise<Result<HistoryEntry[]>> {
+    const y = await wrap(async () => App.History(id) as HistoryEntry[]);
+    return y.map((x: HistoryEntry[]): HistoryEntry[] => {
+      for (const req of x) {
+        req.sent_at = parseTime(req.sent_at as unknown as string);
+      }
+      x.sort((a, b) => b.sent_at.getTime() - a.sent_at.getTime());
+      return x;
+    });
+  },
 
   async requestCreate(
     name: string,

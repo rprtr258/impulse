@@ -63,13 +63,16 @@ function orderedMap(...elems: readonly string[]): OrderedSet {
 
 const requestsTree = ref<app.Tree>(new app.Tree({IDs: [], Dirs: {}}));
 const requests = reactive<Record<string, app.requestPreview>>({});
-const history = reactive<HistoryEntry[]>([]);
 
-export function useStore() {
+function useNotify() {
   const usenotification = useNotification();
-  const notify = (...args: readonly unknown[]): void => {
+  return (...args: readonly unknown[]): void => {
     usenotification.error({title: "Error", content: args.map(arg => String(arg)).join("\n")});
   };
+}
+
+export function useStore() {
+  const notify = useNotify();
   const tabs = reactive<{value: {
     map: OrderedSet,
     index: number,
@@ -101,7 +104,6 @@ export function useStore() {
   return {
     requestsTree,
     requests,
-    history,
     tabs,
     requestID(): string | null {
       const tabsValue = tabs.value;
@@ -117,9 +119,6 @@ export function useStore() {
         return null;
       }
       return api.get(requestID).then(res => res.kind === "ok" ? res.value.Data : null);
-    },
-    getResponse(id: string): Omit<ResponseData, "kind"> | null {
-      return history.find((h: Readonly<HistoryEntry>) => h.RequestId === id)?.response ?? null;
     },
     selectRequest(id: string): void {
       const tabsValue = tabs.value;
@@ -145,6 +144,8 @@ export function useStore() {
       }
 
       tabsValue.index = indexNew;
+
+      this.fetch();
     },
     async fetch(): Promise<void> {
       const json = await api.collectionRequests();
@@ -168,8 +169,6 @@ export function useStore() {
           delete requests[id];
         }
       }
-
-      // Object.assign(history, res.History); // TODO: get back
     },
     async createRequest(id: string, kind: RequestData["kind"]): Promise<void> {
       const res = await api.requestCreate(id, kind);
@@ -239,4 +238,23 @@ export function useStore() {
       await this.fetch();
     },
   };
+}
+
+export function useResponse<R>(id: string) {
+  const notify = useNotify();
+
+  const response = ref<Omit<R, "kind"> | null>(null);
+  api.history(id).then(history => {
+    if (history.kind === "err") {
+      notify("load history:", history.value);
+      return null;
+    }
+
+    if (history.value.length === 0) {
+      return null;
+    }
+
+    response.value = history.value[0].response as R;
+  });
+  return response;
 }

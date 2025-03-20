@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import {computed, ref} from "vue";
+import {computed, ref, watch} from "vue";
 import {NInput, NButton, NInputGroup, NEmpty} from "naive-ui";
 import {database} from "wailsjs/go/models";
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
+import {useResponse} from "./store";
 
-const {request, response} = defineProps<{
+const {id, request} = defineProps<{
+  id: string,
   request: database.JQRequest,
-  response: database.JQResponse | null,
 }>();
 const emit = defineEmits<{
   send: [],
@@ -16,10 +17,11 @@ const emit = defineEmits<{
 function updateRequest(patch: Partial<database.JQRequest>) {
   emit("update", {...request, ...patch});
 }
+const response = useResponse<database.JQResponse>(id);
 
 const jqerror = ref<string | null>(null); // TODO: use
 
-const responseText = computed(() => (response?.response ?? []).join("\n"));
+const responseText = computed(() => (response.value?.response ?? []).join("\n"));
 </script>
 
 <template>

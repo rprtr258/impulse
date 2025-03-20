@@ -101,24 +101,21 @@ func (a *App) Get(id string) (database.Request, error) {
 	return request, nil
 }
 
-func (a *App) History() ([]map[string]any, error) {
-	requests := make(map[string]database.Request)
-	// if err := a.list(tree, requests); err != nil { // TODO: batch
-	// 	return ListResponse{}, errors.Wrap(err, "get requests info")
-	// }
-
-	history := []map[string]any{}
-	for _, req := range requests {
-		history = append(history, fun.Map[map[string]any](func(h database.HistoryEntry) map[string]any {
-			return map[string]any{
-				"RequestId":   req.ID,
-				"sent_at":     h.SentAt.Format(time.RFC3339),
-				"received_at": h.ReceivedAt.Format(time.RFC3339),
-				"request":     h.Request,
-				"response":    h.Response,
-			}
-		}, req.History...)...)
+func (a *App) History(id string) ([]map[string]any, error) {
+	request, err := database.Get(a.ctx, a.DB, database.RequestID(id))
+	if err != nil {
+		return nil, errors.Wrap(err, "get request")
 	}
+
+	history := fun.Map[map[string]any](func(h database.HistoryEntry) map[string]any {
+		return map[string]any{
+			"RequestId":   id,
+			"sent_at":     h.SentAt.Format(time.RFC3339),
+			"received_at": h.ReceivedAt.Format(time.RFC3339),
+			"request":     h.Request,
+			"response":    h.Response,
+		}
+	}, request.History...)
 	slices.SortFunc(history, func(i, j map[string]any) int {
 		return strings.Compare(j["sent_at"].(string), i["sent_at"].(string))
 	})

@@ -491,8 +491,8 @@ watch(() => store.requestID(), (id) => {
       />
       <RequestJQ
         v-else-if='requestKind === "jq"'
+        :id="id"
         :request="request as database.JQRequest"
-        :response="store.getResponse(id) as database.JQResponse ?? null"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />

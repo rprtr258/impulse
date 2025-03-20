@@ -30,8 +30,8 @@ export function Get(arg1) {
   return window['go']['app']['App']['Get'](arg1);
 }
 
-export function History() {
-  return window['go']['app']['App']['History']();
+export function History(arg1) {
+  return window['go']['app']['App']['History'](arg1);
 }
 
 export function JQ(arg1, arg2) {
