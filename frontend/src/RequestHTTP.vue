@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import {h, VNodeChild} from "vue";
-import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NEmpty} from "naive-ui";
+import {
+  NTag, NTabs, NTabPane,
+  NInput, NButton, NInputGroup, NSelect,
+  NTable, NEmpty,
+} from "naive-ui";
 import {Method as Methods} from "./api";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";

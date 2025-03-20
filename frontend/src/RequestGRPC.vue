@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import {computed, h, ref, VNodeChild, watch} from "vue";
-import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, useNotification} from "naive-ui";
+import {
+  NTag, NTabs, NTabPane,
+  NInput, NButton, NInputGroup, NSelect,
+  NTable, NEmpty,
+  useNotification,
+} from "naive-ui";
 import {api, GRPCCodes} from "./api";
 import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";

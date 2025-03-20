@@ -1,9 +1,8 @@
 import {Reactive, reactive, Ref, ref, watch} from "vue";
 import {useNotification} from "naive-ui";
-import type {RequestData, ResponseData, HistoryEntry} from "./api";
+import type {RequestData, HistoryEntry} from "./api";
 import {api} from "./api";
 import {app} from '../wailsjs/go/models';
-import { request } from "http";
 
 interface OrderedSet {
   list: string[],

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref, watch} from "vue";
+import {computed, ref} from "vue";
 import {NInput, NButton, NInputGroup, NEmpty} from "naive-ui";
 import {database} from "wailsjs/go/models";
 import ViewJSON from "./ViewJSON.vue";

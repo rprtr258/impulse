@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import {computed, h, ref, watch} from "vue";
-import {NButton, NDataTable, NEmpty, NIcon, NInput, NInputGroup, NLayout, NLayoutContent, NLayoutHeader, NScrollbar, NSelect, NSplit, NTooltip} from "naive-ui";
+import {
+  NButton, NInput, NInputGroup, NSelect,
+  NLayout, NLayoutContent, NLayoutHeader,
+  NScrollbar, NSplit,
+  NDataTable, NEmpty, NIcon, NTooltip,
+} from "naive-ui";
 import {TableBaseColumn} from "naive-ui/es/data-table/src/interface";
-import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined} from "@vicons/antd"
+import {
+  CheckSquareOutlined, ClockCircleOutlined,
+  FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined,
+} from "@vicons/antd"
 import {database} from "wailsjs/go/models";
 import {Database} from "./api";
 import EditorSQL from "./EditorSQL.vue";
