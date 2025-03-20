@@ -3,37 +3,47 @@ import {NButton, NInputGroup, NInput, NEmpty} from "naive-ui";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
-import {useResponse} from "./store";
+import {use_request, use_response} from "./store";
 
 type Request = Omit<database.RedisRequest, "createFrom">;
 
-const {id, request} = defineProps<{
+const {id} = defineProps<{
   id: string,
-  request: Request,
 }>();
 const emit = defineEmits<{
   send: [],
   update: [request: Request],
 }>();
+const request = use_request<database.RedisRequest>(id);
+const response = use_response<database.RedisResponse>(id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request, ...patch});
+  emit("update", {...request.value, ...patch});
 }
-const response = useResponse<database.RedisResponse>(id);
 </script>
 
 <template>
-<div class="h100" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;">
+<NEmpty
+  v-if="request.value === null"
+  description="Loading request..."
+  class="h100"
+  style="justify-content: center;"
+/>
+<div
+  v-else
+  class="h100"
+  style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;"
+>
   <NInputGroup style="grid-column: span 2;">
     <NInput
       placeholder="DSN"
-      :value="request.dsn"
+      :value="request.value.dsn"
       v-on:update:value="dsn => updateRequest({dsn: dsn})"
     />
     <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"
-    :value="request.query ?? null"
+    :value="request.value.query ?? null"
     v-on:update="(value: string) => updateRequest({query: value})"
   />
   <template v-if="response === null">

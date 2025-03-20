@@ -265,17 +265,20 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
         show: store.requests[id]?.Kind === "http",
         props: {
           onClick: () => {
-            const req = store.requests[id];
-            if (!req) {
-              return;
-            }
-            const httpToCurl = ({url, method, body, headers}: database.HTTPRequest) => {
-              return `curl -X ${method} ${url}` +
-                (headers.length > 0 ? " " + headers.map(({key, value}) => `-H "${key}: ${value}"`).join(" ") : "") +
-                ((body) ? ` -d '${body}'` : "");
-            };
-            console.log(req);
-            navigator.clipboard.writeText(httpToCurl(req as database.HTTPRequest));
+            api.get(id).then((r) => {
+              if (r.kind === "err") {
+                useNotification().error({title: "Error", content: `Failed to load request: ${r.value}`});
+                return;
+              }
+
+              const req = r.value as unknown as database.HTTPRequest; // TODO: remove unknown cast
+              const httpToCurl = ({url, method, body, headers}: database.HTTPRequest) => {
+                const headersStr = headers?.length > 0 ? " " + headers.map(({key, value}) => `-H "${key}: ${value}"`).join(" ") : "";
+                const bodyStr = (body) ? ` -d '${body}'` : "";
+                return `curl -X ${method} ${url}${headersStr}${bodyStr}`;
+              };
+              navigator.clipboard.writeText(httpToCurl(req));
+            })
           }
         }
       },
@@ -298,26 +301,12 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 
 const sidebarHidden = ref(false);
 
-const request = ref<RequestData | null>(null);
 const requestKind = computed(() => {
   const requestID = store.requestID();
   if (requestID === null) {
     return null;
   }
   return store.requests[requestID].Kind;
-});
-watch(() => store.requestID(), (id) => {
-  if (id === null) {
-    request.value = null;
-    return;
-  }
-  api.get(id).then((r) => {
-    if (r.kind === "ok") {
-      request.value = r.value;
-    } else {
-      useNotification().error({title: "Error", content: `Failed to load request: ${r.value}`});
-    }
-  })
 });
 </script>
 
@@ -444,7 +433,7 @@ watch(() => store.requestID(), (id) => {
   </aside>
   <div style="color: rgba(255, 255, 255, 0.82); background-color: rgb(16, 16, 20); overflow: hidden;">
     <NResult
-      v-if="request === null || store.tabs.value === null"
+      v-if="store.tabs.value.map.length() === 0"
       status="info"
       title="Pick request"
       description="Pick request to see it, edit and send and do other fun things."
@@ -471,34 +460,29 @@ watch(() => store.requestID(), (id) => {
       <RequestHTTP
         v-if='requestKind === "http"'
         :id="id"
-        :request="request as database.HTTPRequest"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestSQL
         v-else-if='requestKind === "sql"'
         :id="id"
-        :request="request as database.SQLRequest"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestGRPC
         v-else-if='requestKind === "grpc"'
         :id="id"
-        :request="request as database.GRPCRequest"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestJQ
         v-else-if='requestKind === "jq"'
         :id="id"
-        :request="request as database.JQRequest"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestRedis
         v-else-if='requestKind === "redis"'
         :id="id"
-        :request="request as database.RedisRequest"
         v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />

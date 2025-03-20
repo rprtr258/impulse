@@ -1,4 +1,4 @@
-import {reactive, Ref, ref, watch} from "vue";
+import {Reactive, reactive, Ref, ref, watch} from "vue";
 import {useNotification} from "naive-ui";
 import type {RequestData, ResponseData, HistoryEntry} from "./api";
 import {api} from "./api";
@@ -17,6 +17,7 @@ interface OrderedSet {
 }
 
 function orderedMap(...elems: readonly string[]): OrderedSet {
+  elems = elems ?? [];
   const set = new Set(elems);
   return {
     list: [...elems],
@@ -76,7 +77,10 @@ export function useStore() {
   const tabs = reactive<{value: {
     map: OrderedSet,
     index: number,
-  } | null}>({value: null});
+  }}>({value: {
+    map: orderedMap(),
+    index: -1,
+  }});
   watch(() => requests, () => {
     if (!tabs.value) {
       return;
@@ -87,9 +91,6 @@ export function useStore() {
       .filter(([id]: readonly [string, number]) => !requests.hasOwnProperty(id))
       .map(([, i]: readonly [string, number]) => i);
     if (indexesToRemove.length === 0) {
-      return;
-    } else if (indexesToRemove.length === tabs.value.map.length()) {
-      tabs.value = null;
       return;
     }
 
@@ -209,15 +210,10 @@ export function useStore() {
       await this.fetch();
       this.selectRequest(id);
     },
-    async update(id: string, req: Omit<RequestData, "kind">): Promise<void> {
+    async update(id: string, req: RequestData): Promise<void> {
       this.selectRequest(id);
-      const request = await this.request();
-      if (request === null) {
-        notify(`Could update request: ${id}`);
-        return;
-      }
 
-      const res = await api.requestUpdate(id, request.kind, req);
+      const res = await api.requestUpdate(id, req.kind, req);
       if (res.kind === "err") {
         notify(`Could not save current request: ${res.value}`);
         return;
@@ -240,11 +236,25 @@ export function useStore() {
   };
 }
 
-export function useResponse<R>(id: string): Ref<Omit<R, "kind"> | null> {
+export function use_request<R extends object>(request_id: string): Reactive<{value: R | null}> {
   const notify = useNotify();
 
-  const response = ref<Omit<R, "kind"> | null>(null) as Ref<Omit<R, "kind"> | null>;
-  api.history(id).then(history => {
+  const request = reactive<{value: R | null}>({value: null});
+  api.get(request_id).then(res => {
+    if (res.kind === "err") {
+      notify("load request", request_id, res.value);
+      return;
+    }
+    request.value = res.value;
+  });
+  return request;
+}
+
+export function use_history(request_id: string): Ref<HistoryEntry[]> {
+  const notify = useNotify();
+
+  const response = ref<HistoryEntry[]>([]);
+  api.history(request_id).then(history => {
     if (history.kind === "err") {
       notify("load history:", history.value);
       return null;
@@ -254,7 +264,19 @@ export function useResponse<R>(id: string): Ref<Omit<R, "kind"> | null> {
       return null;
     }
 
-    response.value = history.value[0].response as R;
+    response.value = history.value;
   });
+  return response;
+}
+
+export function use_response<R>(request_id: string): Ref<Omit<R, "kind"> | null> {
+  const history = use_history(request_id);
+
+  const response = ref<Omit<R, "kind"> | null>(null) as Ref<Omit<R, "kind"> | null>;
+  watch(() => history.value, () => {
+    if (history.value.length !== 0) {
+      response.value = history.value[0].response as R;
+    }
+  }, {immediate: true});
   return response;
 }

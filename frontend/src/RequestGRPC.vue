@@ -6,22 +6,23 @@ import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
-import {useResponse} from "./store";
+import {use_response, use_request} from "./store";
 
 type Request = Omit<database.GRPCRequest, "createFrom">;
 
-const {id, request} = defineProps<{
+const {id} = defineProps<{
   id: string,
-  request: Request,
 }>();
 const emit = defineEmits<{
   send: [],
   update: [request: Request],
 }>();
+
+const request = use_request<database.GRPCRequest>(id);
+const response = use_response<database.GRPCResponse>(id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request, ...patch});
+  emit("update", {...request.value, ...patch});
 }
-const response = useResponse<database.GRPCResponse>(id);
 
 const methods = ref<{
   service: string,
@@ -31,9 +32,9 @@ const loadingMethods = ref(false);
 
 const notification = useNotification();
 
-watch(() => request.target, async () => {
+watch(() => request.value?.target, async () => {
   loadingMethods.value = true;
-  const res = await api.grpcMethods(request.target);
+  const res = await api.grpcMethods(request.value.target);
   if (res.kind === "ok") {
     methods.value = res.value;
   } else {
@@ -69,10 +70,20 @@ function responseBadge(): VNodeChild {
 </script>
 
 <template>
-<div class="h100" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;">
+<NEmpty
+  v-if="request.value === null"
+  description="Loading request..."
+  class="h100"
+  style="justify-content: center;"
+/>
+<div
+  v-else
+  class="h100"
+  style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;"
+>
   <NInputGroup style="grid-column: span 2;">
     <NSelect
-      :value="request.method"
+      :value="request.value.method"
       v-on:update:value="method => updateRequest({method: method})"
       :options="selectOptions"
       :loading="loadingMethods"
@@ -81,7 +92,7 @@ function responseBadge(): VNodeChild {
     />
     <NInput
       placeholder="Addr"
-      :value="request.target"
+      :value="request.value.target"
       v-on:update:value="target => updateRequest({target: target})"
     />
     <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
@@ -99,7 +110,7 @@ function responseBadge(): VNodeChild {
     >
       <EditorJSON
         class="h100"
-        :value="request.payload"
+        :value="request.value.payload"
         v-on:update="value => updateRequest({payload: value})"
       />
     </NTabPane>
@@ -110,12 +121,12 @@ function responseBadge(): VNodeChild {
       display-directive="show"
     >
       <ParamsList
-        :value="request.metadata"
+        :value="request.value.metadata"
         v-on:update="(value: database.KV[]) => updateMetadata(value)"
       />
       <!-- <div
         style="display: flex; flex-direction: row;"
-        v-for="(obj, i) in request.headers"
+        v-for="(obj, i) in request.value.headers"
         :key="i"
       >
         <NInput type="text" :value="obj.key" style="flex: 1;" />

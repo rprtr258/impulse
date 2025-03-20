@@ -6,23 +6,22 @@ import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
-import {useResponse} from "./store";
+import {use_request, use_response} from "./store";
 
 type Request = Omit<database.HTTPRequest, "createFrom">;
 
-const {id, request} = defineProps<{
+const {id} = defineProps<{
   id: string,
-  request: Request,
 }>();
 const emit = defineEmits<{
   send: [],
   update: [request: Request],
 }>();
+const request = use_request<database.HTTPRequest>(id);
+const response = use_response<database.HTTPResponse>(id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request, ...patch});
+  emit("update", {...request.value, ...patch});
 }
-
-const response = useResponse<database.HTTPResponse>(id);
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
@@ -55,17 +54,27 @@ function responseBadge(): VNodeChild {
 </script>
 
 <template>
-<div class="h100" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;">
+<NEmpty
+  v-if="request.value === null"
+  description="Loading request..."
+  class="h100"
+  style="justify-content: center;"
+/>
+<div
+  v-else
+  class="h100"
+  style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;"
+>
   <NInputGroup style="grid-column: span 2;">
     <NSelect
       :options="Object.keys(Methods).map(method => ({label: method, value: method}))"
-      :value="request.method"
+      :value="request.value.method"
       v-on:update:value="method => updateRequest({method: method})"
       style="width: 10%; min-width: 8em;"
     />
     <NInput
       placeholder="URL"
-      :value="request.url"
+      :value="request.value.url"
       v-on:update:value="url => updateRequest({url: url})"
     />
     <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
@@ -83,7 +92,7 @@ function responseBadge(): VNodeChild {
     >
       <EditorJSON
         class="h100"
-        :value="request.body ?? null"
+        :value="request.value.body ?? null"
         v-on:update="(value: string) => updateRequest({body: value})"
       />
     </NTabPane>
@@ -94,7 +103,7 @@ function responseBadge(): VNodeChild {
       display-directive="show"
     >
       <ParamsList
-        :value="request.headers"
+        :value="request.value.headers"
         v-on:update="(value: database.KV[]) => updateHeaders(value)"
       />
     </NTabPane>

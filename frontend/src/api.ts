@@ -114,7 +114,7 @@ export const api = {
   },
 
   async history(id: string): Promise<Result<HistoryEntry[]>> {
-    const y = await wrap(async () => App.History(id) as HistoryEntry[] | null);
+    const y = await wrap(async () => App.History(id) as unknown as HistoryEntry[] | null);
     return y.map((x: HistoryEntry[] | null): HistoryEntry[] => {
       x = x ?? [];
       for (const req of x) {

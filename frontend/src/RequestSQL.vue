@@ -6,31 +6,30 @@ import {CheckSquareOutlined, ClockCircleOutlined, FieldNumberOutlined, ItalicOut
 import {database} from "wailsjs/go/models";
 import {Database} from "./api";
 import EditorSQL from "./EditorSQL.vue";
-import {useStore, useResponse} from "./store";
+import {useStore, use_request, use_response} from "./store";
 
 const store = useStore();
 
-const {id, request} = defineProps<{
+const {id} = defineProps<{
   id: string,
-  request: database.SQLRequest,
 }>();
 const emit = defineEmits<{
   update: [request: database.SQLRequest],
 }>();
-function updateRequest(patch: Partial<database.SQLRequest>) {
-  emit("update", {...request, ...patch});
-}
-const response = useResponse<database.SQLResponse>(id);
 
-const dsn = ref(request.dsn);
+const request = use_request<database.SQLRequest>(id);
+const response = use_response<database.SQLResponse>(id);
+function updateRequest(patch: Partial<database.SQLRequest>) {
+  emit("update", {...request.value, ...patch});
+}
+
 function onInputChange(newValue: string) {
-  dsn.value = newValue;
+  request.value.dsn = newValue;
   updateRequest({dsn: newValue});
 }
 
-const query = ref(request.query);
 function onQueryChange(newValue: string) {
-  query.value = newValue;
+  request.value.query = newValue;
   updateRequest({query: newValue});
 }
 
@@ -43,8 +42,6 @@ function onButtonClick() {
 }
 
 watch(() => store.tabs, () => {
-  dsn.value = request.dsn;
-  query.value = request.query;
   buttonDisabled.value = false;
 });
 
@@ -107,7 +104,14 @@ const data = computed(() => {
 </script>
 
 <template>
+<NEmpty
+  v-if="request.value === null"
+  description="Loading request..."
+  class="h100"
+  style="justify-content: center;"
+/>
 <NLayout
+  v-else
   class="h100"
   id="gavno"
 >
@@ -115,13 +119,13 @@ const data = computed(() => {
     <NInputGroup>
       <NSelect
         :options="Object.keys(Database).map(db => ({label: Database[db as keyof typeof Database], value: db}))"
-        :value="request.database"
+        :value="request.value.database"
         v-on:update:value="(database: Database) => updateRequest({database: database})"
         style="width: 10%;"
       />
       <NInput
         placeholder="DSN"
-        :value="dsn"
+        :value="request.value.dsn"
         v-on:input="onInputChange"
       />
       <NButton
@@ -135,7 +139,7 @@ const data = computed(() => {
     <NSplit class="h100" direction="vertical">
       <template #1>
         <EditorSQL
-          :value="query"
+          :value="request.value.query"
           v-on:update="onQueryChange"
           class="h100"
         />
