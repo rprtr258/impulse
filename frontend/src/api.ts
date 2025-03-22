@@ -110,6 +110,7 @@ export const api = {
 
   async get(id: string): Promise<Result<app.GetResponse>> {
     const y = await wrap(async () => App.Get(id));
+    // TODO: it seems that is not needed, remove if so
     return y.map((y: app.GetResponse) => {
       // NOTE: BEWARE, DIRTY TYPESCRIPT HACKS HERE
       const history = y.History as unknown as HistoryEntry[] ?? [];
