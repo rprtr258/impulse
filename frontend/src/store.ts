@@ -246,35 +246,35 @@ export function use_request<
   const notify = useNotify();
   const store = useStore();
 
-  const hook = reactive<{value: UseRequest<Request, Response>}>({value: null});
+  const state = reactive<{value: UseRequest<Request, Response>}>({value: null});
   api.get(request_id.value).then(res => {
     if (res.kind === "err") {
       notify("load request", request_id.value, res.value);
       return;
     }
-    hook.value = {
+    state.value = {
       request: res.value as UnwrapRef<Request>,
       history: [],
       response: null,
       is_loading: false,
       update_request: async (patch: Partial<Request>) => {
-        hook.value!.is_loading = true;
-        const new_request = {...hook.value!.request as RequestData, ...patch} as RequestData;
-        hook.value!.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
+        state.value!.is_loading = true;
+        const new_request = {...state.value!.request as RequestData, ...patch} as RequestData;
+        state.value!.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
         await store.update(request_id.value, new_request)
-        hook.value!.is_loading = false;
+        state.value!.is_loading = false;
       },
       send: async () => {
-        hook.value!.is_loading = true;
+        state.value!.is_loading = true;
         const res = await api.requestPerform(request_id.value);
-        hook.value!.is_loading = false;
+        state.value!.is_loading = false;
         if (res.kind === "err") {
           notify(`Could not perform request ${request_id.value}: ${res.value}`);
           return;
         }
 
-        hook.value!.history.push(res.value);
-        hook.value!.response = res.value.response as UnwrapRef<Response>;
+        state.value!.history.push(res.value);
+        state.value!.response = res.value.response as UnwrapRef<Response>;
       },
     };
     api.history(request_id.value).then(history => {
@@ -283,11 +283,11 @@ export function use_request<
         return;
       }
 
-      hook.value!.history = history.value ?? [];
-      const n = hook.value?.history.length ?? 0;
-      hook.value!.response = (n !== 0) ? hook.value!.history[n - 1].response as UnwrapRef<Response> : null;
+      state.value!.history = history.value ?? [];
+      const n = state.value?.history.length ?? 0;
+      state.value!.response = (n !== 0) ? state.value!.history[n - 1].response as UnwrapRef<Response> : null;
     });
   });
-  return hook;
+  return state;
 }
 
