@@ -101,14 +101,16 @@ func (a *App) Get(id string) (database.Request, error) {
 	return request, nil
 }
 
-func (a *App) History(id string) ([]map[string]any, error) {
+type historyEntry = map[string]any
+
+func (a *App) History(id string) ([]historyEntry, error) {
 	request, err := database.Get(a.ctx, a.DB, database.RequestID(id))
 	if err != nil {
 		return nil, errors.Wrap(err, "get request")
 	}
 
-	history := fun.Map[map[string]any](func(h database.HistoryEntry) map[string]any {
-		return map[string]any{
+	history := fun.Map[historyEntry](func(h database.HistoryEntry) historyEntry {
+		return historyEntry{
 			"RequestId":   id,
 			"sent_at":     h.SentAt.Format(time.RFC3339),
 			"received_at": h.ReceivedAt.Format(time.RFC3339),
@@ -116,8 +118,8 @@ func (a *App) History(id string) ([]map[string]any, error) {
 			"response":    h.Response,
 		}
 	}, request.History...)
-	slices.SortFunc(history, func(i, j map[string]any) int {
-		return strings.Compare(j["sent_at"].(string), i["sent_at"].(string))
+	slices.SortFunc(history, func(i, j historyEntry) int {
+		return strings.Compare(i["sent_at"].(string), j["sent_at"].(string))
 	})
 
 	return history, nil
@@ -297,13 +299,13 @@ func toKV(headers http.Header) []database.KV {
 }
 
 // Perform create a handler that performs call and save result to history
-func (a *App) Perform(requestID string) error {
+func (a *App) Perform(requestID string) (historyEntry, error) {
 	request, err := database.Get(
 		a.ctx, a.DB,
 		database.RequestID(requestID),
 	)
 	if err != nil {
-		return errors.Wrapf(err, "get request id=%q", requestID)
+		return nil, errors.Wrapf(err, "get request id=%q", requestID)
 	}
 
 	sentAt := time.Now()
@@ -313,30 +315,30 @@ func (a *App) Perform(requestID string) error {
 	case database.HTTPRequest:
 		response, err = a.sendHTTP(request)
 		if err != nil {
-			return errors.Wrapf(err, "send http request id=%q", requestID)
+			return nil, errors.Wrapf(err, "send http request id=%q", requestID)
 		}
 	case database.SQLRequest:
 		response, err = a.sendSQL(request)
 		if err != nil {
-			return errors.Wrapf(err, "send sql request id=%q", requestID)
+			return nil, errors.Wrapf(err, "send sql request id=%q", requestID)
 		}
 	case database.GRPCRequest:
 		response, err = a.sendGRPC(request)
 		if err != nil {
-			return errors.Wrapf(err, "send grpc request id=%q", requestID)
+			return nil, errors.Wrapf(err, "send grpc request id=%q", requestID)
 		}
 	case database.JQRequest:
 		response, err = sendJQ(a.ctx, request)
 		if err != nil {
-			return errors.Wrapf(err, "send jq request id=%q", requestID)
+			return nil, errors.Wrapf(err, "send jq request id=%q", requestID)
 		}
 	case database.RedisRequest:
 		response, err = sendRedis(a.ctx, request)
 		if err != nil {
-			return errors.Wrapf(err, "send redis request id=%q", requestID)
+			return nil, errors.Wrapf(err, "send redis request id=%q", requestID)
 		}
 	default:
-		return errors.Errorf("unsupported request type %T", request)
+		return nil, errors.Errorf("unsupported request type %T", request)
 	}
 
 	receivedAt := time.Now()
@@ -345,8 +347,14 @@ func (a *App) Perform(requestID string) error {
 		sentAt, receivedAt,
 		request.Data, response,
 	); err != nil {
-		return errors.Wrap(err, "insert into database")
+		return nil, errors.Wrap(err, "insert into database")
 	}
 
-	return nil
+	return historyEntry{
+		"RequestId":   requestID,
+		"sent_at":     sentAt.Format(time.RFC3339),
+		"received_at": receivedAt.Format(time.RFC3339),
+		"request":     request,
+		"response":    response,
+	}, nil
 }

@@ -120,7 +120,6 @@ export const api = {
       for (const req of x) {
         req.sent_at = parseTime(req.sent_at as unknown as string);
       }
-      x.sort((a, b) => b.sent_at.getTime() - a.sent_at.getTime());
       return x;
     });
   },
@@ -149,8 +148,8 @@ export const api = {
 
   async requestPerform(
     reqId: string,
-  ): Promise<Result<void>> {
-    return await wrap(() => App.Perform(reqId)) as Result<void>;
+  ): Promise<Result<HistoryEntry>> {
+    return await wrap(() => App.Perform(reqId)) as Result<HistoryEntry>;
   },
 
   async requestDelete(

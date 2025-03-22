@@ -302,6 +302,7 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 
 const sidebarHidden = ref(false);
 
+// TODO: reverse history order
 // const history = computed(() => use_request(store.requestID()!).value?.history ?? []);
 const history = [];
 const requestKind = computed(() => {

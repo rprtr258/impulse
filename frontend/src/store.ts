@@ -206,16 +206,6 @@ export function useStore() {
       }
       await this.fetch();
     },
-    async send(id: string): Promise<void> {
-      const res = await api.requestPerform(id);
-      if (res.kind === "err") {
-        notify(`Could not perform request: ${res.value}`);
-        return;
-      }
-
-      await this.fetch();
-      this.selectRequest(id);
-    },
     async update(id: string, req: RequestData): Promise<void> {
       this.selectRequest(id);
 
@@ -272,17 +262,26 @@ export function use_request<
         res.value!.request = new_request;
       },
       send: () => {
-        store.send(request_id);
+        api.requestPerform(request_id).then(res => {
+          if (res.kind === "err") {
+            notify(`Could not perform request ${request_id}: ${res.value}`);
+            return;
+          }
+
+          hook.value!.history.push(res.value);
+          hook.value!.response = res.value.response as UnwrapRef<Response>;
+        });
       },
     };
     api.history(request_id).then(history => {
       if (history.kind === "err") {
         notify("load history", request_id, history.value);
-        return null;
+        return;
       }
 
       hook.value!.history = history.value ?? [];
-      hook.value!.response = (history.value.length !== 0) ? hook.value!.history[0].response as UnwrapRef<Response> : null
+      const n = hook.value?.history.length ?? 0;
+      hook.value!.response = (n !== 0) ? hook.value!.history[n - 1].response as UnwrapRef<Response> : null;
     });
   });
   return hook;

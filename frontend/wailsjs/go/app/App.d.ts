@@ -23,7 +23,7 @@ export function JQ(arg1:string,arg2:string):Promise<Array<string>>;
 
 export function List():Promise<app.ListResponse>;
 
-export function Perform(arg1:string):Promise<void>;
+export function Perform(arg1:string):Promise<Record<string, any>>;
 
 export function Read(arg1:string):Promise<database.Request>;
 
