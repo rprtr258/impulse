@@ -34,7 +34,7 @@ const responseText = computed(() => (response.value?.response ?? []).join("\n"))
       placeholder="JQ query"
       :status='jqerror !== null ? "error" : "success"'
       :value="request.query"
-      v-on:update-value="query => update_request({query: query})"
+      v-on:update:value="query => update_request({query: query})"
     />
     <!-- TODO: autosend -->
     <NButton

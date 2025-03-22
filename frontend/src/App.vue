@@ -14,7 +14,7 @@ import {
 } from "@vicons/antd";
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
-import {use_request, useStore} from "./store";
+import {useStore} from "./store";
 import {Method, Kinds, Database, api, HistoryEntry} from "./api";
 import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
@@ -454,7 +454,7 @@ const requestKind = computed(() => {
       type="card"
       size="small"
       :value="store.tabs.value.map.list[store.tabs.value.index]"
-      v-on:update-value="(id) => selectRequest(id)"
+      v-on:update:value="(id) => selectRequest(id)"
     ><NTabPane
       v-for="id in store.tabs.value.map.list"
       :key="id"
