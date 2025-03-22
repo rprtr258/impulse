@@ -205,17 +205,6 @@ export function useStore() {
       }
       await this.fetch();
     },
-    async update(id: string, req: RequestData): Promise<void> {
-      this.selectRequest(id);
-
-      const res = await api.requestUpdate(id, req.kind, req);
-      if (res.kind === "err") {
-        notify(`Could not save current request: ${res.value}`);
-        return;
-      }
-
-      await this.fetch();
-    },
     async rename(id: string, newID: string): Promise<void> {
       const request = requests[id];
       const res = await api.requestUpdate(id, request.Kind, request, newID);
@@ -244,31 +233,13 @@ export function use_request<
   Response extends object,
 >(request_id: Ref<string>): Reactive<UseRequest<Request, Response>> {
   const notify = useNotify();
-  const store = useStore();
 
   const state = reactive<UseRequest<Request, Response>>({
     request: null,
     history: [],
     response: null,
     is_loading: true,
-    update_request: async () => {},
-    send: async () => {},
-  });
-  api.get(request_id.value).then(res => {
-    if (res.kind === "err") {
-      notify("load request", request_id.value, res.value);
-      return;
-    }
-    state.request = res.value as UnwrapRef<Request>;
-    state.is_loading = false;
-    state.update_request = async (patch: Partial<Request>) => {
-      state.is_loading = true;
-      const new_request = {...state.request as RequestData, ...patch} as RequestData;
-      state.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
-      await store.update(request_id.value, new_request)
-      state.is_loading = false;
-    };
-    state.send = async () => {
+    send: async () => {
       state.is_loading = true;
       const res = await api.requestPerform(request_id.value);
       state.is_loading = false;
@@ -279,18 +250,41 @@ export function use_request<
 
       state.history.push(res.value);
       state.response = res.value.response as UnwrapRef<Response>;
-    };
-    api.history(request_id.value).then(history => {
-      if (history.kind === "err") {
-        notify("load history", request_id.value, history.value);
+    },
+    update_request: async (patch: Partial<Request>) => {
+      state.is_loading = true;
+      const old_request = state.request;
+      const new_request = {...state.request as RequestData, ...patch} as RequestData;
+      state.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
+      const res = await api.requestUpdate(request_id.value, new_request.kind, new_request);
+      state.is_loading = false;
+      if (res.kind === "err") {
+        state.request = old_request; // NOTE: undo change
+        notify(`Could not save current request: ${res.value}`);
         return;
       }
-
-      state.history = history.value ?? [];
-      const n = state.history.length ?? 0;
-      state.response = (n !== 0) ? state.history[n - 1].response as UnwrapRef<Response> : null;
-    });
+    },
   });
+  const fetchData = async () => {
+    state.is_loading = true;
+    const [requestRes, historyRes] = await Promise.all([
+      api.get(request_id.value),
+      api.history(request_id.value),
+    ]);
+    state.is_loading = false;
+    if (requestRes.kind === "err") {
+      notify("load request", request_id.value, requestRes.value);
+      return;
+    }
+    if (historyRes.kind === "err") {
+      notify("load history", request_id.value, historyRes.value);
+      return;
+    }
+
+    state.request = requestRes.value as UnwrapRef<Request>;
+    state.history = historyRes.value ?? [];
+    state.response = state.history[state.history.length - 1]?.response as UnwrapRef<Response> ?? null;
+  };
+  fetchData();
   return state;
 }
-
