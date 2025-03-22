@@ -31,7 +31,11 @@ const request = use_request<Request, database.RedisResponse>(id);
       :value="request.value.request.dsn"
       v-on:update:value="dsn => request.value!.update_request({dsn: dsn})"
     />
-    <NButton type="primary" v-on:click='request.value.send()'>Send</NButton>
+    <NButton
+      type="primary"
+      v-on:click="request.value.send()"
+      :disabled="request.value.is_loading"
+    >Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"

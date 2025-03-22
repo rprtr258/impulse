@@ -39,7 +39,11 @@ const responseText = computed(() => (request.value?.response?.response ?? []).jo
       v-on:update-value="query => request.value!.update_request({query: query})"
     />
     <!-- TODO: autosend -->
-    <NButton type="primary" v-on:click='request.value.send()'>Send</NButton>
+    <NButton
+      type="primary"
+      v-on:click="request.value.send()"
+      :disabled="request.value.is_loading"
+    >Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"

@@ -15,7 +15,7 @@ import {
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
 import {use_request, useStore} from "./store";
-import {Method, Kinds, Database, api} from "./api";
+import {Method, Kinds, Database, api, HistoryEntry} from "./api";
 import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
@@ -304,7 +304,7 @@ const sidebarHidden = ref(false);
 
 // TODO: reverse history order
 // const history = computed(() => use_request(store.requestID()!).value?.history ?? []);
-const history = [];
+const history: HistoryEntry[] = [];
 const requestKind = computed(() => {
   const requestID = store.requestID();
   if (requestID === null) {

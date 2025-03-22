@@ -236,6 +236,7 @@ type UseRequest<Request extends object, Response extends object> = {
   request: Request,
   history: HistoryEntry[],
   response: Response | null,
+  is_loading: boolean,
   update_request: (patch: Partial<Request>) => void,
   send: () => void,
 } | null;
@@ -256,13 +257,19 @@ export function use_request<
       request: res.value as UnwrapRef<Request>,
       history: [],
       response: null,
+      is_loading: false,
       update_request: (patch: Partial<Request>) => {
+        hook.value!.is_loading = true;
         const new_request = {...hook.value!.request as Request, ...patch};
-        store.update(request_id, new_request);
-        res.value!.request = new_request;
+        store.update(request_id, new_request).then(() => {
+          hook.value!.is_loading = false;
+        });
+        hook.value!.request = new_request as UnwrapRef<Request>;
       },
       send: () => {
+        hook.value!.is_loading = true;
         api.requestPerform(request_id).then(res => {
+          hook.value!.is_loading = false;
           if (res.kind === "err") {
             notify(`Could not perform request ${request_id}: ${res.value}`);
             return;

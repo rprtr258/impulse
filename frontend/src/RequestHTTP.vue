@@ -73,7 +73,11 @@ function responseBadge(): VNodeChild {
       :value="request.value.request.url"
       v-on:update:value="url => request.value!.update_request({url: url})"
     />
-    <NButton type="primary" v-on:click='request.value.send()'>Send</NButton>
+    <NButton
+      type="primary"
+      v-on:click='request.value.send()'
+      :disabled="request.value.is_loading"
+    >Send</NButton>
   </NInputGroup>
   <NTabs
     type="line"

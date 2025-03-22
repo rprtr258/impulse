@@ -14,10 +14,9 @@ import {
 import {database} from "wailsjs/go/models";
 import {Database} from "./api";
 import EditorSQL from "./EditorSQL.vue";
-import {useStore, use_request} from "./store";
+import {use_request} from "./store";
 
 type Request = {kind: database.Kind.SQL} & Omit<database.SQLRequest, "createFrom">;
-const store = useStore();
 
 const {id} = defineProps<{
   id: string,
@@ -32,18 +31,6 @@ function onInputChange(newValue: string) {
 function onQueryChange(newValue: string) {
   request.value!.update_request({query: newValue});
 }
-
-const buttonDisabled = ref(false);
-function onButtonClick() {
-  request.value.send().then(() => {
-    buttonDisabled.value = false;
-  });
-  buttonDisabled.value = true;
-}
-
-watch(() => store.tabs, () => {
-  buttonDisabled.value = false;
-});
 
 const columns = computed(() => {
   const resp = request.value!.response;
@@ -130,8 +117,8 @@ const data = computed(() => {
       />
       <NButton
         type="primary"
-        v-on:click='onButtonClick'
-        :disabled="buttonDisabled"
+        v-on:click="request.value.send()"
+        :disabled="request.value.is_loading"
       >Run</NButton>
     </NInputGroup>
   </NLayoutHeader>
