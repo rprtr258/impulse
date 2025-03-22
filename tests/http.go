@@ -14,7 +14,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /dice", func(w http.ResponseWriter, r *http.Request) {
 		dice := rand.Intn(6)
-		fmt.Fprintf(w, "%d", dice+1)
+		fmt.Fprintf(w, "at %s: %d", time.Now().UTC().Format(time.RFC3339), dice+1)
 	})
 	mux.HandleFunc("POST /sleep", func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(5 * time.Second)

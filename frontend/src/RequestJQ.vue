@@ -4,7 +4,7 @@ import {NInput, NButton, NInputGroup, NEmpty} from "naive-ui";
 import {database} from "wailsjs/go/models";
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
-import {use_request, use_response, useStore} from "./store";
+import {use_request, useStore} from "./store";
 
 type Request = {kind: database.Kind.JQ} & Omit<database.JQRequest, "createFrom">;
 const store = useStore();
@@ -13,12 +13,11 @@ const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request>(id);
-const response = use_response<database.JQResponse>(() => id);
+const request = use_request<Request, database.JQResponse>(id);
 
 const jqerror = ref<string | null>(null); // TODO: use
 
-const responseText = computed(() => (response.value?.response ?? []).join("\n"));
+const responseText = computed(() => (request.value?.response?.response ?? []).join("\n"));
 </script>
 
 <template>
@@ -49,7 +48,7 @@ const responseText = computed(() => (response.value?.response ?? []).join("\n"))
     v-on:update="(value: string) => request.value!.update_request({json: value})"
   />
   <div v-if="jqerror !== null" style="position: fixed; color: red; bottom: 3em;">{{jqerror}}</div>
-  <template v-if="response === null">
+  <template v-if="request.value.response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"

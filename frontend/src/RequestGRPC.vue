@@ -11,7 +11,7 @@ import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
-import {use_response, use_request, useStore} from "./store";
+import {use_request, useStore} from "./store";
 
 type Request = {kind: database.Kind.GRPC} & Omit<database.GRPCRequest, "createFrom">;
 const store = useStore();
@@ -20,8 +20,7 @@ const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request>(id);
-const response = use_response<database.GRPCResponse>(() => id);
+const request = use_request<Request, database.GRPCResponse>(id);
 
 const methods = ref<{
   service: string,
@@ -59,7 +58,7 @@ const selectOptions = computed(() => methods.value.map(svc => ({
 })));
 
 function responseBadge(): VNodeChild {
-  const code = response.value!.code;
+  const code = request.value!.response!.code;
   return h(NTag, {
     type: code === 0 ? "success" : "error",
     size: "small",
@@ -139,7 +138,7 @@ function responseBadge(): VNodeChild {
       </div> -->
     </NTabPane>
   </NTabs>
-  <template v-if="response === null">
+  <template v-if="request.value.response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
@@ -165,7 +164,7 @@ function responseBadge(): VNodeChild {
         style="overflow-y: auto;"
         display-directive="show"
       >
-        <ViewJSON :value="response?.response"></ViewJSON>
+        <ViewJSON :value="request.value.response?.response"></ViewJSON>
       </NTabPane>
       <NTabPane
         name="tab-resp-headers"
@@ -184,7 +183,7 @@ function responseBadge(): VNodeChild {
               <th>VALUE</th>
             </tr>
           </thead>
-          <tr v-for="header in response.metadata" :key="header.key">
+          <tr v-for="header in request.value.response.metadata" :key="header.key">
             <td>{{header.key}}</td>
             <td>{{header.value}}</td>
           </tr>

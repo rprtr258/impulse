@@ -3,7 +3,7 @@ import {NButton, NInputGroup, NInput, NEmpty} from "naive-ui";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
-import {use_request, use_response, useStore} from "./store";
+import {use_request, useStore} from "./store";
 
 type Request = {kind: database.Kind.REDIS} & Omit<database.RedisRequest, "createFrom">;
 const store = useStore();
@@ -11,8 +11,7 @@ const store = useStore();
 const {id} = defineProps<{
   id: string,
 }>();
-const request = use_request<Request>(id);
-const response = use_response<database.RedisResponse>(() => id);
+const request = use_request<Request, database.RedisResponse>(id);
 </script>
 
 <template>
@@ -40,7 +39,7 @@ const response = use_response<database.RedisResponse>(() => id);
     :value="request.value.request.query ?? null"
     v-on:update="(value: string) => request.value!.update_request({query: value})"
   />
-  <template v-if="response === null">
+  <template v-if="request.value.response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
@@ -48,7 +47,7 @@ const response = use_response<database.RedisResponse>(() => id);
     />
   </template>
   <template v-else>
-    <ViewJSON :value="response.response" />
+    <ViewJSON :value="request.value.response.response" />
   </template>
 </div>
 </template>

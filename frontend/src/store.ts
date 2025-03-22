@@ -242,32 +242,37 @@ export function useStore() {
   };
 }
 
-export function use_request<R extends object>(request_id: string): Reactive<{value: {
-  request: R,
-  update_request: (patch: Partial<R>) => void,
+export function use_request<Request extends object, Response extends object>(request_id: string): Reactive<{value: {
+  request: Request,
+  response: Omit<Response, "kind"> | null,
+  update_request: (patch: Partial<Request>) => void,
 } | null}> {
   const notify = useNotify();
   const store = useStore();
 
-  const request = reactive<{value: {
-    request: R,
-    update_request: (patch: Partial<R>) => void,
+  const history = use_history(() => request_id);
+
+  const hook = reactive<{value: {
+    request: Request,
+    response: Omit<Response, "kind"> | null,
+    update_request: (patch: Partial<Request>) => void,
   } | null}>({value: null});
   api.get(request_id).then(res => {
     if (res.kind === "err") {
       notify("load request", request_id, res.value);
       return;
     }
-    request.value = {
-      request: res.value as UnwrapRef<R>,
+    hook.value = {
+      request: res.value as UnwrapRef<Request>,
+      response: (history.value.length !== 0) ? history.value[0].response as UnwrapRef<Response> : null,
       update_request: (patch: Partial<Request>) => {
-        const new_request = {...request.value!.request as R, ...patch};
+        const new_request = {...hook.value!.request as Request, ...patch};
         store.update(request_id, new_request);
-        request.value!.request = new_request;
-      }
+        res.value!.request = new_request;
+      },
     };
   });
-  return request;
+  return hook;
 }
 
 export function use_history(request_id: () => string): Reactive<{value: HistoryEntry[]}> {
@@ -291,18 +296,6 @@ export function use_history(request_id: () => string): Reactive<{value: HistoryE
 
       response.value = history.value ?? [];
     });
-  }, {immediate: true});
-  return response;
-}
-
-export function use_response<R>(request_id: () => string): Ref<Omit<R, "kind"> | null> {
-  const history = use_history(request_id);
-
-  const response = ref<Omit<R, "kind"> | null>(null) as Ref<Omit<R, "kind"> | null>;
-  watch(() => history.value, () => {
-    if (history.value.length !== 0) {
-      response.value = history.value[0].response as R;
-    }
   }, {immediate: true});
   return response;
 }

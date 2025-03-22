@@ -14,7 +14,7 @@ import {
 import {database} from "wailsjs/go/models";
 import {Database} from "./api";
 import EditorSQL from "./EditorSQL.vue";
-import {useStore, use_request, use_response} from "./store";
+import {useStore, use_request} from "./store";
 
 type Request = {kind: database.Kind.SQL} & Omit<database.SQLRequest, "createFrom">;
 const store = useStore();
@@ -23,8 +23,7 @@ const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request>(id);
-const response = use_response<database.SQLResponse>(() => id);
+const request = use_request<Request, database.SQLResponse>(id);
 
 function onInputChange(newValue: string) {
   request.value!.update_request({dsn: newValue});
@@ -47,7 +46,7 @@ watch(() => store.tabs, () => {
 });
 
 const columns = computed(() => {
-  const resp = response.value;
+  const resp = request.value!.response;
   if (resp === null) {
     return [];
   }
@@ -92,7 +91,7 @@ const columns = computed(() => {
 });
 // TODO: fix duplicate column names
 const data = computed(() => {
-  const resp = response.value;
+  const resp = request.value!.response;
   if (resp === null) {
     return [];
   }
@@ -146,7 +145,7 @@ const data = computed(() => {
         />
       </template>
       <template #2>
-        <template v-if="response === null">
+        <template v-if="request.value.response === null">
           <NEmpty
             description="Run query or choose one from history."
             class="h100"
@@ -160,7 +159,7 @@ const data = computed(() => {
               :single-line="false"
               size="small"
               resizable
-              :scroll-x="response.columns.length * 200"
+              :scroll-x="request.value.response.columns.length * 200"
             />
           </NScrollbar>
         </template>
