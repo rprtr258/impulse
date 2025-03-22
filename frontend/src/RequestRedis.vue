@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref} from "vue";
+import {ref, toRefs} from "vue";
 import {NButton, NInputGroup, NInput, NEmpty} from "naive-ui";
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
@@ -11,12 +11,12 @@ type Request = {kind: database.Kind.REDIS} & database.RedisRequest;
 const {id} = defineProps<{
   id: string,
 }>();
-const request = use_request<Request, database.RedisResponse>(ref(id));
+const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.RedisResponse>(ref(id)));
 </script>
 
 <template>
 <NEmpty
-  v-if="request.request === null"
+  v-if="request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -29,21 +29,21 @@ const request = use_request<Request, database.RedisResponse>(ref(id));
   <NInputGroup style="grid-column: span 2;">
     <NInput
       placeholder="DSN"
-      :value="request.request.dsn"
-      v-on:update:value="dsn => request.update_request({dsn: dsn})"
+      :value="request.dsn"
+      v-on:update:value="dsn => update_request({dsn: dsn})"
     />
     <NButton
       type="primary"
-      v-on:click="request.send()"
-      :disabled="request.is_loading"
+      v-on:click="send()"
+      :disabled="is_loading"
     >Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"
-    :value="request.request.query ?? null"
-    v-on:update="(value: string) => request.update_request({query: value})"
+    :value="request.query ?? null"
+    v-on:update="(value: string) => update_request({query: value})"
   />
-  <template v-if="request.response === null">
+  <template v-if="response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
@@ -51,7 +51,7 @@ const request = use_request<Request, database.RedisResponse>(ref(id));
     />
   </template>
   <template v-else>
-    <ViewJSON :value="request.response.response" />
+    <ViewJSON :value="response.response" />
   </template>
 </div>
 </template>

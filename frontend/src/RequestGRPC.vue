@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, h, ref, VNodeChild, watch} from "vue";
+import {computed, toRefs, h, ref, VNodeChild, watch} from "vue";
 import {
   NTag, NTabs, NTabPane,
   NInput, NButton, NInputGroup, NSelect,
@@ -13,13 +13,13 @@ import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
 import {use_request} from "./store";
 
-type Request = {kind: database.Kind.GRPC} & Omit<database.GRPCRequest, "createFrom">;
+type Request = {kind: database.Kind.GRPC} & database.GRPCRequest;
 
 const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request, database.GRPCResponse>(ref(id));
+const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.GRPCResponse>(ref(id)));
 
 const methods = ref<{
   service: string,
@@ -29,9 +29,9 @@ const loadingMethods = ref(false);
 
 const notification = useNotification();
 
-watch(() => request.request?.target, async () => {
+watch(() => request.value?.target, async () => {
   loadingMethods.value = true;
-  const res = await api.grpcMethods(request.request!.target);
+  const res = await api.grpcMethods(request.value!.target);
   if (res.kind === "ok") {
     methods.value = res.value;
   } else {
@@ -41,7 +41,7 @@ watch(() => request.request?.target, async () => {
 }, {immediate: true});
 
 function updateMetadata(value: database.KV[]) {
-  request.update_request({
+  update_request.value({
     metadata: value.filter(({key, value}) => key !== "" || value !== ""),
   });
 }
@@ -57,7 +57,7 @@ const selectOptions = computed(() => methods.value.map(svc => ({
 })));
 
 function responseBadge(): VNodeChild {
-  const code = request.response!.code;
+  const code = response.value!.code;
   return h(NTag, {
     type: code === 0 ? "success" : "error",
     size: "small",
@@ -68,7 +68,7 @@ function responseBadge(): VNodeChild {
 
 <template>
 <NEmpty
-  v-if="request.request === null"
+  v-if="request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -80,8 +80,8 @@ function responseBadge(): VNodeChild {
 >
   <NInputGroup style="grid-column: span 2;">
     <NSelect
-      :value="request.request.method"
-      v-on:update:value="method => request.update_request({method: method})"
+      :value="request.method"
+      v-on:update:value="method => update_request({method: method})"
       :options="selectOptions"
       :loading="loadingMethods"
       remote
@@ -89,13 +89,13 @@ function responseBadge(): VNodeChild {
     />
     <NInput
       placeholder="Addr"
-      :value="request.request.target"
-      v-on:update:value="target => request.update_request({target: target})"
+      :value="request.target"
+      v-on:update:value="target => update_request({target: target})"
     />
     <NButton
       type="primary"
-      v-on:click="request.send()"
-      :disabled="request.is_loading"
+      v-on:click="send()"
+      :disabled="is_loading"
     >Send</NButton>
   </NInputGroup>
   <NTabs
@@ -111,8 +111,8 @@ function responseBadge(): VNodeChild {
     >
       <EditorJSON
         class="h100"
-        :value="request.request.payload"
-        v-on:update="value => request.update_request({payload: value})"
+        :value="request.payload"
+        v-on:update="value => update_request({payload: value})"
       />
     </NTabPane>
     <NTabPane
@@ -122,12 +122,12 @@ function responseBadge(): VNodeChild {
       display-directive="show"
     >
       <ParamsList
-        :value="request.request.metadata"
+        :value="request.metadata"
         v-on:update="(value: database.KV[]) => updateMetadata(value)"
       />
       <!-- <div
         style="display: flex; flex-direction: row;"
-        v-for="(obj, i) in request.request.headers"
+        v-for="(obj, i) in request.headers"
         :key="i"
       >
         <NInput type="text" :value="obj.key" style="flex: 1;" />
@@ -141,7 +141,7 @@ function responseBadge(): VNodeChild {
       </div> -->
     </NTabPane>
   </NTabs>
-  <template v-if="request.response === null">
+  <template v-if="response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
@@ -167,7 +167,7 @@ function responseBadge(): VNodeChild {
         style="overflow-y: auto;"
         display-directive="show"
       >
-        <ViewJSON :value="request.response?.response"></ViewJSON>
+        <ViewJSON :value="response?.response"></ViewJSON>
       </NTabPane>
       <NTabPane
         name="tab-resp-headers"
@@ -186,7 +186,7 @@ function responseBadge(): VNodeChild {
               <th>VALUE</th>
             </tr>
           </thead>
-          <tr v-for="header in request.response.metadata" :key="header.key">
+          <tr v-for="header in response.metadata" :key="header.key">
             <td>{{header.key}}</td>
             <td>{{header.value}}</td>
           </tr>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, ref, VNodeChild} from "vue";
+import {h, ref, toRefs, VNodeChild, watch} from "vue";
 import {
   NTag, NTabs, NTabPane,
   NInput, NButton, NInputGroup, NSelect,
@@ -12,12 +12,13 @@ import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
 import {use_request} from "./store";
 
-type Request = {kind: database.Kind.HTTP} & Omit<database.HTTPRequest, "createFrom">;
+type Request = {kind: database.Kind.HTTP} & database.HTTPRequest;
 
 const {id} = defineProps<{
   id: string,
 }>();
-const request = use_request<Request, database.HTTPResponse>(ref(id));
+const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.HTTPResponse>(ref(id)));
+watch(() => request, r => console.log(r));
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
@@ -32,13 +33,13 @@ function responseBodyLanguage(contentType: string): string {
 };
 
 function updateHeaders(value: database.KV[]){
-  request.update_request({
+  update_request.value({
     headers: value.filter(({key, value}) => key!=="" || value!==""),
   })
 }
 
 function responseBadge(): VNodeChild {
-  const code = request.response!.code;
+  const code = response.value!.code;
   return h(NTag, {
     type: code < 300 ? "success"
         : code < 500 ? "warning"
@@ -51,7 +52,7 @@ function responseBadge(): VNodeChild {
 
 <template>
 <NEmpty
-  v-if="request.request === null"
+  v-if="request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -64,19 +65,19 @@ function responseBadge(): VNodeChild {
   <NInputGroup style="grid-column: span 2;">
     <NSelect
       :options="Object.keys(Methods).map(method => ({label: method, value: method}))"
-      :value="request.request.method"
-      v-on:update:value="method => request.update_request({method: method})"
+      :value="request.method"
+      v-on:update:value="method => update_request({method: method})"
       style="width: 10%; min-width: 8em;"
     />
     <NInput
       placeholder="URL"
-      :value="request.request.url"
-      v-on:update:value="url => request.update_request({url: url})"
+      :value="request.url"
+      v-on:update:value="url => update_request({url: url})"
     />
     <NButton
       type="primary"
-      v-on:click='request.send()'
-      :disabled="request.is_loading"
+      v-on:click='send()'
+      :disabled="is_loading"
     >Send</NButton>
   </NInputGroup>
   <NTabs
@@ -92,8 +93,8 @@ function responseBadge(): VNodeChild {
     >
       <EditorJSON
         class="h100"
-        :value="request.request.body ?? null"
-        v-on:update="(value: string) => request.update_request({body: value})"
+        :value="request.body ?? null"
+        v-on:update="(value: string) => update_request({body: value})"
       />
     </NTabPane>
     <NTabPane
@@ -103,12 +104,12 @@ function responseBadge(): VNodeChild {
       display-directive="show"
     >
       <ParamsList
-        :value="request.request.headers"
+        :value="request.headers"
         v-on:update="(value: database.KV[]) => updateHeaders(value)"
       />
     </NTabPane>
   </NTabs>
-  <template v-if="request.response === null">
+  <template v-if="response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
@@ -134,7 +135,7 @@ function responseBadge(): VNodeChild {
         style="overflow-y: auto;"
         display-directive="show"
       >
-        <ViewJSON :value="request.response.body" />
+        <ViewJSON :value="response.body" />
       </NTabPane>
       <NTabPane
         name="tab-resp-headers"
@@ -153,7 +154,7 @@ function responseBadge(): VNodeChild {
               <th>VALUE</th>
             </tr>
           </thead>
-          <tr v-for="header in request.response.headers" :key="header.key">
+          <tr v-for="header in response.headers" :key="header.key">
             <td>{{header.key}}</td>
             <td>{{header.value}}</td>
           </tr>

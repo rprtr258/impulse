@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import {computed, ref} from "vue";
+import {computed, toRefs, ref} from "vue";
 import {NInput, NButton, NInputGroup, NEmpty} from "naive-ui";
 import {database} from "wailsjs/go/models";
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import {use_request} from "./store";
 
-type Request = {kind: database.Kind.JQ} & Omit<database.JQRequest, "createFrom">;
+type Request = {kind: database.Kind.JQ} & database.JQRequest;
 
 const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request, database.JQResponse>(ref(id));
+const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.JQResponse>(ref(id)));
 
 const jqerror = ref<string | null>(null); // TODO: use
 
-const responseText = computed(() => (request.response?.response ?? []).join("\n"));
+const responseText = computed(() => (response.value?.response ?? []).join("\n"));
 </script>
 
 <template>
 <NEmpty
-  v-if="request.request === null"
+  v-if="request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -35,23 +35,23 @@ const responseText = computed(() => (request.response?.response ?? []).join("\n"
     <NInput
       placeholder="JQ query"
       :status='jqerror !== null ? "error" : "success"'
-      :value="request.request.query"
-      v-on:update-value="query => request.update_request({query: query})"
+      :value="request.query"
+      v-on:update-value="query => update_request({query: query})"
     />
     <!-- TODO: autosend -->
     <NButton
       type="primary"
-      v-on:click="request.send()"
-      :disabled="request.is_loading"
+      v-on:click="send()"
+      :disabled="is_loading"
     >Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"
-    :value="request.request.json"
-    v-on:update="(value: string) => request.update_request({json: value})"
+    :value="request.json"
+    v-on:update="(value: string) => update_request({json: value})"
   />
   <div v-if="jqerror !== null" style="position: fixed; color: red; bottom: 3em;">{{jqerror}}</div>
-  <template v-if="request.response === null">
+  <template v-if="response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"

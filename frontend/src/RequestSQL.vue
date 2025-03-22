@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, h, ref} from "vue";
+import {computed, toRefs, h, ref} from "vue";
 import {
   NButton, NInput, NInputGroup, NSelect,
   NLayout, NLayoutContent, NLayoutHeader,
@@ -16,24 +16,24 @@ import {Database} from "./api";
 import EditorSQL from "./EditorSQL.vue";
 import {use_request} from "./store";
 
-type Request = {kind: database.Kind.SQL} & Omit<database.SQLRequest, "createFrom">;
+type Request = {kind: database.Kind.SQL} & database.SQLRequest;
 
 const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request, database.SQLResponse>(ref(id));
+const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.SQLResponse>(ref(id)));
 
 function onInputChange(newValue: string) {
-  request.update_request({dsn: newValue});
+  update_request.value({dsn: newValue});
 }
 
 function onQueryChange(newValue: string) {
-  request.update_request({query: newValue});
+  update_request.value({query: newValue});
 }
 
 const columns = computed(() => {
-  const resp = request.response;
+  const resp = response.value;
   if (resp === null) {
     return [];
   }
@@ -78,7 +78,7 @@ const columns = computed(() => {
 });
 // TODO: fix duplicate column names
 const data = computed(() => {
-  const resp = request.response;
+  const resp = response.value;
   if (resp === null) {
     return [];
   }
@@ -92,7 +92,7 @@ const data = computed(() => {
 
 <template>
 <NEmpty
-  v-if="request.request === null"
+  v-if="request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -106,19 +106,19 @@ const data = computed(() => {
     <NInputGroup>
       <NSelect
         :options="Object.keys(Database).map(db => ({label: Database[db as keyof typeof Database], value: db}))"
-        :value="request.request.database"
-        v-on:update:value="(database: Database) => request.update_request({database: database})"
+        :value="request.database"
+        v-on:update:value="(database: Database) => update_request({database: database})"
         style="width: 10%;"
       />
       <NInput
         placeholder="DSN"
-        :value="request.request.dsn"
+        :value="request.dsn"
         v-on:input="onInputChange"
       />
       <NButton
         type="primary"
-        v-on:click="request.send()"
-        :disabled="request.is_loading"
+        v-on:click="send()"
+        :disabled="is_loading"
       >Run</NButton>
     </NInputGroup>
   </NLayoutHeader>
@@ -126,13 +126,13 @@ const data = computed(() => {
     <NSplit class="h100" direction="vertical">
       <template #1>
         <EditorSQL
-          :value="request.request.query"
+          :value="request.query"
           v-on:update="onQueryChange"
           class="h100"
         />
       </template>
       <template #2>
-        <template v-if="request.response === null">
+        <template v-if="response === null">
           <NEmpty
             description="Run query or choose one from history."
             class="h100"
@@ -146,7 +146,7 @@ const data = computed(() => {
               :single-line="false"
               size="small"
               resizable
-              :scroll-x="request.response.columns.length * 200"
+              :scroll-x="response.columns.length * 200"
             />
           </NScrollbar>
         </template>
