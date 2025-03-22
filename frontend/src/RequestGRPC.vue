@@ -29,9 +29,9 @@ const loadingMethods = ref(false);
 
 const notification = useNotification();
 
-watch(() => request.value?.request.target, async () => {
+watch(() => request.request?.target, async () => {
   loadingMethods.value = true;
-  const res = await api.grpcMethods(request.value!.request.target);
+  const res = await api.grpcMethods(request.request!.target);
   if (res.kind === "ok") {
     methods.value = res.value;
   } else {
@@ -41,7 +41,7 @@ watch(() => request.value?.request.target, async () => {
 }, {immediate: true});
 
 function updateMetadata(value: database.KV[]) {
-  request.value!.update_request({
+  request.update_request({
     metadata: value.filter(({key, value}) => key !== "" || value !== ""),
   });
 }
@@ -57,7 +57,7 @@ const selectOptions = computed(() => methods.value.map(svc => ({
 })));
 
 function responseBadge(): VNodeChild {
-  const code = request.value!.response!.code;
+  const code = request.response!.code;
   return h(NTag, {
     type: code === 0 ? "success" : "error",
     size: "small",
@@ -68,7 +68,7 @@ function responseBadge(): VNodeChild {
 
 <template>
 <NEmpty
-  v-if="request.value === null"
+  v-if="request.request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -80,8 +80,8 @@ function responseBadge(): VNodeChild {
 >
   <NInputGroup style="grid-column: span 2;">
     <NSelect
-      :value="request.value.request.method"
-      v-on:update:value="method => request.value!.update_request({method: method})"
+      :value="request.request.method"
+      v-on:update:value="method => request.update_request({method: method})"
       :options="selectOptions"
       :loading="loadingMethods"
       remote
@@ -89,13 +89,13 @@ function responseBadge(): VNodeChild {
     />
     <NInput
       placeholder="Addr"
-      :value="request.value.request.target"
-      v-on:update:value="target => request.value!.update_request({target: target})"
+      :value="request.request.target"
+      v-on:update:value="target => request.update_request({target: target})"
     />
     <NButton
       type="primary"
-      v-on:click="request.value.send()"
-      :disabled="request.value.is_loading"
+      v-on:click="request.send()"
+      :disabled="request.is_loading"
     >Send</NButton>
   </NInputGroup>
   <NTabs
@@ -111,8 +111,8 @@ function responseBadge(): VNodeChild {
     >
       <EditorJSON
         class="h100"
-        :value="request.value.request.payload"
-        v-on:update="value => request.value!.update_request({payload: value})"
+        :value="request.request.payload"
+        v-on:update="value => request.update_request({payload: value})"
       />
     </NTabPane>
     <NTabPane
@@ -122,12 +122,12 @@ function responseBadge(): VNodeChild {
       display-directive="show"
     >
       <ParamsList
-        :value="request.value.request.metadata"
+        :value="request.request.metadata"
         v-on:update="(value: database.KV[]) => updateMetadata(value)"
       />
       <!-- <div
         style="display: flex; flex-direction: row;"
-        v-for="(obj, i) in request.value.request.headers"
+        v-for="(obj, i) in request.request.headers"
         :key="i"
       >
         <NInput type="text" :value="obj.key" style="flex: 1;" />
@@ -141,7 +141,7 @@ function responseBadge(): VNodeChild {
       </div> -->
     </NTabPane>
   </NTabs>
-  <template v-if="request.value.response === null">
+  <template v-if="request.response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
@@ -167,7 +167,7 @@ function responseBadge(): VNodeChild {
         style="overflow-y: auto;"
         display-directive="show"
       >
-        <ViewJSON :value="request.value.response?.response"></ViewJSON>
+        <ViewJSON :value="request.response?.response"></ViewJSON>
       </NTabPane>
       <NTabPane
         name="tab-resp-headers"
@@ -186,7 +186,7 @@ function responseBadge(): VNodeChild {
               <th>VALUE</th>
             </tr>
           </thead>
-          <tr v-for="header in request.value.response.metadata" :key="header.key">
+          <tr v-for="header in request.response.metadata" :key="header.key">
             <td>{{header.key}}</td>
             <td>{{header.value}}</td>
           </tr>

@@ -16,7 +16,7 @@ const request = use_request<Request, database.RedisResponse>(ref(id));
 
 <template>
 <NEmpty
-  v-if="request.value === null"
+  v-if="request.request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -29,21 +29,21 @@ const request = use_request<Request, database.RedisResponse>(ref(id));
   <NInputGroup style="grid-column: span 2;">
     <NInput
       placeholder="DSN"
-      :value="request.value.request.dsn"
-      v-on:update:value="dsn => request.value!.update_request({dsn: dsn})"
+      :value="request.request.dsn"
+      v-on:update:value="dsn => request.update_request({dsn: dsn})"
     />
     <NButton
       type="primary"
-      v-on:click="request.value.send()"
-      :disabled="request.value.is_loading"
+      v-on:click="request.send()"
+      :disabled="request.is_loading"
     >Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"
-    :value="request.value.request.query ?? null"
-    v-on:update="(value: string) => request.value!.update_request({query: value})"
+    :value="request.request.query ?? null"
+    v-on:update="(value: string) => request.update_request({query: value})"
   />
-  <template v-if="request.value.response === null">
+  <template v-if="request.response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
@@ -51,7 +51,7 @@ const request = use_request<Request, database.RedisResponse>(ref(id));
     />
   </template>
   <template v-else>
-    <ViewJSON :value="request.value.response.response" />
+    <ViewJSON :value="request.response.response" />
   </template>
 </div>
 </template>

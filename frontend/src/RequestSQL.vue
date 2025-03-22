@@ -25,15 +25,15 @@ const {id} = defineProps<{
 const request = use_request<Request, database.SQLResponse>(ref(id));
 
 function onInputChange(newValue: string) {
-  request.value!.update_request({dsn: newValue});
+  request.update_request({dsn: newValue});
 }
 
 function onQueryChange(newValue: string) {
-  request.value!.update_request({query: newValue});
+  request.update_request({query: newValue});
 }
 
 const columns = computed(() => {
-  const resp = request.value!.response;
+  const resp = request.response;
   if (resp === null) {
     return [];
   }
@@ -78,7 +78,7 @@ const columns = computed(() => {
 });
 // TODO: fix duplicate column names
 const data = computed(() => {
-  const resp = request.value!.response;
+  const resp = request.response;
   if (resp === null) {
     return [];
   }
@@ -92,7 +92,7 @@ const data = computed(() => {
 
 <template>
 <NEmpty
-  v-if="request.value === null"
+  v-if="request.request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -106,19 +106,19 @@ const data = computed(() => {
     <NInputGroup>
       <NSelect
         :options="Object.keys(Database).map(db => ({label: Database[db as keyof typeof Database], value: db}))"
-        :value="request.value.request.database"
-        v-on:update:value="(database: Database) => request.value!.update_request({database: database})"
+        :value="request.request.database"
+        v-on:update:value="(database: Database) => request.update_request({database: database})"
         style="width: 10%;"
       />
       <NInput
         placeholder="DSN"
-        :value="request.value.request.dsn"
+        :value="request.request.dsn"
         v-on:input="onInputChange"
       />
       <NButton
         type="primary"
-        v-on:click="request.value.send()"
-        :disabled="request.value.is_loading"
+        v-on:click="request.send()"
+        :disabled="request.is_loading"
       >Run</NButton>
     </NInputGroup>
   </NLayoutHeader>
@@ -126,13 +126,13 @@ const data = computed(() => {
     <NSplit class="h100" direction="vertical">
       <template #1>
         <EditorSQL
-          :value="request.value.request.query"
+          :value="request.request.query"
           v-on:update="onQueryChange"
           class="h100"
         />
       </template>
       <template #2>
-        <template v-if="request.value.response === null">
+        <template v-if="request.response === null">
           <NEmpty
             description="Run query or choose one from history."
             class="h100"
@@ -146,7 +146,7 @@ const data = computed(() => {
               :single-line="false"
               size="small"
               resizable
-              :scroll-x="request.value.response.columns.length * 200"
+              :scroll-x="request.response.columns.length * 200"
             />
           </NScrollbar>
         </template>

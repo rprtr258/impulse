@@ -232,50 +232,53 @@ export function useStore() {
 }
 
 type UseRequest<Request extends object, Response extends object> = {
-  request: Request,
+  request: Request | null,
   history: HistoryEntry[],
   response: Response | null,
   is_loading: boolean,
   update_request: (patch: Partial<Request>) => Promise<void>,
   send: () => Promise<void>,
-} | null;
+};
 export function use_request<
   Request extends object,
   Response extends object,
->(request_id: Ref<string>): Reactive<{value: UseRequest<Request, Response>}> {
+>(request_id: Ref<string>): Reactive<UseRequest<Request, Response>> {
   const notify = useNotify();
   const store = useStore();
 
-  const state = reactive<{value: UseRequest<Request, Response>}>({value: null});
+  const state = reactive<UseRequest<Request, Response>>({
+    request: null,
+    history: [],
+    response: null,
+    is_loading: true,
+    update_request: async () => {},
+    send: async () => {},
+  });
   api.get(request_id.value).then(res => {
     if (res.kind === "err") {
       notify("load request", request_id.value, res.value);
       return;
     }
-    state.value = {
-      request: res.value as UnwrapRef<Request>,
-      history: [],
-      response: null,
-      is_loading: false,
-      update_request: async (patch: Partial<Request>) => {
-        state.value!.is_loading = true;
-        const new_request = {...state.value!.request as RequestData, ...patch} as RequestData;
-        state.value!.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
-        await store.update(request_id.value, new_request)
-        state.value!.is_loading = false;
-      },
-      send: async () => {
-        state.value!.is_loading = true;
-        const res = await api.requestPerform(request_id.value);
-        state.value!.is_loading = false;
-        if (res.kind === "err") {
-          notify(`Could not perform request ${request_id.value}: ${res.value}`);
-          return;
-        }
+    state.request = res.value as UnwrapRef<Request>;
+    state.is_loading = false;
+    state.update_request = async (patch: Partial<Request>) => {
+      state.is_loading = true;
+      const new_request = {...state.request as RequestData, ...patch} as RequestData;
+      state.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
+      await store.update(request_id.value, new_request)
+      state.is_loading = false;
+    };
+    state.send = async () => {
+      state.is_loading = true;
+      const res = await api.requestPerform(request_id.value);
+      state.is_loading = false;
+      if (res.kind === "err") {
+        notify(`Could not perform request ${request_id.value}: ${res.value}`);
+        return;
+      }
 
-        state.value!.history.push(res.value);
-        state.value!.response = res.value.response as UnwrapRef<Response>;
-      },
+      state.history.push(res.value);
+      state.response = res.value.response as UnwrapRef<Response>;
     };
     api.history(request_id.value).then(history => {
       if (history.kind === "err") {
@@ -283,9 +286,9 @@ export function use_request<
         return;
       }
 
-      state.value!.history = history.value ?? [];
-      const n = state.value?.history.length ?? 0;
-      state.value!.response = (n !== 0) ? state.value!.history[n - 1].response as UnwrapRef<Response> : null;
+      state.history = history.value ?? [];
+      const n = state.history.length ?? 0;
+      state.response = (n !== 0) ? state.history[n - 1].response as UnwrapRef<Response> : null;
     });
   });
   return state;

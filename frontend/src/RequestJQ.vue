@@ -16,12 +16,12 @@ const request = use_request<Request, database.JQResponse>(ref(id));
 
 const jqerror = ref<string | null>(null); // TODO: use
 
-const responseText = computed(() => (request.value?.response?.response ?? []).join("\n"));
+const responseText = computed(() => (request.response?.response ?? []).join("\n"));
 </script>
 
 <template>
 <NEmpty
-  v-if="request.value === null"
+  v-if="request.request === null"
   description="Loading request..."
   class="h100"
   style="justify-content: center;"
@@ -35,23 +35,23 @@ const responseText = computed(() => (request.value?.response?.response ?? []).jo
     <NInput
       placeholder="JQ query"
       :status='jqerror !== null ? "error" : "success"'
-      :value="request.value.request.query"
-      v-on:update-value="query => request.value!.update_request({query: query})"
+      :value="request.request.query"
+      v-on:update-value="query => request.update_request({query: query})"
     />
     <!-- TODO: autosend -->
     <NButton
       type="primary"
-      v-on:click="request.value.send()"
-      :disabled="request.value.is_loading"
+      v-on:click="request.send()"
+      :disabled="request.is_loading"
     >Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"
-    :value="request.value.request.json"
-    v-on:update="(value: string) => request.value!.update_request({json: value})"
+    :value="request.request.json"
+    v-on:update="(value: string) => request.update_request({json: value})"
   />
   <div v-if="jqerror !== null" style="position: fixed; color: red; bottom: 3em;">{{jqerror}}</div>
-  <template v-if="request.value.response === null">
+  <template v-if="request.response === null">
     <NEmpty
       description="Send request or choose one from history."
       class="h100"
