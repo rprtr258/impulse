@@ -237,8 +237,8 @@ type UseRequest<Request extends object, Response extends object> = {
   history: HistoryEntry[],
   response: Response | null,
   is_loading: boolean,
-  update_request: (patch: Partial<Request>) => void,
-  send: () => void,
+  update_request: (patch: Partial<Request>) => Promise<void>,
+  send: () => Promise<void>,
 } | null;
 export function use_request<
   Request extends object,
@@ -258,26 +258,24 @@ export function use_request<
       history: [],
       response: null,
       is_loading: false,
-      update_request: (patch: Partial<Request>) => {
+      update_request: async (patch: Partial<Request>) => {
         hook.value!.is_loading = true;
         const new_request = {...hook.value!.request as RequestData, ...patch} as RequestData;
-        store.update(request_id.value, new_request).then(() => {
-          hook.value!.is_loading = false;
-        });
-        hook.value!.request = new_request as UnwrapRef<Request>;
+        hook.value!.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
+        await store.update(request_id.value, new_request)
+        hook.value!.is_loading = false;
       },
-      send: () => {
+      send: async () => {
         hook.value!.is_loading = true;
-        api.requestPerform(request_id.value).then(res => {
-          hook.value!.is_loading = false;
-          if (res.kind === "err") {
-            notify(`Could not perform request ${request_id.value}: ${res.value}`);
-            return;
-          }
+        const res = await api.requestPerform(request_id.value);
+        hook.value!.is_loading = false;
+        if (res.kind === "err") {
+          notify(`Could not perform request ${request_id.value}: ${res.value}`);
+          return;
+        }
 
-          hook.value!.history.push(res.value);
-          hook.value!.response = res.value.response as UnwrapRef<Response>;
-        });
+        hook.value!.history.push(res.value);
+        hook.value!.response = res.value.response as UnwrapRef<Response>;
       },
     };
     api.history(request_id.value).then(history => {
