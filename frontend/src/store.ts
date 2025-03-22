@@ -242,16 +242,20 @@ export function useStore() {
   };
 }
 
-export function use_request<R extends object>(request_id: string): Reactive<{value: R | null}> {
+export function use_request<R extends object>(request_id: string): Reactive<{value: {
+  request: R,
+} | null}> {
   const notify = useNotify();
 
-  const request = reactive<{value: R | null}>({value: null});
+  const request = reactive<{value: {request: R} | null}>({value: null});
   api.get(request_id).then(res => {
     if (res.kind === "err") {
       notify("load request", request_id, res.value);
       return;
     }
-    request.value = res.value as UnwrapRef<R>;
+    request.value = {
+      request: res.value as UnwrapRef<R>,
+    };
   });
   return request;
 }

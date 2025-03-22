@@ -24,9 +24,9 @@ const emit = defineEmits<{
 const request = use_request<Request>(id);
 const response = use_response<database.HTTPResponse>(() => id);
 function update_request(patch: Partial<Request>) {
-  const new_request = {...request.value!, ...patch};
+  const new_request = {...request.value!.request, ...patch};
   emit("update", new_request);
-  request.value = new_request;
+  request.value!.request = new_request;
 }
 
 function responseBodyLanguage(contentType: string): string {
@@ -74,13 +74,13 @@ function responseBadge(): VNodeChild {
   <NInputGroup style="grid-column: span 2;">
     <NSelect
       :options="Object.keys(Methods).map(method => ({label: method, value: method}))"
-      :value="request.value.method"
+      :value="request.value.request.method"
       v-on:update:value="method => update_request({method: method})"
       style="width: 10%; min-width: 8em;"
     />
     <NInput
       placeholder="URL"
-      :value="request.value.url"
+      :value="request.value.request.url"
       v-on:update:value="url => update_request({url: url})"
     />
     <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
@@ -98,7 +98,7 @@ function responseBadge(): VNodeChild {
     >
       <EditorJSON
         class="h100"
-        :value="request.value.body ?? null"
+        :value="request.value.request.body ?? null"
         v-on:update="(value: string) => update_request({body: value})"
       />
     </NTabPane>
@@ -109,7 +109,7 @@ function responseBadge(): VNodeChild {
       display-directive="show"
     >
       <ParamsList
-        :value="request.value.headers"
+        :value="request.value.request.headers"
         v-on:update="(value: database.KV[]) => updateHeaders(value)"
       />
     </NTabPane>

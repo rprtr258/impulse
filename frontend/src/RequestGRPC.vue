@@ -26,7 +26,7 @@ const emit = defineEmits<{
 const request = use_request<Request>(id);
 const response = use_response<database.GRPCResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!, ...patch});
+  emit("update", {...request.value!.request, ...patch});
 }
 
 const methods = ref<{
@@ -37,9 +37,9 @@ const loadingMethods = ref(false);
 
 const notification = useNotification();
 
-watch(() => request.value?.target, async () => {
+watch(() => request.value?.request.target, async () => {
   loadingMethods.value = true;
-  const res = await api.grpcMethods(request.value!.target);
+  const res = await api.grpcMethods(request.value!.request.target);
   if (res.kind === "ok") {
     methods.value = res.value;
   } else {
@@ -88,7 +88,7 @@ function responseBadge(): VNodeChild {
 >
   <NInputGroup style="grid-column: span 2;">
     <NSelect
-      :value="request.value.method"
+      :value="request.value.request.method"
       v-on:update:value="method => updateRequest({method: method})"
       :options="selectOptions"
       :loading="loadingMethods"
@@ -97,7 +97,7 @@ function responseBadge(): VNodeChild {
     />
     <NInput
       placeholder="Addr"
-      :value="request.value.target"
+      :value="request.value.request.target"
       v-on:update:value="target => updateRequest({target: target})"
     />
     <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
@@ -115,7 +115,7 @@ function responseBadge(): VNodeChild {
     >
       <EditorJSON
         class="h100"
-        :value="request.value.payload"
+        :value="request.value.request.payload"
         v-on:update="value => updateRequest({payload: value})"
       />
     </NTabPane>
@@ -126,12 +126,12 @@ function responseBadge(): VNodeChild {
       display-directive="show"
     >
       <ParamsList
-        :value="request.value.metadata"
+        :value="request.value.request.metadata"
         v-on:update="(value: database.KV[]) => updateMetadata(value)"
       />
       <!-- <div
         style="display: flex; flex-direction: row;"
-        v-for="(obj, i) in request.value.headers"
+        v-for="(obj, i) in request.value.request.headers"
         :key="i"
       >
         <NInput type="text" :value="obj.key" style="flex: 1;" />

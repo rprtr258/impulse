@@ -29,7 +29,7 @@ const emit = defineEmits<{
 const request = use_request<Request>(id);
 const response = use_response<database.SQLResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!, ...patch});
+  emit("update", {...request.value!.request, ...patch});
 }
 
 function onInputChange(newValue: string) {
@@ -126,13 +126,13 @@ const data = computed(() => {
     <NInputGroup>
       <NSelect
         :options="Object.keys(Database).map(db => ({label: Database[db as keyof typeof Database], value: db}))"
-        :value="request.value.database"
+        :value="request.value.request.database"
         v-on:update:value="(database: Database) => updateRequest({database: database})"
         style="width: 10%;"
       />
       <NInput
         placeholder="DSN"
-        :value="request.value.dsn"
+        :value="request.value.request.dsn"
         v-on:input="onInputChange"
       />
       <NButton
@@ -146,7 +146,7 @@ const data = computed(() => {
     <NSplit class="h100" direction="vertical">
       <template #1>
         <EditorSQL
-          :value="request.value.query"
+          :value="request.value.request.query"
           v-on:update="onQueryChange"
           class="h100"
         />

@@ -19,7 +19,7 @@ const emit = defineEmits<{
 const request = use_request<Request>(id);
 const response = use_response<database.JQResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!, ...patch});
+  emit("update", {...request.value!.request, ...patch});
 }
 
 const jqerror = ref<string | null>(null); // TODO: use
@@ -43,7 +43,7 @@ const responseText = computed(() => (response.value?.response ?? []).join("\n"))
     <NInput
       placeholder="JQ query"
       :status='jqerror !== null ? "error" : "success"'
-      :value="request.value.query"
+      :value="request.value.request.query"
       v-on:update-value="query => updateRequest({query: query})"
     />
     <!-- TODO: autosend -->
@@ -51,7 +51,7 @@ const responseText = computed(() => (response.value?.response ?? []).join("\n"))
   </NInputGroup>
   <EditorJSON
     class="h100"
-    :value="request.value.json"
+    :value="request.value.request.json"
     v-on:update="(value: string) => updateRequest({json: value})"
   />
   <div v-if="jqerror !== null" style="position: fixed; color: red; bottom: 3em;">{{jqerror}}</div>

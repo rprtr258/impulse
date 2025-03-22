@@ -17,7 +17,7 @@ const emit = defineEmits<{
 const request = use_request<Request>(id);
 const response = use_response<database.RedisResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!, ...patch});
+  emit("update", {...request.value!.request, ...patch});
 }
 </script>
 
@@ -36,14 +36,14 @@ function updateRequest(patch: Partial<Request>) {
   <NInputGroup style="grid-column: span 2;">
     <NInput
       placeholder="DSN"
-      :value="request.value.dsn"
+      :value="request.value.request.dsn"
       v-on:update:value="dsn => updateRequest({dsn: dsn})"
     />
     <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"
-    :value="request.value.query ?? null"
+    :value="request.value.request.query ?? null"
     v-on:update="(value: string) => updateRequest({query: value})"
   />
   <template v-if="response === null">
