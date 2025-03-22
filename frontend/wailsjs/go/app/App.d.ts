@@ -15,9 +15,7 @@ export function GRPCQueryFake(arg1:string,arg2:string):Promise<string>;
 
 export function GRPCQueryValidate(arg1:string,arg2:string,arg3:string):Promise<void>;
 
-export function Get(arg1:string):Promise<database.Request>;
-
-export function History(arg1:string):Promise<Array<Record<string, any>>>;
+export function Get(arg1:string):Promise<app.GetResponse>;
 
 export function JQ(arg1:string,arg2:string):Promise<Array<string>>;
 

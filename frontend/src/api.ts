@@ -108,18 +108,15 @@ export const api = {
     return await wrap(async () => App.List());
   },
 
-  async get(id: string): Promise<Result<database.Request>> {
-    return await wrap(async () => App.Get(id));
-  },
-
-  async history(id: string): Promise<Result<HistoryEntry[]>> {
-    const y = await wrap(async () => App.History(id) as unknown as HistoryEntry[] | null);
-    return y.map((x: HistoryEntry[] | null): HistoryEntry[] => {
-      x = x ?? [];
-      for (const req of x) {
+  async get(id: string): Promise<Result<app.GetResponse>> {
+    const y = await wrap(async () => App.Get(id));
+    return y.map((y: app.GetResponse) => {
+      // NOTE: BEWARE, DIRTY TYPESCRIPT HACKS HERE
+      const history = y.History as unknown as HistoryEntry[] ?? [];
+      for (const req of history) {
         req.sent_at = parseTime(req.sent_at as unknown as string);
       }
-      return x;
+      return y;
     });
   },
 
@@ -136,7 +133,7 @@ export const api = {
     return await wrap(() => App.Duplicate(name));
   },
 
-  async requestUpdate(
+  async request_update(
     reqId: string,
     kind: database.Kind,
     req: Omit<RequestData, "kind">,

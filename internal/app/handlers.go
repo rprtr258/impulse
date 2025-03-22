@@ -92,21 +92,17 @@ func (a *App) List() (ListResponse, error) {
 	}, nil
 }
 
-func (a *App) Get(id string) (database.Request, error) {
-	request, err := database.Get(a.ctx, a.DB, database.RequestID(id))
-	if err != nil {
-		return database.Request{}, errors.Wrapf(err, "get request id=%q", id)
-	}
-
-	return request, nil
-}
-
 type historyEntry = map[string]any
 
-func (a *App) History(id string) ([]historyEntry, error) {
+type GetResponse struct {
+	Request database.Request
+	History []historyEntry
+}
+
+func (a *App) Get(id string) (GetResponse, error) {
 	request, err := database.Get(a.ctx, a.DB, database.RequestID(id))
 	if err != nil {
-		return nil, errors.Wrap(err, "get request")
+		return GetResponse{}, errors.Wrapf(err, "get request id=%q", id)
 	}
 
 	history := fun.Map[historyEntry](func(h database.HistoryEntry) historyEntry {
@@ -121,7 +117,7 @@ func (a *App) History(id string) ([]historyEntry, error) {
 		return strings.Compare(i["sent_at"].(string), j["sent_at"].(string))
 	})
 
-	return history, nil
+	return GetResponse{request, history}, nil
 }
 
 type ResponseNewRequest struct {

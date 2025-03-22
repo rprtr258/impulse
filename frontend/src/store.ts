@@ -119,13 +119,6 @@ export function useStore() {
       const {map: requestIDs, index} = tabsValue;
       return requestIDs.list[index] ?? null;
     },
-    request(): Promise<RequestData> | null {
-      const requestID = this.requestID();
-      if (requestID === null) {
-        return null;
-      }
-      return api.get(requestID).then(res => res.kind === "ok" ? res.value.Data : null);
-    },
     selectRequest(id: string): void {
       const tabsValue = tabs.value;
       if (tabsValue === null) {
@@ -207,7 +200,7 @@ export function useStore() {
     },
     async rename(id: string, newID: string): Promise<void> {
       const request = requests[id];
-      const res = await api.requestUpdate(id, request.Kind, request, newID);
+      const res = await api.request_update(id, request.Kind, request, newID);
       if (res.kind === "err") {
         notify(`Could not rename request: ${res.value}`);
         return;
@@ -260,7 +253,7 @@ export function use_request<
       const old_request = state.request;
       const new_request = {...state.request, ...patch} as RequestData;
       state.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
-      const res = await api.requestUpdate(request_id.value, new_request.kind, new_request);
+      const res = await api.request_update(request_id.value, new_request.kind, new_request);
       state.is_loading = false;
       if (res.kind === "err") {
         state.request = old_request; // NOTE: undo change
@@ -271,22 +264,15 @@ export function use_request<
   });
   const fetchData = async () => {
     state.is_loading = true;
-    const [requestRes, historyRes] = await Promise.all([
-      api.get(request_id.value),
-      api.history(request_id.value),
-    ]);
+    const res = await api.get(request_id.value);
     state.is_loading = false;
-    if (requestRes.kind === "err") {
-      notify("load request", request_id.value, requestRes.value);
-      return;
-    }
-    if (historyRes.kind === "err") {
-      notify("load history", request_id.value, historyRes.value);
+    if (res.kind === "err") {
+      notify("load request", request_id.value, res.value);
       return;
     }
 
-    state.request = requestRes.value as UnwrapRef<Request>;
-    state.history = historyRes.value ?? [];
+    state.request = res.value.Request as UnwrapRef<Request>;
+    state.history = res.value.History as unknown as HistoryEntry[];
     state.response = state.history[state.history.length - 1]?.response as UnwrapRef<Response> ?? null;
   };
 
