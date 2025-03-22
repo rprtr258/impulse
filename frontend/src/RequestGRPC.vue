@@ -32,7 +32,7 @@ watch(() => request.value?.target, async () => {
   const res = await api.grpcMethods(id);
   loadingMethods.value = false;
   if (res.kind === "err") {
-    notification.error({title: "Failed to load methods", content: res.value});
+    notification.error({title: "Error fetching GRPC methods", content: res.value});
     return;
   }
   methods.value = res.value;
