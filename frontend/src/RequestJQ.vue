@@ -13,9 +13,7 @@ const {id} = defineProps<{
 }>();
 
 const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.JQResponse>(ref(id)));
-
 const jqerror = ref<string | null>(null); // TODO: use
-
 const responseText = computed(() => (response.value?.response ?? []).join("\n"));
 </script>
 

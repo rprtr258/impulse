@@ -20,15 +20,13 @@ const {id} = defineProps<{
 }>();
 
 const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.GRPCResponse>(ref(id)));
+const notification = useNotification();
 
 const methods = ref<{
   service: string,
   methods: string[],
 }[]>([]);
 const loadingMethods = ref(false);
-
-const notification = useNotification();
-
 watch(() => request.value?.target, async () => {
   loadingMethods.value = true;
   const res = await api.grpcMethods(request.value!.target);
@@ -39,12 +37,6 @@ watch(() => request.value?.target, async () => {
   }
   loadingMethods.value = false;
 }, {immediate: true});
-
-function updateMetadata(value: database.KV[]) {
-  update_request.value({
-    metadata: value.filter(({key, value}) => key !== "" || value !== ""),
-  });
-}
 
 const selectOptions = computed(() => methods.value.map(svc => ({
   type: "group",
@@ -123,7 +115,7 @@ function responseBadge(): VNodeChild {
     >
       <ParamsList
         :value="request.metadata"
-        v-on:update="(value: database.KV[]) => updateMetadata(value)"
+        v-on:update='(value: database.KV[]) => update_request({metadata: value.filter(({key, value}) => key !== "" || value !== "")})'
       />
       <!-- <div
         style="display: flex; flex-direction: row;"

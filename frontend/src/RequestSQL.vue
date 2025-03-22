@@ -24,14 +24,6 @@ const {id} = defineProps<{
 
 const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.SQLResponse>(ref(id)));
 
-function onInputChange(newValue: string) {
-  update_request.value({dsn: newValue});
-}
-
-function onQueryChange(newValue: string) {
-  update_request.value({query: newValue});
-}
-
 const columns = computed(() => {
   const resp = response.value;
   if (resp === null) {
@@ -113,7 +105,7 @@ const data = computed(() => {
       <NInput
         placeholder="DSN"
         :value="request.dsn"
-        v-on:input="onInputChange"
+        v-on:input="newValue => update_request({dsn: newValue})"
       />
       <NButton
         type="primary"
@@ -127,7 +119,7 @@ const data = computed(() => {
       <template #1>
         <EditorSQL
           :value="request.query"
-          v-on:update="onQueryChange"
+          v-on:update="newValue => update_request({query: newValue})"
           class="h100"
         />
       </template>
