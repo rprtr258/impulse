@@ -1,4 +1,4 @@
-import {Reactive, reactive, Ref, ref, UnwrapRef, watch} from "vue";
+import {onUnmounted, Reactive, reactive, Ref, ref, UnwrapRef, watch} from "vue";
 import {useNotification} from "naive-ui";
 import {api, type RequestData, type HistoryEntry} from "./api";
 import {app} from '../wailsjs/go/models';
@@ -289,6 +289,11 @@ export function use_request<
     state.history = historyRes.value ?? [];
     state.response = state.history[state.history.length - 1]?.response as UnwrapRef<Response> ?? null;
   };
-  fetchData();
+
+  const stopWatch = watch(() => request_id.value, fetchData, {immediate: true});
+  onUnmounted(() => {
+    stopWatch();
+  });
+
   return state;
 }
