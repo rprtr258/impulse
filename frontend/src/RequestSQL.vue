@@ -35,7 +35,7 @@ function onQueryChange(newValue: string) {
 
 const buttonDisabled = ref(false);
 function onButtonClick() {
-  store.send(id).then(() => {
+  request.value.send().then(() => {
     buttonDisabled.value = false;
   });
   buttonDisabled.value = true;

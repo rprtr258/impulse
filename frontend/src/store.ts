@@ -242,21 +242,21 @@ export function useStore() {
   };
 }
 
-export function use_request<Request extends object, Response extends object>(request_id: string): Reactive<{value: {
+type UseRequest<Request extends object, Response extends object> = {
   request: Request,
-  response: Omit<Response, "kind"> | null,
+  history: HistoryEntry[],
+  response: Response | null,
   update_request: (patch: Partial<Request>) => void,
-} | null}> {
+  send: () => void,
+} | null;
+export function use_request<
+  Request extends object,
+  Response extends object,
+>(request_id: string): Reactive<{value: UseRequest<Request, Response>}> {
   const notify = useNotify();
   const store = useStore();
 
-  const history = use_history(() => request_id);
-
-  const hook = reactive<{value: {
-    request: Request,
-    response: Omit<Response, "kind"> | null,
-    update_request: (patch: Partial<Request>) => void,
-  } | null}>({value: null});
+  const hook = reactive<{value: UseRequest<Request, Response>}>({value: null});
   api.get(request_id).then(res => {
     if (res.kind === "err") {
       notify("load request", request_id, res.value);
@@ -264,38 +264,27 @@ export function use_request<Request extends object, Response extends object>(req
     }
     hook.value = {
       request: res.value as UnwrapRef<Request>,
-      response: (history.value.length !== 0) ? history.value[0].response as UnwrapRef<Response> : null,
+      history: [],
+      response: null,
       update_request: (patch: Partial<Request>) => {
         const new_request = {...hook.value!.request as Request, ...patch};
         store.update(request_id, new_request);
         res.value!.request = new_request;
       },
+      send: () => {
+        store.send(request_id);
+      },
     };
-  });
-  return hook;
-}
-
-export function use_history(request_id: () => string): Reactive<{value: HistoryEntry[]}> {
-  const notify = useNotify();
-
-  const response = reactive<{value: HistoryEntry[]}>({value: []});
-  watch(request_id, (id) => {
-    if (id === null) {
-      return;
-    }
-
-    api.history(id).then(history => {
+    api.history(request_id).then(history => {
       if (history.kind === "err") {
         notify("load history", request_id, history.value);
         return null;
       }
 
-      if (history.value.length === 0) {
-        return null;
-      }
-
-      response.value = history.value ?? [];
+      hook.value!.history = history.value ?? [];
+      hook.value!.response = (history.value.length !== 0) ? hook.value!.history[0].response as UnwrapRef<Response> : null
     });
-  }, {immediate: true});
-  return response;
+  });
+  return hook;
 }
+

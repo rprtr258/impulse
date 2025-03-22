@@ -14,7 +14,7 @@ import {
 } from "@vicons/antd";
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
-import {use_history, useStore} from "./store";
+import {use_request, useStore} from "./store";
 import {Method, Kinds, Database, api} from "./api";
 import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
@@ -302,7 +302,8 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 
 const sidebarHidden = ref(false);
 
-const history = use_history(() => store.requestID()!);
+// const history = computed(() => use_request(store.requestID()!).value?.history ?? []);
+const history = [];
 const requestKind = computed(() => {
   const requestID = store.requestID();
   if (requestID === null) {
@@ -395,14 +396,14 @@ const requestKind = computed(() => {
           style="justify-content: center;"
         />
         <NEmpty
-          v-else-if="history.value.length === 0"
+          v-else-if="history.length === 0"
           description="No history yet"
           class="h100"
           style="justify-content: center;"
         />
         <NList v-else hoverable :border="false">
           <NListItem
-            v-for="r, i in history.value"
+            v-for="r, i in history"
             :key="i"
             class="history-card card"
           >
@@ -461,31 +462,11 @@ const requestKind = computed(() => {
       class="h100"
       display-directive="if"
     >
-      <RequestHTTP
-        v-if='requestKind === "http"'
-        :id="id"
-        v-on:update="(request) => store.update(id, request)"
-      />
-      <RequestSQL
-        v-else-if='requestKind === "sql"'
-        :id="id"
-        v-on:update="(request) => store.update(id, request)"
-      />
-      <RequestGRPC
-        v-else-if='requestKind === "grpc"'
-        :id="id"
-        v-on:update="(request) => store.update(id, request)"
-      />
-      <RequestJQ
-        v-else-if='requestKind === "jq"'
-        :id="id"
-        v-on:update="(request) => store.update(id, request)"
-      />
-      <RequestRedis
-        v-else-if='requestKind === "redis"'
-        :id="id"
-        v-on:update="(request) => store.update(id, request)"
-      />
+      <RequestHTTP       v-if='requestKind === "http"'  :id="id" />
+      <RequestSQL   v-else-if='requestKind === "sql"'   :id="id" />
+      <RequestGRPC  v-else-if='requestKind === "grpc"'  :id="id" />
+      <RequestJQ    v-else-if='requestKind === "jq"'    :id="id" />
+      <RequestRedis v-else-if='requestKind === "redis"' :id="id" />
     </NTabPane></NTabs>
   </div>
 </div>

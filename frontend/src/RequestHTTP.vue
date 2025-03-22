@@ -10,10 +10,9 @@ import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
-import {use_request, useStore} from "./store";
+import {use_request} from "./store";
 
 type Request = {kind: database.Kind.HTTP} & Omit<database.HTTPRequest, "createFrom">;
-const store = useStore();
 
 const {id} = defineProps<{
   id: string,
@@ -74,7 +73,7 @@ function responseBadge(): VNodeChild {
       :value="request.value.request.url"
       v-on:update:value="url => request.value!.update_request({url: url})"
     />
-    <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
+    <NButton type="primary" v-on:click='request.value.send()'>Send</NButton>
   </NInputGroup>
   <NTabs
     type="line"
