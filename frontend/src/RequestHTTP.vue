@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, ref, toRefs, VNodeChild, watch} from "vue";
+import {h, ref, toRefs, VNodeChild} from "vue";
 import {
   NTag, NTabs, NTabPane,
   NInput, NButton, NInputGroup, NSelect,
@@ -18,7 +18,6 @@ const {id} = defineProps<{
   id: string,
 }>();
 const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.HTTPResponse>(ref(id)));
-watch(() => request, r => console.log(r));
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
