@@ -1,5 +1,5 @@
 {
-  "body": "",
+  "body": "abc\ndef",
   "headers": null,
   "kind": "http",
   "method": "GET",

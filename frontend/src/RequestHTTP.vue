@@ -18,16 +18,8 @@ const store = useStore();
 const {id} = defineProps<{
   id: string,
 }>();
-const emit = defineEmits<{
-  update: [request: Request],
-}>();
 const request = use_request<Request>(id);
 const response = use_response<database.HTTPResponse>(() => id);
-function update_request(patch: Partial<Request>) {
-  const new_request = {...request.value!.request, ...patch};
-  emit("update", new_request);
-  request.value!.request = new_request;
-}
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
@@ -42,7 +34,7 @@ function responseBodyLanguage(contentType: string): string {
 };
 
 function updateHeaders(value: database.KV[]){
-  update_request({
+  request.value!.update_request({
     headers: value.filter(({key, value}) => key!=="" || value!==""),
   })
 }
@@ -75,13 +67,13 @@ function responseBadge(): VNodeChild {
     <NSelect
       :options="Object.keys(Methods).map(method => ({label: method, value: method}))"
       :value="request.value.request.method"
-      v-on:update:value="method => update_request({method: method})"
+      v-on:update:value="method => request.value!.update_request({method: method})"
       style="width: 10%; min-width: 8em;"
     />
     <NInput
       placeholder="URL"
       :value="request.value.request.url"
-      v-on:update:value="url => update_request({url: url})"
+      v-on:update:value="url => request.value!.update_request({url: url})"
     />
     <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
   </NInputGroup>
@@ -99,7 +91,7 @@ function responseBadge(): VNodeChild {
       <EditorJSON
         class="h100"
         :value="request.value.request.body ?? null"
-        v-on:update="(value: string) => update_request({body: value})"
+        v-on:update="(value: string) => request.value!.update_request({body: value})"
       />
     </NTabPane>
     <NTabPane

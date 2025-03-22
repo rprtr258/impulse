@@ -19,15 +19,9 @@ const store = useStore();
 const {id} = defineProps<{
   id: string,
 }>();
-const emit = defineEmits<{
-  update: [request: Request],
-}>();
 
 const request = use_request<Request>(id);
 const response = use_response<database.GRPCResponse>(() => id);
-function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!.request, ...patch});
-}
 
 const methods = ref<{
   service: string,
@@ -49,7 +43,7 @@ watch(() => request.value?.request.target, async () => {
 }, {immediate: true});
 
 function updateMetadata(value: database.KV[]) {
-  updateRequest({
+  request.value!.update_request({
     metadata: value.filter(({key, value}) => key !== "" || value !== ""),
   });
 }
@@ -89,7 +83,7 @@ function responseBadge(): VNodeChild {
   <NInputGroup style="grid-column: span 2;">
     <NSelect
       :value="request.value.request.method"
-      v-on:update:value="method => updateRequest({method: method})"
+      v-on:update:value="method => request.value!.update_request({method: method})"
       :options="selectOptions"
       :loading="loadingMethods"
       remote
@@ -98,7 +92,7 @@ function responseBadge(): VNodeChild {
     <NInput
       placeholder="Addr"
       :value="request.value.request.target"
-      v-on:update:value="target => updateRequest({target: target})"
+      v-on:update:value="target => request.value!.update_request({target: target})"
     />
     <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
   </NInputGroup>
@@ -116,7 +110,7 @@ function responseBadge(): VNodeChild {
       <EditorJSON
         class="h100"
         :value="request.value.request.payload"
-        v-on:update="value => updateRequest({payload: value})"
+        v-on:update="value => request.value!.update_request({payload: value})"
       />
     </NTabPane>
     <NTabPane

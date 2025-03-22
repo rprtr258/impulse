@@ -244,10 +244,15 @@ export function useStore() {
 
 export function use_request<R extends object>(request_id: string): Reactive<{value: {
   request: R,
+  update_request: (patch: Partial<R>) => void,
 } | null}> {
   const notify = useNotify();
+  const store = useStore();
 
-  const request = reactive<{value: {request: R} | null}>({value: null});
+  const request = reactive<{value: {
+    request: R,
+    update_request: (patch: Partial<R>) => void,
+  } | null}>({value: null});
   api.get(request_id).then(res => {
     if (res.kind === "err") {
       notify("load request", request_id, res.value);
@@ -255,6 +260,11 @@ export function use_request<R extends object>(request_id: string): Reactive<{val
     }
     request.value = {
       request: res.value as UnwrapRef<R>,
+      update_request: (patch: Partial<Request>) => {
+        const new_request = {...request.value!.request as R, ...patch};
+        store.update(request_id, new_request);
+        request.value!.request = new_request;
+      }
     };
   });
   return request;

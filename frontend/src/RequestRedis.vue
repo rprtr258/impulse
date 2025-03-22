@@ -11,14 +11,8 @@ const store = useStore();
 const {id} = defineProps<{
   id: string,
 }>();
-const emit = defineEmits<{
-  update: [request: Request],
-}>();
 const request = use_request<Request>(id);
 const response = use_response<database.RedisResponse>(() => id);
-function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!.request, ...patch});
-}
 </script>
 
 <template>
@@ -37,14 +31,14 @@ function updateRequest(patch: Partial<Request>) {
     <NInput
       placeholder="DSN"
       :value="request.value.request.dsn"
-      v-on:update:value="dsn => updateRequest({dsn: dsn})"
+      v-on:update:value="dsn => request.value!.update_request({dsn: dsn})"
     />
     <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"
     :value="request.value.request.query ?? null"
-    v-on:update="(value: string) => updateRequest({query: value})"
+    v-on:update="(value: string) => request.value!.update_request({query: value})"
   />
   <template v-if="response === null">
     <NEmpty

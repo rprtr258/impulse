@@ -12,15 +12,9 @@ const store = useStore();
 const {id} = defineProps<{
   id: string,
 }>();
-const emit = defineEmits<{
-  update: [request: Request],
-}>();
 
 const request = use_request<Request>(id);
 const response = use_response<database.JQResponse>(() => id);
-function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!.request, ...patch});
-}
 
 const jqerror = ref<string | null>(null); // TODO: use
 
@@ -44,7 +38,7 @@ const responseText = computed(() => (response.value?.response ?? []).join("\n"))
       placeholder="JQ query"
       :status='jqerror !== null ? "error" : "success"'
       :value="request.value.request.query"
-      v-on:update-value="query => updateRequest({query: query})"
+      v-on:update-value="query => request.value!.update_request({query: query})"
     />
     <!-- TODO: autosend -->
     <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
@@ -52,7 +46,7 @@ const responseText = computed(() => (response.value?.response ?? []).join("\n"))
   <EditorJSON
     class="h100"
     :value="request.value.request.json"
-    v-on:update="(value: string) => updateRequest({json: value})"
+    v-on:update="(value: string) => request.value!.update_request({json: value})"
   />
   <div v-if="jqerror !== null" style="position: fixed; color: red; bottom: 3em;">{{jqerror}}</div>
   <template v-if="response === null">

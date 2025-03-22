@@ -22,22 +22,16 @@ const store = useStore();
 const {id} = defineProps<{
   id: string,
 }>();
-const emit = defineEmits<{
-  update: [request: Request],
-}>();
 
 const request = use_request<Request>(id);
 const response = use_response<database.SQLResponse>(() => id);
-function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!.request, ...patch});
-}
 
 function onInputChange(newValue: string) {
-  updateRequest({dsn: newValue});
+  request.value!.update_request({dsn: newValue});
 }
 
 function onQueryChange(newValue: string) {
-  updateRequest({query: newValue});
+  request.value!.update_request({query: newValue});
 }
 
 const buttonDisabled = ref(false);
@@ -127,7 +121,7 @@ const data = computed(() => {
       <NSelect
         :options="Object.keys(Database).map(db => ({label: Database[db as keyof typeof Database], value: db}))"
         :value="request.value.request.database"
-        v-on:update:value="(database: Database) => updateRequest({database: database})"
+        v-on:update:value="(database: Database) => request.value!.update_request({database: database})"
         style="width: 10%;"
       />
       <NInput
