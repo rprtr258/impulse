@@ -280,8 +280,8 @@ func Update(
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if kind != newData.isRequestData() {
-		return errors.Errorf("kind mismatch: %q != %q", kind, newData.isRequestData())
+	if kind != newData.Kind() {
+		return errors.Errorf("kind mismatch: %q != %q", kind, newData.Kind())
 	}
 
 	if id != newID {

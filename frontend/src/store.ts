@@ -1,10 +1,6 @@
-import {reactive, ref, watch} from "vue";
+import {onUnmounted, Reactive, reactive, Ref, ref, UnwrapRef, watch} from "vue";
 import {useNotification} from "naive-ui";
-import type { RequestData,
-  ResponseData} from "./api";
-import {
-  api, type HistoryEntry
-} from "./api";
+import {api, type RequestData, type HistoryEntry} from "./api";
 import {app} from '../wailsjs/go/models';
 
 interface OrderedSet {
@@ -20,6 +16,7 @@ interface OrderedSet {
 }
 
 function orderedMap(...elems: readonly string[]): OrderedSet {
+  elems = elems ?? [];
   const set = new Set(elems);
   return {
     list: [...elems],
@@ -49,8 +46,8 @@ function orderedMap(...elems: readonly string[]): OrderedSet {
       this.removeAt(index);
     },
     removeAt(index: number): void {
-      this.list.splice(index, 1);
       set.delete(this.list[index]);
+      this.list.splice(index, 1);
     },
     rename(keyOld, keyNew): void {
       const index = this.list.indexOf(keyOld);
@@ -65,18 +62,24 @@ function orderedMap(...elems: readonly string[]): OrderedSet {
 }
 
 const requestsTree = ref<app.Tree>(new app.Tree({IDs: [], Dirs: {}}));
-const requests = reactive<Record<string, RequestData>>({});
-const history = reactive<HistoryEntry[]>([]);
+const requests = reactive<Record<string, app.requestPreview>>({});
 
-export function useStore() {
+function useNotify() {
   const usenotification = useNotification();
-  const notify = (...args: readonly unknown[]): void => {
+  return (...args: readonly unknown[]): void => {
     usenotification.error({title: "Error", content: args.map(arg => String(arg)).join("\n")});
   };
+}
+
+export function useStore() {
+  const notify = useNotify();
   const tabs = reactive<{value: {
     map: OrderedSet,
     index: number,
-  } | null}>({value: null});
+  }}>({value: {
+    map: orderedMap(),
+    index: -1,
+  }});
   watch(() => requests, () => {
     if (!tabs.value) {
       return;
@@ -87,9 +90,6 @@ export function useStore() {
       .filter(([id]: readonly [string, number]) => !requests.hasOwnProperty(id))
       .map(([, i]: readonly [string, number]) => i);
     if (indexesToRemove.length === 0) {
-      return;
-    } else if (indexesToRemove.length === tabs.value.map.length()) {
-      tabs.value = null;
       return;
     }
 
@@ -104,15 +104,12 @@ export function useStore() {
   return {
     requestsTree,
     requests,
-    history,
     tabs,
-    request(): RequestData | null {
-      const tabsValue = tabs.value;
-      if (tabsValue === null) {
-        return null;
-      }
-      const {map: requestIDs, index} = tabsValue;
-      return requests[requestIDs.list[index]] ?? null;
+    clearTabs() {
+      tabs.value = {
+        map: orderedMap(),
+        index: -1,
+      };
     },
     requestID(): string | null {
       const tabsValue = tabs.value;
@@ -120,10 +117,7 @@ export function useStore() {
         return null;
       }
       const {map: requestIDs, index} = tabsValue;
-      return requestIDs.list[index];
-    },
-    getResponse(id: string): Omit<ResponseData, "kind"> | null {
-      return history.find((h: Readonly<HistoryEntry>) => h.RequestId === id)?.response ?? null;
+      return requestIDs.list[index] ?? null;
     },
     selectRequest(id: string): void {
       const tabsValue = tabs.value;
@@ -149,6 +143,8 @@ export function useStore() {
       }
 
       tabsValue.index = indexNew;
+
+      this.fetch();
     },
     async fetch(): Promise<void> {
       const json = await api.collectionRequests();
@@ -172,8 +168,6 @@ export function useStore() {
           delete requests[id];
         }
       }
-
-      Object.assign(history, res.History);
     },
     async createRequest(id: string, kind: RequestData["kind"]): Promise<void> {
       const res = await api.requestCreate(id, kind);
@@ -204,36 +198,9 @@ export function useStore() {
       }
       await this.fetch();
     },
-    async send(id: string): Promise<void> {
-      const res = await api.requestPerform(id);
-      if (res.kind === "err") {
-        notify(`Could not perform request: ${res.value}`);
-        return;
-      }
-
-      await this.fetch();
-      this.selectRequest(id);
-    },
-    async update(id: string, req: Omit<RequestData, "kind">): Promise<void> {
-      this.selectRequest(id);
-      const request = this.request();
-      if (request === null) {
-        notify(`Could update request: ${id}`);
-        return;
-      }
-
-      requests[id] = {kind: request.kind, ...req} as RequestData;
-      const res = await api.requestUpdate(id, request.kind, req);
-      if (res.kind === "err") {
-        notify(`Could not save current request: ${res.value}`);
-        return;
-      }
-
-      await this.fetch();
-    },
     async rename(id: string, newID: string): Promise<void> {
       const request = requests[id];
-      const res = await api.requestUpdate(id, request.kind, request, newID);
+      const res = await api.request_update(id, request.Kind, request, newID);
       if (res.kind === "err") {
         notify(`Could not rename request: ${res.value}`);
         return;
@@ -244,4 +211,75 @@ export function useStore() {
       await this.fetch();
     },
   };
+}
+
+type UseRequest<Request extends object, Response extends object> = {
+  request: Request | null,
+  history: HistoryEntry[],
+  response: Response | null,
+  is_loading: boolean,
+  update_request: (patch: Partial<Request>) => Promise<void>,
+  send: () => Promise<void>,
+};
+export function use_request<
+  Request extends object,
+  Response extends object,
+>(request_id: Ref<string>): Reactive<UseRequest<Request, Response>> {
+  const notify = useNotify();
+
+  const state = reactive<UseRequest<Request, Response>>({
+    request: null,
+    history: [],
+    response: null,
+    is_loading: true,
+    send: async () => {
+      if (state.request === null || state.is_loading) return;
+
+      state.is_loading = true;
+      const res = await api.requestPerform(request_id.value);
+      state.is_loading = false;
+      if (res.kind === "err") {
+        notify(`Could not perform request ${request_id.value}: ${res.value}`);
+        return;
+      }
+
+      state.history.push(res.value);
+      state.response = res.value.response as UnwrapRef<Response>;
+    },
+    update_request: async (patch: Partial<Request>) => {
+      if (state.request === null || state.is_loading) return;
+
+      state.is_loading = true;
+      const old_request = state.request;
+      const new_request = {...state.request, ...patch} as RequestData;
+      state.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
+      const res = await api.request_update(request_id.value, new_request.kind, new_request);
+      state.is_loading = false;
+      if (res.kind === "err") {
+        state.request = old_request; // NOTE: undo change
+        notify(`Could not save current request: ${res.value}`);
+        return;
+      }
+    },
+  });
+  const fetchData = async () => {
+    state.is_loading = true;
+    const res = await api.get(request_id.value);
+    state.is_loading = false;
+    if (res.kind === "err") {
+      notify("load request", request_id.value, res.value);
+      return;
+    }
+
+    state.request = res.value.Request as UnwrapRef<Request>;
+    state.history = res.value.History as unknown as HistoryEntry[];
+    state.response = state.history[state.history.length - 1]?.response as UnwrapRef<Response> ?? null;
+  };
+
+  const stopWatch = watch(() => request_id.value, fetchData, {immediate: true});
+  onUnmounted(() => {
+    stopWatch();
+  });
+
+  return state;
 }

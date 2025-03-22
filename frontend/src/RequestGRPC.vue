@@ -1,50 +1,42 @@
 <script setup lang="ts">
-import {computed, h, ref, VNodeChild, watch} from "vue";
-import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NDynamicInput, NEmpty, useNotification} from "naive-ui";
+import {computed, toRefs, h, ref, watch, VNode} from "vue";
+import {
+  NTag, NTabs, NTabPane,
+  NInput, NButton, NInputGroup, NSelect,
+  NTable, NEmpty,
+  useNotification,
+} from "naive-ui";
 import {api, GRPCCodes} from "./api";
 import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
+import {use_request} from "./store";
 
-type Request = Omit<database.GRPCRequest, "createFrom">;
+type Request = {kind: database.Kind.GRPC} & database.GRPCRequest;
 
-const {request, response} = defineProps<{
-  request: Request,
-  response: database.GRPCResponse | null,
+const {id} = defineProps<{
+  id: string,
 }>();
-const emit = defineEmits<{
-  send: [],
-  update: [request: Request],
-}>();
-function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request, ...patch});
-}
+
+const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.GRPCResponse>(ref(id)));
+const notification = useNotification();
 
 const methods = ref<{
   service: string,
   methods: string[],
 }[]>([]);
 const loadingMethods = ref(false);
-
-const notification = useNotification();
-
-watch(() => request.target, async () => {
+watch(() => request.value?.target, async () => {
   loadingMethods.value = true;
-  const res = await api.grpcMethods(request.target);
-  if (res.kind === "ok") {
-    methods.value = res.value;
-  } else {
-    notification.error({title: "Failed to load methods", content: res.value});
-  }
+  const res = await api.grpcMethods(id);
   loadingMethods.value = false;
+  if (res.kind === "err") {
+    notification.error({title: "Error fetching GRPC methods", content: res.value});
+    return;
+  }
+  methods.value = res.value;
 }, {immediate: true});
-
-function updateMetadata(value: database.KV[]) {
-  updateRequest({
-    metadata: value.filter(({key, value}) => key !== "" || value !== ""),
-  });
-}
 
 const selectOptions = computed(() => methods.value.map(svc => ({
   type: "group",
@@ -56,8 +48,8 @@ const selectOptions = computed(() => methods.value.map(svc => ({
   })),
 })));
 
-function responseBadge(): VNodeChild {
-  const code = response!.code;
+function responseBadge(response: {code: number}): VNode {
+  const code = response.code;
   return h(NTag, {
     type: code === 0 ? "success" : "error",
     size: "small",
@@ -67,11 +59,21 @@ function responseBadge(): VNodeChild {
 </script>
 
 <template>
-<div class="h100" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;">
+<NEmpty
+  v-if="request === null"
+  description="Loading request..."
+  class="h100"
+  style="justify-content: center;"
+/>
+<div
+  v-else
+  class="h100"
+  style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;"
+>
   <NInputGroup style="grid-column: span 2;">
     <NSelect
       :value="request.method"
-      v-on:update:value="method => updateRequest({method: method})"
+      v-on:update:value="method => update_request({method: method})"
       :options="selectOptions"
       :loading="loadingMethods"
       remote
@@ -80,9 +82,13 @@ function responseBadge(): VNodeChild {
     <NInput
       placeholder="Addr"
       :value="request.target"
-      v-on:update:value="target => updateRequest({target: target})"
+      v-on:update:value="target => update_request({target: target})"
     />
-    <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
+    <NButton
+      type="primary"
+      v-on:click="send()"
+      :disabled="is_loading"
+    >Send</NButton>
   </NInputGroup>
   <NTabs
     type="line"
@@ -98,7 +104,7 @@ function responseBadge(): VNodeChild {
       <EditorJSON
         class="h100"
         :value="request.payload"
-        v-on:update="value => updateRequest({payload: value})"
+        v-on:update="value => update_request({payload: value})"
       />
     </NTabPane>
     <NTabPane
@@ -109,7 +115,7 @@ function responseBadge(): VNodeChild {
     >
       <ParamsList
         :value="request.metadata"
-        v-on:update="(value: database.KV[]) => updateMetadata(value)"
+        v-on:update='(value: database.KV[]) => update_request({metadata: value.filter(({key, value}) => key !== "" || value !== "")})'
       />
       <!-- <div
         style="display: flex; flex-direction: row;"
@@ -143,7 +149,7 @@ function responseBadge(): VNodeChild {
     >
       <NTabPane
         name="tab-resp-code"
-        :tab="responseBadge"
+        :tab="responseBadge(response)"
         disabled
         display-directive="show"
       ></NTabPane>

@@ -30,7 +30,7 @@ type RedisRequest struct {
 	Query string `json:"query"`
 }
 
-func (RedisRequest) isRequestData() Kind { return KindRedis }
+func (RedisRequest) Kind() Kind { return KindRedis }
 
 type RedisResponse struct {
 	Response string `json:"response"`

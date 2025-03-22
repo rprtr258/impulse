@@ -1,7 +1,7 @@
-import type { Result} from "./result";
+import type {Result} from "./result";
 import {err, ok} from "./result";
 import * as App from "../wailsjs/go/app/App";
-import type { app} from '../wailsjs/go/models';
+import type {app} from '../wailsjs/go/models';
 import {database} from '../wailsjs/go/models';
 
 export const Method = {
@@ -65,7 +65,6 @@ export type ResponseData =
 ;
 
 export type HistoryEntry = {
-  RequestId: string,
   sent_at: Date,
   received_at: Date,
 } & ({
@@ -106,13 +105,19 @@ async function wrap<T>(f: () => Promise<T>): Promise<Result<T>> {
 
 export const api = {
   async collectionRequests(): Promise<Result<app.ListResponse>> {
-    const y = await wrap(async () => App.List());
-    return y.map((x: app.ListResponse): app.ListResponse => {
-      for (const req of x.History) {
+    return await wrap(async () => App.List());
+  },
+
+  async get(id: string): Promise<Result<app.GetResponse>> {
+    const y = await wrap(async () => App.Get(id));
+    // TODO: it seems that is not needed, remove if so
+    return y.map((y: app.GetResponse) => {
+      // NOTE: BEWARE, DIRTY TYPESCRIPT HACKS HERE
+      const history = y.History as unknown as HistoryEntry[] ?? [];
+      for (const req of history) {
         req.sent_at = parseTime(req.sent_at as unknown as string);
       }
-      x.History.sort((a, b) => b.sent_at.getTime() - a.sent_at.getTime());
-      return x;
+      return y;
     });
   },
 
@@ -129,7 +134,7 @@ export const api = {
     return await wrap(() => App.Duplicate(name));
   },
 
-  async requestUpdate(
+  async request_update(
     reqId: string,
     kind: database.Kind,
     req: Omit<RequestData, "kind">,
@@ -140,8 +145,8 @@ export const api = {
 
   async requestPerform(
     reqId: string,
-  ): Promise<Result<void>> {
-    return await wrap(() => App.Perform(reqId)) as Result<void>;
+  ): Promise<Result<HistoryEntry>> {
+    return await wrap(() => App.Perform(reqId)) as Result<HistoryEntry>;
   },
 
   async requestDelete(

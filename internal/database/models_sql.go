@@ -81,7 +81,7 @@ type SQLRequest struct {
 	Query    string   `json:"query"`
 }
 
-func (SQLRequest) isRequestData() Kind { return KindSQL }
+func (SQLRequest) Kind() Kind { return KindSQL }
 
 type ColumnType string
 

@@ -186,8 +186,16 @@ type grpcServiceMethods struct {
 	Methods []string `json:"methods"`
 }
 
-func (a *App) GRPCMethods(target string) ([]grpcServiceMethods, error) {
-	reflSource, cc, err := connect(a.ctx, target)
+func (a *App) GRPCMethods(id string) ([]grpcServiceMethods, error) {
+	request, err := database.Get(a.ctx, a.DB, database.RequestID(id))
+	if err != nil {
+		return nil, errors.Wrapf(err, "get request id=%q", id)
+	}
+	if kind := request.Data.Kind(); kind != database.KindGRPC {
+		return nil, errors.Errorf("query kind is %s, expected grpc", kind)
+	}
+
+	reflSource, cc, err := connect(a.ctx, request.Data.(database.GRPCRequest).Target)
 	if err != nil {
 		return nil, errors.Wrap(err, "connect")
 	}

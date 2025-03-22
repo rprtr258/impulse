@@ -3,5 +3,5 @@
   "headers": null,
   "kind": "http",
   "method": "GET",
-  "url": ""
+  "url": "http://localhost:8080/dice"
 }

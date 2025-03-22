@@ -36,7 +36,7 @@ type GRPCRequest struct {
 	Metadata []KV   `json:"metadata"`
 }
 
-func (GRPCRequest) isRequestData() Kind { return KindGRPC }
+func (GRPCRequest) Kind() Kind { return KindGRPC }
 
 type GRPCResponse struct { // TODO: last inserted id on insert
 	Response string `json:"response"`

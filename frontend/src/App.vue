@@ -2,19 +2,20 @@
 import {computed, h, onMounted, ref, VNodeChild, watch} from "vue";
 import {useBrowserLocation, useLocalStorage} from "@vueuse/core";
 import {
-  NTag, NTabs, NTabPane,
+  NIcon, NTag, NTabs, NTabPane,
   NList, NListItem,
-  NResult, NSelect, NIcon,
-  NSpace, NScrollbar,
-  NInput, NModal, NDropdown, NButton,
+  NResult, NEmpty, NSpace, NScrollbar,
+  NSelect, NInput, NModal, NDropdown, NButton,
   NTree, TreeOption,
   useNotification,
 } from "naive-ui";
-import {DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined, DownOutlined} from "@vicons/antd";
+import {
+  DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined, DownOutlined,
+} from "@vicons/antd";
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
 import {useStore} from "./store";
-import {Method, RequestData, Kinds, Database} from "./api";
+import {Method, Kinds, Database, api, HistoryEntry} from "./api";
 import {database, app} from "wailsjs/go/models";
 import RequestHTTP from "./RequestHTTP.vue";
 import RequestSQL from "./RequestSQL.vue";
@@ -75,7 +76,7 @@ function handleClose(id: string) {
     return;
   }
   if (v.map.list.length === 1) {
-    store.tabs.value = null;
+    store.clearTabs();
     return;
   }
 
@@ -203,10 +204,10 @@ function rename() {
   renameCancel();
 }
 
-function badge(req: RequestData): [string, string] {
-  switch (req.kind) {
-  case "http": return [Method[req.method as keyof typeof Method], "lime"];
-  case "sql": return [Database[req.database as keyof typeof Database], "bluewhite"];
+function badge(req: app.requestPreview): [string, string] {
+  switch (req.Kind) {
+  case "http": return [Method[req.SubKind as keyof typeof Method], "lime"];
+  case "sql": return [Database[req.SubKind as keyof typeof Database], "bluewhite"];
   case "grpc": return ["GRPC", "cyan"];
   case "jq": return ["JQ", "violet"];
   case "redis": return ["REDIS", "red"];
@@ -225,7 +226,7 @@ function renderPrefix(info: {option: TreeOption, checked: boolean, selected: boo
   }
   const [method, color] = badge(req);
   return h(NTag, {
-    type: req.kind === "http" ? "success" : "info", // TODO: replace with color
+    type: req.Kind === "http" ? "success" : "info", // TODO: replace with color
     class: 'method',
     style: `width: 4em; justify-content: center; color: ${color};`,
     size: "small",
@@ -262,20 +263,23 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
         label: "Copy as curl",
         key: "copy-as-curl",
         icon: () => h(NIcon, {component: ContentCopyFilled}),
-        show: store.requests[id]?.kind === "http",
+        show: store.requests[id]?.Kind === "http",
         props: {
           onClick: () => {
-            const req = store.requests[id];
-            if (!req) {
-              return;
-            }
-            const httpToCurl = ({url, method, body, headers}: database.HTTPRequest) => {
-              return `curl -X ${method} ${url}` +
-                (headers.length > 0 ? " " + headers.map(({key, value}) => `-H "${key}: ${value}"`).join(" ") : "") +
-                ((body) ? ` -d '${body}'` : "");
-            };
-            console.log(req);
-            navigator.clipboard.writeText(httpToCurl(req as database.HTTPRequest));
+            api.get(id).then((r) => {
+              if (r.kind === "err") {
+                useNotification().error({title: "Error", content: `Failed to load request: ${r.value}`});
+                return;
+              }
+
+              const req = r.value as unknown as database.HTTPRequest; // TODO: remove unknown cast
+              const httpToCurl = ({url, method, body, headers}: database.HTTPRequest) => {
+                const headersStr = headers?.length > 0 ? " " + headers.map(({key, value}) => `-H "${key}: ${value}"`).join(" ") : "";
+                const bodyStr = (body) ? ` -d '${body}'` : "";
+                return `curl -X ${method} ${url}${headersStr}${bodyStr}`;
+              };
+              navigator.clipboard.writeText(httpToCurl(req));
+            })
           }
         }
       },
@@ -297,6 +301,17 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
 }
 
 const sidebarHidden = ref(false);
+
+// TODO: reverse history order
+// const history = computed(() => use_request(store.requestID()!).value?.history ?? []);
+const history: HistoryEntry[] = [];
+const requestKind = computed(() => {
+  const requestID = store.requestID();
+  if (requestID === null) {
+    return null;
+  }
+  return store.requests[requestID].Kind;
+});
 </script>
 
 <template>
@@ -375,24 +390,26 @@ const sidebarHidden = ref(false);
         style="flex: 1;"
         display-directive="show"
       >
-        <NList hoverable :border="false">
+        <NEmpty
+          v-if="store.requestID() === null"
+          description="No request picked yet"
+          class="h100"
+          style="justify-content: center;"
+        />
+        <NEmpty
+          v-else-if="history.length === 0"
+          description="No history yet"
+          class="h100"
+          style="justify-content: center;"
+        />
+        <NList v-else hoverable :border="false">
           <NListItem
-            v-for="r, i in store.history"
+            v-for="r, i in history"
             :key="i"
-            v-on:click="selectRequest(r.RequestId)"
             class="history-card card"
           >
-            <div class="headline">
-              <NTag
-                class="method"
-                size="small"
-                :style="`width: 4em; justify-content: center; color: ${badge(store.requests[r.RequestId])[1]}`"
-              >{{badge(store.requests[r.RequestId])[0]}}</Ntag>
-              <span class='url' style="padding-left: .5em;">{{r.RequestId}}</span>
-            </div>
-            <div class='footer'>
-              <span style='color: grey;' class='date'>{{fromNow(r.sent_at)}}</span>
-            </div>
+            <!-- v-on:click="selectRequest(r.RequestId)" -->
+            <span style='color: grey;' class='date'>{{fromNow(r.sent_at)}}</span>
           </NListItem>
         </NList>
       </NTabPane>
@@ -422,7 +439,7 @@ const sidebarHidden = ref(false);
   </aside>
   <div style="color: rgba(255, 255, 255, 0.82); background-color: rgb(16, 16, 20); overflow: hidden;">
     <NResult
-      v-if="store.tabs.value === null"
+      v-if="store.tabs.value.map.length() === 0"
       status="info"
       title="Pick request"
       description="Pick request to see it, edit and send and do other fun things."
@@ -437,7 +454,7 @@ const sidebarHidden = ref(false);
       type="card"
       size="small"
       :value="store.tabs.value.map.list[store.tabs.value.index]"
-      v-on:update-value="(id) => selectRequest(id)"
+      v-on:update:value="(id) => selectRequest(id)"
     ><NTabPane
       v-for="id in store.tabs.value.map.list"
       :key="id"
@@ -446,41 +463,11 @@ const sidebarHidden = ref(false);
       class="h100"
       display-directive="if"
     >
-      <RequestHTTP
-        v-if='store.request()!.kind === "http"'
-        :request="store.request() as database.HTTPRequest"
-        :response="store.getResponse(id) as database.HTTPResponse ?? null"
-        v-on:send="() => store.send(id)"
-        v-on:update="(request) => store.update(id, request)"
-      />
-      <RequestSQL
-        v-else-if='store.request()!.kind === "sql"'
-        :id="id"
-        :request="store.request() as database.SQLRequest"
-        :response="store.getResponse(id) as database.SQLResponse ?? null"
-        v-on:update="(request) => store.update(id, request)"
-      />
-      <RequestGRPC
-        v-else-if='store.request()!.kind === "grpc"'
-        :request="store.request() as database.GRPCRequest"
-        :response="store.getResponse(id) as database.GRPCResponse ?? null"
-        v-on:send="() => store.send(id)"
-        v-on:update="(request) => store.update(id, request)"
-      />
-      <RequestJQ
-        v-else-if='store.request()!.kind === "jq"'
-        :request="store.request() as database.JQRequest"
-        :response="store.getResponse(id) as database.JQResponse ?? null"
-        v-on:send="() => store.send(id)"
-        v-on:update="(request) => store.update(id, request)"
-      />
-      <RequestRedis
-        v-else-if='store.request()!.kind === "redis"'
-        :request="store.request() as database.RedisRequest"
-        :response="store.getResponse(id) as database.RedisResponse ?? null"
-        v-on:send="() => store.send(id)"
-        v-on:update="(request) => store.update(id, request)"
-      />
+      <RequestHTTP       v-if='requestKind === "http"'  :id="id" />
+      <RequestSQL   v-else-if='requestKind === "sql"'   :id="id" />
+      <RequestGRPC  v-else-if='requestKind === "grpc"'  :id="id" />
+      <RequestJQ    v-else-if='requestKind === "jq"'    :id="id" />
+      <RequestRedis v-else-if='requestKind === "redis"' :id="id" />
     </NTabPane></NTabs>
   </div>
 </div>
@@ -502,6 +489,9 @@ html, body, #app {
   max-height: 100%;
   margin: 0;
   --margin-bottom: 0;
+}
+.n-tabs.n-tabs--top .n-tab-pane {
+  --n-pane-padding-top: 0;
 }
 .h100 {
   height: 100%;

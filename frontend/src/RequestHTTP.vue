@@ -1,25 +1,23 @@
 <script setup lang="ts">
-import {h, VNodeChild} from "vue";
-import {NTag, NTabs, NTabPane, NInput, NButton, NTable, NInputGroup, NSelect, NEmpty} from "naive-ui";
+import {h, ref, toRefs, VNodeChild} from "vue";
+import {
+  NTag, NTabs, NTabPane,
+  NInput, NButton, NInputGroup, NSelect,
+  NTable, NEmpty,
+} from "naive-ui";
 import {Method as Methods} from "./api";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
+import {use_request} from "./store";
 
-type Request = Omit<database.HTTPRequest, "createFrom">;
+type Request = {kind: database.Kind.HTTP} & database.HTTPRequest;
 
-const {request, response} = defineProps<{
-  request: Request,
-  response: database.HTTPResponse | null,
+const {id} = defineProps<{
+  id: string,
 }>();
-const emit = defineEmits<{
-  send: [],
-  update: [request: Request],
-}>();
-function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request, ...patch});
-}
+const {request, response, is_loading, update_request, send} = toRefs(use_request<Request, database.HTTPResponse>(ref(id)));
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({
@@ -33,14 +31,8 @@ function responseBodyLanguage(contentType: string): string {
   return "text";
 };
 
-function updateHeaders(value: database.KV[]){
-  updateRequest({
-    headers: value.filter(({key, value}) => key!=="" || value!==""),
-  })
-}
-
 function responseBadge(): VNodeChild {
-  const code = response!.code;
+  const code = response.value!.code;
   return h(NTag, {
     type: code < 300 ? "success"
         : code < 500 ? "warning"
@@ -52,20 +44,34 @@ function responseBadge(): VNodeChild {
 </script>
 
 <template>
-<div class="h100" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;">
+<NEmpty
+  v-if="request === null"
+  description="Loading request..."
+  class="h100"
+  style="justify-content: center;"
+/>
+<div
+  v-else
+  class="h100"
+  style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 34px 1fr; grid-column-gap: .5em;"
+>
   <NInputGroup style="grid-column: span 2;">
     <NSelect
       :options="Object.keys(Methods).map(method => ({label: method, value: method}))"
       :value="request.method"
-      v-on:update:value="method => updateRequest({method: method})"
+      v-on:update:value="method => update_request({method: method})"
       style="width: 10%; min-width: 8em;"
     />
     <NInput
       placeholder="URL"
       :value="request.url"
-      v-on:update:value="url => updateRequest({url: url})"
+      v-on:update:value="url => update_request({url: url})"
     />
-    <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
+    <NButton
+      type="primary"
+      v-on:click='send()'
+      :disabled="is_loading"
+    >Send</NButton>
   </NInputGroup>
   <NTabs
     type="line"
@@ -81,7 +87,7 @@ function responseBadge(): VNodeChild {
       <EditorJSON
         class="h100"
         :value="request.body ?? null"
-        v-on:update="(value: string) => updateRequest({body: value})"
+        v-on:update="(value: string) => update_request({body: value})"
       />
     </NTabPane>
     <NTabPane
@@ -92,7 +98,7 @@ function responseBadge(): VNodeChild {
     >
       <ParamsList
         :value="request.headers"
-        v-on:update="(value: database.KV[]) => updateHeaders(value)"
+        v-on:update='(value: database.KV[]) => update_request({headers: value.filter(({key, value}) => key!=="" || value!=="")})'
       />
     </NTabPane>
   </NTabs>

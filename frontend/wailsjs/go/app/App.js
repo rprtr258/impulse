@@ -26,6 +26,10 @@ export function GRPCQueryValidate(arg1, arg2, arg3) {
   return window['go']['app']['App']['GRPCQueryValidate'](arg1, arg2, arg3);
 }
 
+export function Get(arg1) {
+  return window['go']['app']['App']['Get'](arg1);
+}
+
 export function JQ(arg1, arg2) {
   return window['go']['app']['App']['JQ'](arg1, arg2);
 }
