@@ -111,7 +111,6 @@ func (a *App) History(id string) ([]historyEntry, error) {
 
 	history := fun.Map[historyEntry](func(h database.HistoryEntry) historyEntry {
 		return historyEntry{
-			"RequestId":   id,
 			"sent_at":     h.SentAt.Format(time.RFC3339),
 			"received_at": h.ReceivedAt.Format(time.RFC3339),
 			"request":     h.Request,

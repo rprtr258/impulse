@@ -65,7 +65,6 @@ export type ResponseData =
 ;
 
 export type HistoryEntry = {
-  RequestId: string,
   sent_at: Date,
   received_at: Date,
 } & ({
