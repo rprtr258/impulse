@@ -3,15 +3,15 @@ import {NButton, NInputGroup, NInput, NEmpty} from "naive-ui";
 import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
-import {use_request, use_response} from "./store";
+import {use_request, use_response, useStore} from "./store";
 
 type Request = {kind: database.Kind.REDIS} & Omit<database.RedisRequest, "createFrom">;
+const store = useStore();
 
 const {id} = defineProps<{
   id: string,
 }>();
 const emit = defineEmits<{
-  send: [],
   update: [request: Request],
 }>();
 const request = use_request<Request>(id);
@@ -39,7 +39,7 @@ function updateRequest(patch: Partial<Request>) {
       :value="request.value.dsn"
       v-on:update:value="dsn => updateRequest({dsn: dsn})"
     />
-    <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
+    <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"

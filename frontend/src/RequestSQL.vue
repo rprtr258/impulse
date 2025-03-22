@@ -17,7 +17,6 @@ import EditorSQL from "./EditorSQL.vue";
 import {useStore, use_request, use_response} from "./store";
 
 type Request = {kind: database.Kind.SQL} & Omit<database.SQLRequest, "createFrom">;
-
 const store = useStore();
 
 const {id} = defineProps<{

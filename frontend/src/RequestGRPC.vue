@@ -11,15 +11,15 @@ import {database} from '../wailsjs/go/models';
 import EditorJSON from "./EditorJSON.vue";
 import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
-import {use_response, use_request} from "./store";
+import {use_response, use_request, useStore} from "./store";
 
 type Request = {kind: database.Kind.GRPC} & Omit<database.GRPCRequest, "createFrom">;
+const store = useStore();
 
 const {id} = defineProps<{
   id: string,
 }>();
 const emit = defineEmits<{
-  send: [],
   update: [request: Request],
 }>();
 
@@ -100,7 +100,7 @@ function responseBadge(): VNodeChild {
       :value="request.value.target"
       v-on:update:value="target => updateRequest({target: target})"
     />
-    <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
+    <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
   </NInputGroup>
   <NTabs
     type="line"

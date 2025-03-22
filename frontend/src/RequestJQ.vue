@@ -4,15 +4,15 @@ import {NInput, NButton, NInputGroup, NEmpty} from "naive-ui";
 import {database} from "wailsjs/go/models";
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
-import {use_request, use_response} from "./store";
+import {use_request, use_response, useStore} from "./store";
 
 type Request = {kind: database.Kind.JQ} & Omit<database.JQRequest, "createFrom">;
+const store = useStore();
 
 const {id} = defineProps<{
   id: string,
 }>();
 const emit = defineEmits<{
-  send: [],
   update: [request: Request],
 }>();
 
@@ -47,7 +47,7 @@ const responseText = computed(() => (response.value?.response ?? []).join("\n"))
       v-on:update-value="query => updateRequest({query: query})"
     />
     <!-- TODO: autosend -->
-    <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
+    <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
   </NInputGroup>
   <EditorJSON
     class="h100"

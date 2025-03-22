@@ -47,8 +47,8 @@ function orderedMap(...elems: readonly string[]): OrderedSet {
       this.removeAt(index);
     },
     removeAt(index: number): void {
-      this.list.splice(index, 1);
       set.delete(this.list[index]);
+      this.list.splice(index, 1);
     },
     rename(keyOld, keyNew): void {
       const index = this.list.indexOf(keyOld);

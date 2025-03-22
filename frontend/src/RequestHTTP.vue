@@ -10,21 +10,23 @@ import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
-import {use_request, use_response} from "./store";
+import {use_request, use_response, useStore} from "./store";
 
 type Request = {kind: database.Kind.HTTP} & Omit<database.HTTPRequest, "createFrom">;
+const store = useStore();
 
 const {id} = defineProps<{
   id: string,
 }>();
 const emit = defineEmits<{
-  send: [],
   update: [request: Request],
 }>();
 const request = use_request<Request>(id);
 const response = use_response<database.HTTPResponse>(() => id);
-function updateRequest(patch: Partial<Request>) {
-  emit("update", {...request.value!, ...patch});
+function update_request(patch: Partial<Request>) {
+  const new_request = {...request.value!, ...patch};
+  emit("update", new_request);
+  request.value = new_request;
 }
 
 function responseBodyLanguage(contentType: string): string {
@@ -40,7 +42,7 @@ function responseBodyLanguage(contentType: string): string {
 };
 
 function updateHeaders(value: database.KV[]){
-  updateRequest({
+  update_request({
     headers: value.filter(({key, value}) => key!=="" || value!==""),
   })
 }
@@ -73,15 +75,15 @@ function responseBadge(): VNodeChild {
     <NSelect
       :options="Object.keys(Methods).map(method => ({label: method, value: method}))"
       :value="request.value.method"
-      v-on:update:value="method => updateRequest({method: method})"
+      v-on:update:value="method => update_request({method: method})"
       style="width: 10%; min-width: 8em;"
     />
     <NInput
       placeholder="URL"
       :value="request.value.url"
-      v-on:update:value="url => updateRequest({url: url})"
+      v-on:update:value="url => update_request({url: url})"
     />
-    <NButton type="primary" v-on:click='emit("send")'>Send</NButton>
+    <NButton type="primary" v-on:click='store.send(id)'>Send</NButton>
   </NInputGroup>
   <NTabs
     type="line"
@@ -97,7 +99,7 @@ function responseBadge(): VNodeChild {
       <EditorJSON
         class="h100"
         :value="request.value.body ?? null"
-        v-on:update="(value: string) => updateRequest({body: value})"
+        v-on:update="(value: string) => update_request({body: value})"
       />
     </NTabPane>
     <NTabPane

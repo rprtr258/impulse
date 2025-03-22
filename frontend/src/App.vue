@@ -464,7 +464,6 @@ const requestKind = computed(() => {
       <RequestHTTP
         v-if='requestKind === "http"'
         :id="id"
-        v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestSQL
@@ -475,19 +474,16 @@ const requestKind = computed(() => {
       <RequestGRPC
         v-else-if='requestKind === "grpc"'
         :id="id"
-        v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestJQ
         v-else-if='requestKind === "jq"'
         :id="id"
-        v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
       <RequestRedis
         v-else-if='requestKind === "redis"'
         :id="id"
-        v-on:send="() => store.send(id)"
         v-on:update="(request) => store.update(id, request)"
       />
     </NTabPane></NTabs>
