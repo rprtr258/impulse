@@ -29,13 +29,13 @@ const methods = ref<{
 const loadingMethods = ref(false);
 watch(() => request.value?.target, async () => {
   loadingMethods.value = true;
-  const res = await api.grpcMethods(request.value!.target);
-  if (res.kind === "ok") {
-    methods.value = res.value;
-  } else {
-    notification.error({title: "Failed to load methods", content: res.value});
-  }
+  const res = await api.grpcMethods(id);
   loadingMethods.value = false;
+  if (res.kind === "err") {
+    notification.error({title: "Failed to load methods", content: res.value});
+    return;
+  }
+  methods.value = res.value;
 }, {immediate: true});
 
 const selectOptions = computed(() => methods.value.map(svc => ({

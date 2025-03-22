@@ -31,12 +31,6 @@ function responseBodyLanguage(contentType: string): string {
   return "text";
 };
 
-function updateHeaders(value: database.KV[]){
-  update_request.value({
-    headers: value.filter(({key, value}) => key!=="" || value!==""),
-  })
-}
-
 function responseBadge(): VNodeChild {
   const code = response.value!.code;
   return h(NTag, {
@@ -104,7 +98,7 @@ function responseBadge(): VNodeChild {
     >
       <ParamsList
         :value="request.headers"
-        v-on:update="(value: database.KV[]) => updateHeaders(value)"
+        v-on:update='(value: database.KV[]) => update_request({headers: value.filter(({key, value}) => key!=="" || value!=="")})'
       />
     </NTabPane>
   </NTabs>
