@@ -1,4 +1,4 @@
-import {Reactive, reactive, Ref, ref, watch} from "vue";
+import {Reactive, reactive, Ref, ref, UnwrapRef, watch} from "vue";
 import {useNotification} from "naive-ui";
 import type {RequestData, HistoryEntry} from "./api";
 import {api} from "./api";
@@ -251,7 +251,7 @@ export function use_request<R extends object>(request_id: string): Reactive<{val
       notify("load request", request_id, res.value);
       return;
     }
-    request.value = res.value;
+    request.value = res.value as UnwrapRef<R>;
   });
   return request;
 }
