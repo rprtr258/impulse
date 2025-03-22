@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, toRefs, h, ref, VNodeChild, watch} from "vue";
+import {computed, toRefs, h, ref, watch, VNode} from "vue";
 import {
   NTag, NTabs, NTabPane,
   NInput, NButton, NInputGroup, NSelect,
@@ -48,8 +48,8 @@ const selectOptions = computed(() => methods.value.map(svc => ({
   })),
 })));
 
-function responseBadge(): VNodeChild {
-  const code = response.value!.code;
+function responseBadge(response: {code: number}): VNode {
+  const code = response.code;
   return h(NTag, {
     type: code === 0 ? "success" : "error",
     size: "small",
@@ -149,7 +149,7 @@ function responseBadge(): VNodeChild {
     >
       <NTabPane
         name="tab-resp-code"
-        :tab="responseBadge"
+        :tab="responseBadge(response)"
         disabled
         display-directive="show"
       ></NTabPane>
