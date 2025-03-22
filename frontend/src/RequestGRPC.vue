@@ -19,7 +19,7 @@ const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request, database.GRPCResponse>(id);
+const request = use_request<Request, database.GRPCResponse>(ref(id));
 
 const methods = ref<{
   service: string,

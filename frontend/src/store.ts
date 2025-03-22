@@ -2,7 +2,7 @@ import {Reactive, reactive, Ref, ref, UnwrapRef, watch} from "vue";
 import {useNotification} from "naive-ui";
 import type {RequestData, HistoryEntry} from "./api";
 import {api} from "./api";
-import {app, database} from '../wailsjs/go/models';
+import {app} from '../wailsjs/go/models';
 
 interface OrderedSet {
   list: string[],
@@ -243,14 +243,14 @@ type UseRequest<Request extends object, Response extends object> = {
 export function use_request<
   Request extends object,
   Response extends object,
->(request_id: string): Reactive<{value: UseRequest<Request, Response>}> {
+>(request_id: Ref<string>): Reactive<{value: UseRequest<Request, Response>}> {
   const notify = useNotify();
   const store = useStore();
 
   const hook = reactive<{value: UseRequest<Request, Response>}>({value: null});
-  api.get(request_id).then(res => {
+  api.get(request_id.value).then(res => {
     if (res.kind === "err") {
-      notify("load request", request_id, res.value);
+      notify("load request", request_id.value, res.value);
       return;
     }
     hook.value = {
@@ -261,17 +261,17 @@ export function use_request<
       update_request: (patch: Partial<Request>) => {
         hook.value!.is_loading = true;
         const new_request = {...hook.value!.request as RequestData, ...patch} as RequestData;
-        store.update(request_id, new_request).then(() => {
+        store.update(request_id.value, new_request).then(() => {
           hook.value!.is_loading = false;
         });
         hook.value!.request = new_request as UnwrapRef<Request>;
       },
       send: () => {
         hook.value!.is_loading = true;
-        api.requestPerform(request_id).then(res => {
+        api.requestPerform(request_id.value).then(res => {
           hook.value!.is_loading = false;
           if (res.kind === "err") {
-            notify(`Could not perform request ${request_id}: ${res.value}`);
+            notify(`Could not perform request ${request_id.value}: ${res.value}`);
             return;
           }
 
@@ -280,9 +280,9 @@ export function use_request<
         });
       },
     };
-    api.history(request_id).then(history => {
+    api.history(request_id.value).then(history => {
       if (history.kind === "err") {
-        notify("load history", request_id, history.value);
+        notify("load history", request_id.value, history.value);
         return;
       }
 

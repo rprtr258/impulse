@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {ref} from "vue";
 import {NButton, NInputGroup, NInput, NEmpty} from "naive-ui";
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
@@ -10,7 +11,7 @@ type Request = {kind: database.Kind.REDIS} & database.RedisRequest;
 const {id} = defineProps<{
   id: string,
 }>();
-const request = use_request<Request, database.RedisResponse>(id);
+const request = use_request<Request, database.RedisResponse>(ref(id));
 </script>
 
 <template>

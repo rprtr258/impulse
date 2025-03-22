@@ -12,7 +12,7 @@ const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request, database.JQResponse>(id);
+const request = use_request<Request, database.JQResponse>(ref(id));
 
 const jqerror = ref<string | null>(null); // TODO: use
 

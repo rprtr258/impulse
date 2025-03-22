@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, VNodeChild} from "vue";
+import {h, ref, VNodeChild} from "vue";
 import {
   NTag, NTabs, NTabPane,
   NInput, NButton, NInputGroup, NSelect,
@@ -17,7 +17,7 @@ type Request = {kind: database.Kind.HTTP} & Omit<database.HTTPRequest, "createFr
 const {id} = defineProps<{
   id: string,
 }>();
-const request = use_request<Request, database.HTTPResponse>(id);
+const request = use_request<Request, database.HTTPResponse>(ref(id));
 
 function responseBodyLanguage(contentType: string): string {
   for (const [key, value] of Object.entries({

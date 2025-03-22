@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, h, ref, watch} from "vue";
+import {computed, h, ref} from "vue";
 import {
   NButton, NInput, NInputGroup, NSelect,
   NLayout, NLayoutContent, NLayoutHeader,
@@ -22,7 +22,7 @@ const {id} = defineProps<{
   id: string,
 }>();
 
-const request = use_request<Request, database.SQLResponse>(id);
+const request = use_request<Request, database.SQLResponse>(ref(id));
 
 function onInputChange(newValue: string) {
   request.value!.update_request({dsn: newValue});
