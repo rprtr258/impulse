@@ -240,6 +240,8 @@ export function use_request<
     response: null,
     is_loading: true,
     send: async () => {
+      if (state.request === null || state.is_loading) return;
+
       state.is_loading = true;
       const res = await api.requestPerform(request_id.value);
       state.is_loading = false;
@@ -252,9 +254,11 @@ export function use_request<
       state.response = res.value.response as UnwrapRef<Response>;
     },
     update_request: async (patch: Partial<Request>) => {
+      if (state.request === null || state.is_loading) return;
+
       state.is_loading = true;
       const old_request = state.request;
-      const new_request = {...state.request as RequestData, ...patch} as RequestData;
+      const new_request = {...state.request, ...patch} as RequestData;
       state.request = new_request as UnwrapRef<Request>; // NOTE: optimistic update
       const res = await api.requestUpdate(request_id.value, new_request.kind, new_request);
       state.is_loading = false;
