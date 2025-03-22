@@ -2,7 +2,7 @@ import {Reactive, reactive, Ref, ref, UnwrapRef, watch} from "vue";
 import {useNotification} from "naive-ui";
 import type {RequestData, HistoryEntry} from "./api";
 import {api} from "./api";
-import {app} from '../wailsjs/go/models';
+import {app, database} from '../wailsjs/go/models';
 
 interface OrderedSet {
   list: string[],
@@ -260,7 +260,7 @@ export function use_request<
       is_loading: false,
       update_request: (patch: Partial<Request>) => {
         hook.value!.is_loading = true;
-        const new_request = {...hook.value!.request as Request, ...patch};
+        const new_request = {...hook.value!.request as RequestData, ...patch} as RequestData;
         store.update(request_id, new_request).then(() => {
           hook.value!.is_loading = false;
         });

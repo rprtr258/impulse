@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import {NButton, NInputGroup, NInput, NEmpty} from "naive-ui";
-import {database} from '../wailsjs/go/models';
 import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
+import {database} from "../wailsjs/go/models";
 import {use_request} from "./store";
 
-type Request = {kind: database.Kind.REDIS} & Omit<database.RedisRequest, "createFrom">;
+type Request = {kind: database.Kind.REDIS} & database.RedisRequest;
 
 const {id} = defineProps<{
   id: string,
