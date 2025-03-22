@@ -106,6 +106,12 @@ export function useStore() {
     requestsTree,
     requests,
     tabs,
+    clearTabs() {
+      tabs.value = {
+        map: orderedMap(),
+        index: -1,
+      };
+    },
     requestID(): string | null {
       const tabsValue = tabs.value;
       if (tabsValue === null) {

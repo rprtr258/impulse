@@ -76,7 +76,7 @@ function handleClose(id: string) {
     return;
   }
   if (v.map.list.length === 1) {
-    store.tabs.value = null;
+    store.clearTabs();
     return;
   }
 

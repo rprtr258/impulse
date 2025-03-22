@@ -24,7 +24,6 @@ const emit = defineEmits<{
 const request = use_request<Request>(id);
 const response = use_response<database.HTTPResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
-  console.log(request.value, patch);
   emit("update", {...request.value!, ...patch});
 }
 
