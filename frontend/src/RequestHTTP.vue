@@ -12,7 +12,7 @@ import EditorJSON from "./EditorJSON.vue";
 import ParamsList from "./ParamsList.vue";
 import {use_request, use_response} from "./store";
 
-type Request = Omit<database.HTTPRequest, "createFrom">;
+type Request = {kind: database.Kind.HTTP} & Omit<database.HTTPRequest, "createFrom">;
 
 const {id} = defineProps<{
   id: string,
@@ -21,9 +21,10 @@ const emit = defineEmits<{
   send: [],
   update: [request: Request],
 }>();
-const request = use_request<database.HTTPRequest>(id);
+const request = use_request<Request>(id);
 const response = use_response<database.HTTPResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
+  console.log(request.value, patch);
   emit("update", {...request.value!, ...patch});
 }
 

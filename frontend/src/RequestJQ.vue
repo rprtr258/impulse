@@ -6,17 +6,19 @@ import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import {use_request, use_response} from "./store";
 
+type Request = {kind: database.Kind.JQ} & Omit<database.JQRequest, "createFrom">;
+
 const {id} = defineProps<{
   id: string,
 }>();
 const emit = defineEmits<{
   send: [],
-  update: [request: database.JQRequest],
+  update: [request: Request],
 }>();
 
-const request = use_request<database.JQRequest>(id);
+const request = use_request<Request>(id);
 const response = use_response<database.JQResponse>(() => id);
-function updateRequest(patch: Partial<database.JQRequest>) {
+function updateRequest(patch: Partial<Request>) {
   emit("update", {...request.value!, ...patch});
 }
 

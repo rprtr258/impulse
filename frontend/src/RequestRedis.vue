@@ -5,7 +5,7 @@ import ViewJSON from "./ViewJSON.vue";
 import EditorJSON from "./EditorJSON.vue";
 import {use_request, use_response} from "./store";
 
-type Request = Omit<database.RedisRequest, "createFrom">;
+type Request = {kind: database.Kind.REDIS} & Omit<database.RedisRequest, "createFrom">;
 
 const {id} = defineProps<{
   id: string,
@@ -14,7 +14,7 @@ const emit = defineEmits<{
   send: [],
   update: [request: Request],
 }>();
-const request = use_request<database.RedisRequest>(id);
+const request = use_request<Request>(id);
 const response = use_response<database.RedisResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
   emit("update", {...request.value!, ...patch});

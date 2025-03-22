@@ -16,18 +16,20 @@ import {Database} from "./api";
 import EditorSQL from "./EditorSQL.vue";
 import {useStore, use_request, use_response} from "./store";
 
+type Request = {kind: database.Kind.SQL} & Omit<database.SQLRequest, "createFrom">;
+
 const store = useStore();
 
 const {id} = defineProps<{
   id: string,
 }>();
 const emit = defineEmits<{
-  update: [request: database.SQLRequest],
+  update: [request: Request],
 }>();
 
-const request = use_request<database.SQLRequest>(id);
+const request = use_request<Request>(id);
 const response = use_response<database.SQLResponse>(() => id);
-function updateRequest(patch: Partial<database.SQLRequest>) {
+function updateRequest(patch: Partial<Request>) {
   emit("update", {...request.value!, ...patch});
 }
 

@@ -13,7 +13,7 @@ import ViewJSON from "./ViewJSON.vue";
 import ParamsList from "./ParamsList.vue";
 import {use_response, use_request} from "./store";
 
-type Request = Omit<database.GRPCRequest, "createFrom">;
+type Request = {kind: database.Kind.GRPC} & Omit<database.GRPCRequest, "createFrom">;
 
 const {id} = defineProps<{
   id: string,
@@ -23,7 +23,7 @@ const emit = defineEmits<{
   update: [request: Request],
 }>();
 
-const request = use_request<database.GRPCRequest>(id);
+const request = use_request<Request>(id);
 const response = use_response<database.GRPCResponse>(() => id);
 function updateRequest(patch: Partial<Request>) {
   emit("update", {...request.value!, ...patch});

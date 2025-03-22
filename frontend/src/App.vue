@@ -512,6 +512,9 @@ html, body, #app {
   margin: 0;
   --margin-bottom: 0;
 }
+.n-tabs.n-tabs--top .n-tab-pane {
+  --n-pane-padding-top: 0;
+}
 .h100 {
   height: 100%;
 }
