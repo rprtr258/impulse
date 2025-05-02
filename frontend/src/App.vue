@@ -163,16 +163,20 @@ const treeNodeProps = ({ option }: { option: TreeOption }) => {
 const expandedKeys = useLocalStorage<string[]>("expanded-keys", []);
 
 const newRequestKind = ref<typeof Kinds[number] | null>(null);
-watch(newRequestKind, async () => {
-  if (newRequestKind.value === null) {
-    return;
-  }
-
-  const kind = newRequestKind.value;
-  newRequestKind.value = null;
-  const id = new Date().toUTCString();
-  store.createRequest(id, kind);
+const newRequestName = ref<string | null>(null);
+function create() {
+  const kind = newRequestKind.value!;
+  const name = newRequestName.value!;
+  createCancel();
+  store.createRequest(name, kind);
   // TODO: add name
+}
+function createCancel() {
+  newRequestKind.value = null;
+  newRequestName.value = null;
+}
+watch(() => newRequestKind.value, () => {
+  newRequestName.value = new Date().toUTCString();
 });
 
 // TODO: fix editing request headers
@@ -349,6 +353,18 @@ const requestKind = computed(() => {
           height: 100%;
         "
       >
+        <NModal
+          :show="newRequestKind !== null"
+          v-on:update-show="(show) => {if (!show) { createCancel(); }}"
+          preset="dialog"
+          title="Create request"
+          positive-text="Create"
+          negative-text="Cancel"
+          v-on:positive-click="create"
+          v-on:negative-click="createCancel"
+        >
+          <NInput v-model:value="newRequestName" />
+        </NModal>
         <NModal
           :show="renameID !== null"
           v-on:update-show="(show) => {if (!show) { renameCancel(); }}"
