@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, h, onMounted, ref, VNodeChild, watch} from "vue";
-import {useBrowserLocation, useLocalStorage} from "@vueuse/core";
+import {useBrowserLocation, useLocalStorage, useMagicKeys} from "@vueuse/core";
 import {
   NIcon, NTag, NTabs, NTabPane,
   NList, NListItem,
@@ -14,6 +14,7 @@ import {
 } from "@vicons/antd";
 import {ContentCopyFilled} from "@vicons/material";
 import {CopySharp} from "@vicons/ionicons5";
+import {Command, useCommandState} from 'vue-command-palette'
 import {useStore} from "./store";
 import {Method, Kinds, Database, api, HistoryEntry} from "./api";
 import {database, app} from "wailsjs/go/models";
@@ -22,6 +23,79 @@ import RequestSQL from "./RequestSQL.vue";
 import RequestGRPC from "./RequestGRPC.vue";
 import RequestJQ from "./RequestJQ.vue";
 import RequestRedis from "./RequestRedis.vue";
+
+const items = [
+  {
+    label: "Requests",
+    items: [
+      {
+        label: "Create new",
+        shortcut: ["Ctrl", "N"],
+      },
+      {
+        label: "Rename current",
+        shortcut: ["Ctrl", "R"],
+      },
+      {
+        label: "Open",
+        shortcut: ["Ctrl", "T"],
+      },
+      {
+        label: "Run",
+        shortcut: ["Ctrl", "Enter"],
+      },
+      {
+        label: "Duplicate",
+      },
+      {
+        label: "Delete",
+      },
+    ],
+  },
+  {
+    label: "Tabs",
+    items: [
+      {
+        label: "Next tab",
+        shortcut: ["Ctrl", "PgDown"],
+      },
+      {
+        label: "Previous tab",
+        shortcut: ["Ctrl", "PgUp"],
+      },
+      {
+        label: "Close tab",
+        shortcut: ["Ctrl", "W"],
+      },
+      {
+        label: "Move tab right",
+        shortcut: ["Ctrl", "Shift", "PgDown"],
+      },
+      {
+        label: "Move tab left",
+        shortcut: ["Ctrl", "Shift", "PgUp"],
+      },
+    ],
+  },
+  {
+    label: "Other",
+    items: [
+      {
+        label: "Create new directory",
+      },
+    ],
+  },
+];
+const {search} = useCommandState();
+const keys = useMagicKeys();
+const commandBarVisible = ref(false);
+const CmdK = keys['Alt+K'];
+watch(CmdK, (v) => {
+  if (!v) {
+    return;
+  }
+  commandBarVisible.value = !commandBarVisible.value;
+});
 
 const notification = useNotification();
 const store = useStore();
@@ -319,6 +393,94 @@ const requestKind = computed(() => {
 </script>
 
 <template>
+<Command.Dialog :visible="commandBarVisible" theme="algolia">
+  <template #header>
+    <Command.Input placeholder="Type a command or search..." />
+  </template>
+  <template #body>
+    <Command.List>
+      <Command.Empty>No results found.</Command.Empty>
+      <Command.Group
+        v-for="group in items"
+        :heading="group.label"
+      >
+        <Command.Item
+          v-for="item in group.items"
+          :data-value="item.label"
+          :shortcut="item.shortcut"
+          :perform="item.perform"
+          @select="handleSelectAction"
+        >
+          <div>{{item.label}}</div>
+          <div
+            command-linear-shortcuts
+            class="hidden"
+            v-show="item.shortcut !== undefined"
+            style="color: var(--gray10); align-items: center;"
+          >
+            <template v-for="(k, i) in item.shortcut">
+              <div v-if="i !== 0" style="padding: 0px 2px;">+</div>
+              <kbd>{{k}}</kbd>
+            </template>
+          </div>
+        </Command.Item>
+      </Command.Group>
+    </Command.List>
+  </template>
+  <template #footer>
+    <ul class="command-palette-commands">
+      <li>
+        <kbd class="command-palette-commands-key"><svg width="15" height="15" aria-label="Enter key" role="img">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.2"
+          >
+            <path
+              d="M12 3.53088v3c0 1-1 2-2 2H4M7 11.53088l-3-3 3-3"
+            />
+          </g></svg></kbd><span class="command-palette-Label">to select</span>
+      </li>
+      <li>
+        <kbd class="command-palette-commands-key"><svg width="15" height="15" aria-label="Arrow down" role="img">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.2"
+          >
+            <path d="M7.5 3.5v8M10.5 8.5l-3 3-3-3" />
+          </g></svg></kbd><kbd class="command-palette-commands-key"><svg width="15" height="15" aria-label="Arrow up" role="img">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.2"
+          >
+            <path d="M7.5 11.5v-8M10.5 6.5l-3-3-3 3" />
+          </g></svg></kbd><span class="command-palette-Label">to navigate</span>
+      </li>
+      <li>
+        <kbd class="command-palette-commands-key"><svg width="15" height="15" aria-label="Escape key" role="img">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.2"
+          >
+            <path
+              d="M13.6167 8.936c-.1065.3583-.6883.962-1.4875.962-.7993 0-1.653-.9165-1.653-2.1258v-.5678c0-1.2548.7896-2.1016 1.653-2.1016.8634 0 1.3601.4778 1.4875 1.0724M9 6c-.1352-.4735-.7506-.9219-1.46-.8972-.7092.0246-1.344.57-1.344 1.2166s.4198.8812 1.3445.9805C8.465 7.3992 8.968 7.9337 9 8.5c.032.5663-.454 1.398-1.4595 1.398C6.6593 9.898 6 9 5.963 8.4851m-1.4748.5368c-.2635.5941-.8099.876-1.5443.876s-1.7073-.6248-1.7073-2.204v-.4603c0-1.0416.721-2.131 1.7073-2.131.9864 0 1.6425 1.031 1.5443 2.2492h-2.956"
+            />
+          </g></svg></kbd><span class="command-palette-Label">to close</span>
+      </li>
+    </ul>
+  </template>
+</Command.Dialog>
 <div
   class="h100"
   :style='{
@@ -355,7 +517,7 @@ const requestKind = computed(() => {
       >
         <NModal
           :show="newRequestKind !== null"
-          v-on:update-show="(show) => {if (!show) { createCancel(); }}"
+          v-on:update-show="(show: boolean) => {if (!show) { createCancel(); }}"
           preset="dialog"
           title="Create request"
           positive-text="Create"
@@ -367,7 +529,7 @@ const requestKind = computed(() => {
         </NModal>
         <NModal
           :show="renameID !== null"
-          v-on:update-show="(show) => {if (!show) { renameCancel(); }}"
+          v-on:update-show="(show: boolean) => {if (!show) { renameCancel(); }}"
           preset="dialog"
           title="Rename request"
           positive-text="Rename"
@@ -381,7 +543,7 @@ const requestKind = computed(() => {
           v-model:value="newRequestKind"
           placeholder="New"
           clearable
-          :options="Kinds.map(kind => ({label: kind.toUpperCase(), value: kind}))"
+          :options="Kinds.map((kind: database.Kind) => ({label: kind.toUpperCase(), value: kind}))"
         />
         <NScrollbar trigger="none">
           <NTree
@@ -470,7 +632,7 @@ const requestKind = computed(() => {
       type="card"
       size="small"
       :value="store.tabs.value.map.list[store.tabs.value.index]"
-      v-on:update:value="(id) => selectRequest(id)"
+      v-on:update:value="(id: string) => selectRequest(id)"
     ><NTabPane
       v-for="id in store.tabs.value.map.list"
       :key="id"
@@ -492,7 +654,274 @@ const requestKind = computed(() => {
 <style scoped>
 </style>
 
-<style>
+<style lang="scss">
+.algolia {
+  --gray1: hsl(0, 0%, 8.5%);
+  --gray2: hsl(0, 0%, 11%);
+  --gray3: hsl(0, 0%, 13.6%);
+  --gray4: hsl(0, 0%, 15.8%);
+  --gray5: hsl(0, 0%, 17.9%);
+  --gray6: hsl(0, 0%, 20.5%);
+  --gray7: hsl(0, 0%, 24.3%);
+  --gray8: hsl(0, 0%, 31.2%);
+  --gray9: hsl(0, 0%, 43.9%);
+  --gray10: hsl(0, 0%, 49.4%);
+  --gray11: hsl(0, 0%, 62.8%);
+  --gray12: hsl(0, 0%, 93%);
+
+  --lowContrast: #ffffff;
+  --highContrast: #000000;
+  --vcp-c-brand: #44bd87;
+  --vcp-c-accent: #35495e;
+
+  --bg: var(--gray1);
+
+  [command-root] {
+  }
+
+  [command-input] {
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    width: 100%;
+    font-size: 18px;
+    padding: 12px;
+    outline: none;
+    background: var(--bg);
+    color: var(--gray12);
+    border-bottom: 1px solid var(--gray6);
+    border-radius: 4px;
+    caret-color: var(--vcp-c-brand);
+    border: 1px solid var(--vcp-c-brand);
+
+    &::placeholder {
+      color: var(--gray9);
+    }
+  }
+
+  [command-list] {
+    height: var(--command-list-height);
+    max-height: 360px;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  [command-item] {
+    position: relative;
+    content-visibility: auto;
+    cursor: pointer;
+    height: 2.5em;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    padding: 0px 16px;
+    color: var(--gray12);
+    user-select: none;
+    will-change: background, color;
+    border-radius: 4px;
+
+    &:first-child {
+    }
+
+    [command-linear-shortcuts] {
+      color: var(--gray8);
+      margin-left: auto;
+      display: flex;
+
+      &:hover {
+        color: #fff;
+      }
+
+      kbd {
+        align-items: center;
+        background: var(--gray5);
+        border-radius: 2px;
+        display: flex;
+        height: 18px;
+        justify-content: center;
+        color: var(--gray11);
+        border: 0;
+        padding: 0px 5px;
+
+        font-family: var(--font-sans);
+        font-size: 13px;
+      }
+    }
+
+    &[aria-selected='true'],
+    &:hover {
+      background: var(--vcp-c-brand);
+      color: #fff;
+
+      svg {
+        color: #fff;
+      }
+    }
+
+    &[aria-disabled='true'] {
+      color: var(--gray8);
+      cursor: not-allowed;
+    }
+
+    &:active {
+      background: var(--gray4);
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+      color: var(--gray10);
+    }
+  }
+
+  [command-empty=''] {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 64px;
+    white-space: pre-wrap;
+    color: var(--gray11);
+  }
+
+  [command-dialog-mask] {
+    background-color: rgba(75, 75, 75, 0.35);
+    left: 0;
+    position: fixed;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  [command-dialog-header] {
+  }
+
+  [command-dialog-body] {
+  }
+
+  [command-dialog-wrapper] {
+    margin: 20vh auto auto;
+    max-width: 560px;
+    background: var(--gray2);
+    border-radius: 6px;
+  }
+
+  [command-dialog-footer] {
+    align-items: center;
+    border-radius: 0 0 8px 8px;
+    box-shadow: none;
+    display: flex;
+    flex-direction: row;
+    flex-shrink: 0;
+    height: 44px;
+    justify-content: space-between;
+    padding: 0 12px;
+    position: relative;
+    user-select: none;
+    width: 100%;
+    z-index: 300;
+    border-top: 1px solid var(--gray6);
+    background: var(--gray4);
+    box-sizing: border-box;
+  }
+
+  [command-group-heading] {
+    color: var(--vcp-c-brand);
+    font-size: 0.85em;
+    font-weight: 600;
+    line-height: 1.2rem;
+    top: 0;
+    z-index: 10;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px 12px;
+  }
+
+  .command-palette-commands {
+    color: var(--gray11);
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      display: flex;
+      align-items: center;
+    }
+    li:not(:last-of-type) {
+      margin-right: 0.8em;
+    }
+  }
+
+  .command-palette-logo {
+    a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    svg {
+      height: 24px;
+      width: 24px;
+    }
+  }
+
+  .command-palette-commands-key {
+    align-items: center;
+    background: var(--gray3);
+    border-radius: 2px;
+    display: flex;
+    height: 18px;
+    justify-content: center;
+    margin-right: 0.4em;
+    padding: 0 0 1px;
+    color: var(--gray11);
+    border: 0;
+    width: 20px;
+  }
+}
+
+.dark .algolia [command-dialog-footer] {
+  box-shadow: none;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 div, div:hover, ul, ul:hover, li, li:hover {
   transition: none !important;
 }
