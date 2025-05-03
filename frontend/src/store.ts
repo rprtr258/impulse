@@ -205,9 +205,9 @@ export function useStore() {
         return;
       }
 
+      requests[newID] = Object.assign({}, requests[id]);
       tabs.value?.map.rename(id, newID);
-      requests[newID] = requests[id];
-      delete requests[id];
+      await this.fetch();
     },
   };
 }
