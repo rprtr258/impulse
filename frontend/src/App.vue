@@ -384,6 +384,13 @@ const items = [
       {
         label: "Close tab",
         shortcut: ["Ctrl", "W"],
+        perform: () => {
+          commandBarVisible.value = false;
+
+          const currentID = store.requestID();
+          if (currentID === null) {return;}
+          handleClose(currentID);
+        },
       },
       {
         label: "Move tab right",
