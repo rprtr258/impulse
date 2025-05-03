@@ -399,8 +399,9 @@ const items = [
   },
 ];
 const keys = useMagicKeys();
+const anyModalIsOpen = computed(() => newRequestName.value !== null || renameID.value !== null);
 watch(keys['Alt+K'], (v) => {
-  if (!v) {
+  if (!v || anyModalIsOpen.value) {
     return;
   }
   commandBarVisible.value = !commandBarVisible.value;
@@ -409,6 +410,8 @@ watch(keys['Escape'], (v) => {
   if (!v) {
     return;
   }
+  renameCancel();
+  createCancel();
   commandBarVisible.value = false;
   commandBarNewRequestKindVisible.value = false;
 });
