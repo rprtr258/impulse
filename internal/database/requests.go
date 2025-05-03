@@ -277,28 +277,44 @@ func Rename(
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if dir := filepath.Dir(string(newID)); dir != "." {
-		if err := db.fs.MkdirAll(dir, 0o755); err != nil {
-			return errors.Wrapf(err, "create dir %q", dir)
+	// check target files in case they already exist
+	{
+		if _, err := db.fs.Stat(string(newID) + _requestSuffix); err == nil || !os.IsNotExist(err) {
+			if err != nil {
+				return errors.Wrapf(err, "check target request file %q", newID)
+			}
+			return errors.Errorf("target request file %q already exist, delete it first", newID)
+		}
+		if _, err := db.fs.Stat(string(newID) + _historySuffix); err == nil || !os.IsNotExist(err) {
+			if err != nil {
+				return errors.Wrapf(err, "check target history file %q", newID)
+			}
+			return errors.Errorf("target history file %q already exist, delete it first", newID)
 		}
 	}
 
-	if err := db.fs.Rename(
-		string(id)+_requestSuffix,
-		string(newID)+_requestSuffix,
-	); err != nil {
-		return errors.Wrapf(err, "rename request %q", id)
-	}
-	if err := db.fs.Rename(
-		string(id)+_historySuffix,
-		string(newID)+_historySuffix,
-	); err != nil {
-		if !os.IsNotExist(err) { // NOTE: history might not exist
-			return errors.Wrapf(err, "rename history %q", id)
+	{
+		if dir := filepath.Dir(string(newID)); dir != "." {
+			if err := db.fs.MkdirAll(dir, 0o755); err != nil {
+				return errors.Wrapf(err, "create dir %q", dir)
+			}
+		}
+
+		if err := db.fs.Rename(
+			string(id)+_requestSuffix,
+			string(newID)+_requestSuffix,
+		); err != nil {
+			return errors.Wrapf(err, "rename request %q", id)
+		}
+		if err := db.fs.Rename(
+			string(id)+_historySuffix,
+			string(newID)+_historySuffix,
+		); err != nil {
+			if !os.IsNotExist(err) { // NOTE: history might not exist
+				return errors.Wrapf(err, "rename history %q", id)
+			}
 		}
 	}
-
-	id = newID
 
 	return nil
 }
