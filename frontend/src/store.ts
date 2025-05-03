@@ -199,16 +199,15 @@ export function useStore() {
       await this.fetch();
     },
     async rename(id: string, newID: string): Promise<void> {
-      const request = requests[id];
-      const res = await api.request_update(id, request.Kind, request, newID);
+      const res = await api.rename(id, newID);
       if (res.kind === "err") {
         notify(`Could not rename request: ${res.value}`);
         return;
       }
 
       tabs.value?.map.rename(id, newID);
-
-      await this.fetch();
+      requests[newID] = requests[id];
+      delete requests[id];
     },
   };
 }

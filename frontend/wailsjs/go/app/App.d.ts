@@ -25,4 +25,6 @@ export function Perform(arg1:string):Promise<Record<string, any>>;
 
 export function Read(arg1:string):Promise<database.Request>;
 
-export function Update(arg1:string,arg2:database.Kind,arg3:string,arg4:Record<string, any>):Promise<void>;
+export function Rename(arg1:string,arg2:string):Promise<void>;
+
+export function Update(arg1:string,arg2:database.Kind,arg3:Record<string, any>):Promise<void>;

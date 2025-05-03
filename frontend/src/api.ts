@@ -138,9 +138,15 @@ export const api = {
     reqId: string,
     kind: database.Kind,
     req: Omit<RequestData, "kind">,
-    name: string | null = null,
   ): Promise<Result<void>> {
-    return await wrap(() => App.Update(reqId, kind, name ?? reqId, req));
+    return await wrap(() => App.Update(reqId, kind, req));
+  },
+
+  async rename(
+    reqId: string,
+    newID: string,
+  ): Promise<Result<void>> {
+    return await wrap(() => App.Rename(reqId, newID));
   },
 
   async requestPerform(

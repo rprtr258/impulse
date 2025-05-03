@@ -269,12 +269,45 @@ func Delete(
 	return nil
 }
 
+func Rename(
+	ctx context.Context,
+	db *DB,
+	id, newID RequestID,
+) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if dir := filepath.Dir(string(newID)); dir != "." {
+		if err := db.fs.MkdirAll(dir, 0o755); err != nil {
+			return errors.Wrapf(err, "create dir %q", dir)
+		}
+	}
+
+	if err := db.fs.Rename(
+		string(id)+_requestSuffix,
+		string(newID)+_requestSuffix,
+	); err != nil {
+		return errors.Wrapf(err, "rename request %q", id)
+	}
+	if err := db.fs.Rename(
+		string(id)+_historySuffix,
+		string(newID)+_historySuffix,
+	); err != nil {
+		if !os.IsNotExist(err) { // NOTE: history might not exist
+			return errors.Wrapf(err, "rename history %q", id)
+		}
+	}
+
+	id = newID
+
+	return nil
+}
+
 func Update(
 	ctx context.Context,
 	db *DB,
 	id RequestID,
 	kind Kind,
-	newID RequestID,
 	newData RequestData,
 ) error {
 	db.mu.Lock()
@@ -282,31 +315,6 @@ func Update(
 
 	if kind != newData.Kind() {
 		return errors.Errorf("kind mismatch: %q != %q", kind, newData.Kind())
-	}
-
-	if id != newID {
-		if dir := filepath.Dir(string(newID)); dir != "." {
-			if err := db.fs.MkdirAll(dir, 0o755); err != nil {
-				return errors.Wrapf(err, "create dir %q", dir)
-			}
-		}
-
-		if err := db.fs.Rename(
-			string(id)+_requestSuffix,
-			string(newID)+_requestSuffix,
-		); err != nil {
-			return errors.Wrapf(err, "rename request %q", id)
-		}
-		if err := db.fs.Rename(
-			string(id)+_historySuffix,
-			string(newID)+_historySuffix,
-		); err != nil {
-			if !os.IsNotExist(err) { // NOTE: history might not exist
-				return errors.Wrapf(err, "rename history %q", id)
-			}
-		}
-
-		id = newID
 	}
 
 	requestFile, err := db.fs.OpenFile(string(id)+_requestSuffix, os.O_RDWR|os.O_TRUNC, 0o644)

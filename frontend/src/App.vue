@@ -24,79 +24,6 @@ import RequestGRPC from "./RequestGRPC.vue";
 import RequestJQ from "./RequestJQ.vue";
 import RequestRedis from "./RequestRedis.vue";
 
-const items = [
-  {
-    label: "Requests",
-    items: [
-      {
-        label: "Create new",
-        shortcut: ["Ctrl", "N"],
-      },
-      {
-        label: "Rename current",
-        shortcut: ["Ctrl", "R"],
-      },
-      {
-        label: "Open",
-        shortcut: ["Ctrl", "T"],
-      },
-      {
-        label: "Run",
-        shortcut: ["Ctrl", "Enter"],
-      },
-      {
-        label: "Duplicate",
-      },
-      {
-        label: "Delete",
-      },
-    ],
-  },
-  {
-    label: "Tabs",
-    items: [
-      {
-        label: "Next tab",
-        shortcut: ["Ctrl", "PgDown"],
-      },
-      {
-        label: "Previous tab",
-        shortcut: ["Ctrl", "PgUp"],
-      },
-      {
-        label: "Close tab",
-        shortcut: ["Ctrl", "W"],
-      },
-      {
-        label: "Move tab right",
-        shortcut: ["Ctrl", "Shift", "PgDown"],
-      },
-      {
-        label: "Move tab left",
-        shortcut: ["Ctrl", "Shift", "PgUp"],
-      },
-    ],
-  },
-  {
-    label: "Other",
-    items: [
-      {
-        label: "Create new directory",
-      },
-    ],
-  },
-];
-const {search} = useCommandState();
-const keys = useMagicKeys();
-const commandBarVisible = ref(false);
-const CmdK = keys['Alt+K'];
-watch(CmdK, (v) => {
-  if (!v) {
-    return;
-  }
-  commandBarVisible.value = !commandBarVisible.value;
-});
-
 const notification = useNotification();
 const store = useStore();
 
@@ -241,9 +168,8 @@ const newRequestName = ref<string | null>(null);
 function create() {
   const kind = newRequestKind.value!;
   const name = newRequestName.value!;
-  createCancel();
   store.createRequest(name, kind);
-  // TODO: add name
+  createCancel();
 }
 function createCancel() {
   newRequestKind.value = null;
@@ -257,6 +183,10 @@ watch(() => newRequestKind.value, () => {
 
 const renameID = ref<string | null>(null);
 const renameValue = ref<string | null>(null);
+function renameInit(id: string) {
+  renameID.value = id;
+  renameValue.value = id;
+}
 function renameCancel() {
   renameID.value = null;
   renameValue.value = null;
@@ -321,10 +251,7 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
         key: "rename",
         icon: () => h(NIcon, {component: EditOutlined}),
         props: {
-          onClick: () => {
-            renameID.value = id;
-            renameValue.value = id;
-          }
+          onClick: () => renameInit(id),
         }
       },
       {
@@ -390,6 +317,103 @@ const requestKind = computed(() => {
   }
   return store.requests[requestID].Kind;
 });
+
+
+
+
+
+const commandBarNewRequestKindVisible = ref(false);
+const commandBarVisible = ref(false);
+const items = [
+  {
+    label: "Requests",
+    items: [
+      {
+        label: "Create new",
+        shortcut: ["Ctrl", "N"],
+        perform: () => {
+          commandBarVisible.value = false;
+
+          commandBarNewRequestKindVisible.value = true;
+        },
+      },
+      {
+        label: "Rename current", // TODO: hide if no request selected
+        shortcut: ["Ctrl", "R"],
+        perform: () => {
+          commandBarVisible.value = false;
+
+          const currentID = store.requestID();
+          if (currentID === null) {return;}
+          renameInit(currentID);
+        },
+      },
+      {
+        label: "Open",
+        shortcut: ["Ctrl", "T"],
+      },
+      {
+        label: "Run",
+        shortcut: ["Ctrl", "Enter"],
+      },
+      {
+        label: "Duplicate",
+      },
+      {
+        label: "Delete",
+      },
+    ],
+  },
+  {
+    label: "Tabs",
+    items: [
+      {
+        label: "Next tab",
+        shortcut: ["Ctrl", "PgDown"],
+      },
+      {
+        label: "Previous tab",
+        shortcut: ["Ctrl", "PgUp"],
+      },
+      {
+        label: "Close tab",
+        shortcut: ["Ctrl", "W"],
+      },
+      {
+        label: "Move tab right",
+        shortcut: ["Ctrl", "Shift", "PgDown"],
+      },
+      {
+        label: "Move tab left",
+        shortcut: ["Ctrl", "Shift", "PgUp"],
+      },
+    ],
+  },
+  {
+    label: "Other",
+    items: [
+      {
+        label: "Create new directory",
+      },
+    ],
+  },
+];
+const keys = useMagicKeys();
+watch(keys['Alt+K'], (v) => {
+  if (!v) {
+    return;
+  }
+  commandBarVisible.value = !commandBarVisible.value;
+});
+watch(keys['Escape'], (v) => {
+  if (!v) {
+    return;
+  }
+  commandBarVisible.value = false;
+  commandBarNewRequestKindVisible.value = false;
+});
+
+
 </script>
 
 <template>
@@ -408,8 +432,7 @@ const requestKind = computed(() => {
           v-for="item in group.items"
           :data-value="item.label"
           :shortcut="item.shortcut"
-          :perform="item.perform"
-          @select="handleSelectAction"
+          v-on:select="item.perform"
         >
           <div>{{item.label}}</div>
           <div
@@ -425,6 +448,76 @@ const requestKind = computed(() => {
           </div>
         </Command.Item>
       </Command.Group>
+    </Command.List>
+  </template>
+  <template #footer>
+    <ul class="command-palette-commands">
+      <li>
+        <kbd class="command-palette-commands-key"><svg width="15" height="15" aria-label="Enter key" role="img">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.2"
+          >
+            <path
+              d="M12 3.53088v3c0 1-1 2-2 2H4M7 11.53088l-3-3 3-3"
+            />
+          </g></svg></kbd><span class="command-palette-Label">to select</span>
+      </li>
+      <li>
+        <kbd class="command-palette-commands-key"><svg width="15" height="15" aria-label="Arrow down" role="img">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.2"
+          >
+            <path d="M7.5 3.5v8M10.5 8.5l-3 3-3-3" />
+          </g></svg></kbd><kbd class="command-palette-commands-key"><svg width="15" height="15" aria-label="Arrow up" role="img">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.2"
+          >
+            <path d="M7.5 11.5v-8M10.5 6.5l-3-3-3 3" />
+          </g></svg></kbd><span class="command-palette-Label">to navigate</span>
+      </li>
+      <li>
+        <kbd class="command-palette-commands-key"><svg width="15" height="15" aria-label="Escape key" role="img">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.2"
+          >
+            <path
+              d="M13.6167 8.936c-.1065.3583-.6883.962-1.4875.962-.7993 0-1.653-.9165-1.653-2.1258v-.5678c0-1.2548.7896-2.1016 1.653-2.1016.8634 0 1.3601.4778 1.4875 1.0724M9 6c-.1352-.4735-.7506-.9219-1.46-.8972-.7092.0246-1.344.57-1.344 1.2166s.4198.8812 1.3445.9805C8.465 7.3992 8.968 7.9337 9 8.5c.032.5663-.454 1.398-1.4595 1.398C6.6593 9.898 6 9 5.963 8.4851m-1.4748.5368c-.2635.5941-.8099.876-1.5443.876s-1.7073-.6248-1.7073-2.204v-.4603c0-1.0416.721-2.131 1.7073-2.131.9864 0 1.6425 1.031 1.5443 2.2492h-2.956"
+            />
+          </g></svg></kbd><span class="command-palette-Label">to close</span>
+      </li>
+    </ul>
+  </template>
+</Command.Dialog>
+<Command.Dialog :visible="commandBarNewRequestKindVisible" theme="algolia">
+  <template #header>
+    <Command.Input placeholder="Enter kind of new reqeust" />
+  </template>
+  <template #body>
+    <Command.List>
+      <Command.Empty>No kinds found.</Command.Empty>
+      <Command.Item
+        v-for="kind in Kinds"
+        :data-value="kind"
+        v-on:select="() => {newRequestKind = kind; commandBarNewRequestKindVisible = false;}"
+      >
+        {{kind}}
+      </Command.Item>
     </Command.List>
   </template>
   <template #footer>
@@ -529,7 +622,7 @@ const requestKind = computed(() => {
         </NModal>
         <NModal
           :show="renameID !== null"
-          v-on:update-show="(show: boolean) => {if (!show) { renameCancel(); }}"
+          v-on:update-show="(show: boolean) => {if (show) { renameCancel(); }}"
           preset="dialog"
           title="Rename request"
           positive-text="Rename"
@@ -676,8 +769,7 @@ const requestKind = computed(() => {
 
   --bg: var(--gray1);
 
-  [command-root] {
-  }
+  [command-root] {}
 
   [command-input] {
     box-sizing: border-box;
@@ -718,9 +810,6 @@ const requestKind = computed(() => {
     user-select: none;
     will-change: background, color;
     border-radius: 4px;
-
-    &:first-child {
-    }
 
     [command-linear-shortcuts] {
       color: var(--gray8);
@@ -792,11 +881,9 @@ const requestKind = computed(() => {
     height: 100vh;
   }
 
-  [command-dialog-header] {
-  }
+  [command-dialog-header] {}
 
-  [command-dialog-body] {
-  }
+  [command-dialog-body] {}
 
   [command-dialog-wrapper] {
     margin: 20vh auto auto;

@@ -200,10 +200,23 @@ func (a *App) Read(requestID string) (database.Request, error) {
 	return request, nil
 }
 
+func (a *App) Rename(
+	requestID, newRequestID string,
+) error {
+	if err := database.Rename(
+		a.ctx, a.DB,
+		database.RequestID(requestID),
+		database.RequestID(newRequestID),
+	); err != nil {
+		return errors.Wrap(err, "rename request")
+	}
+
+	return nil
+}
+
 func (a *App) Update(
 	requestID string,
 	kind database.Kind,
-	newRequestID string, // TODO: rename field
 	request map[string]any,
 ) error {
 	b, err := json.Marshal(request)
@@ -251,7 +264,6 @@ func (a *App) Update(
 		a.ctx, a.DB,
 		database.RequestID(requestID),
 		database.Kind(kind),
-		database.RequestID(newRequestID),
 		requestt,
 	); err != nil {
 		return errors.Wrap(err, "update request")
