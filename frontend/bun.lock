@@ -8,6 +8,7 @@
         "@codemirror/lang-sql": "^6.9.0",
         "@codemirror/theme-one-dark": "^6.1.2",
         "codemirror": "^6.0.1",
+        "golden-layout": "^2.6.0",
         "mithril": "^2.0.4",
       },
       "devDependencies": {
@@ -151,6 +152,8 @@
     "fdir": ["fdir@6.4.5", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-4BG7puHpVsIYxZUbiUE3RqGloLaSSwzYie5jvasC4LWuBWzZawynvYouhjbQKw2JuIGYdm0DzIxl8iVidKlUEw=="],
 
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
+
+    "golden-layout": ["golden-layout@2.6.0", "", {}, "sha512-sIVQCiRWOymHbVD1Aw/T9/ijbPYAVGBlgGYd1N9MRKfcyBNSpjr87Vg9nSHm+RCT8ELrvK8IJYJV0QRJuVUkCQ=="],
 
     "mithril": ["mithril@2.3.2", "", {}, "sha512-5FbFCbAaYSP4+ipaLAX10qJ6jKx6c4QrTQUGabBB8doH8PRcXV/Yd1lI+azu3TBuY6W2Evw0DuJtJJALLv3gQA=="],
 

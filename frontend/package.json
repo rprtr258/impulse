@@ -11,6 +11,7 @@
     "@codemirror/lang-sql": "^6.9.0",
     "@codemirror/theme-one-dark": "^6.1.2",
     "codemirror": "^6.0.1",
+    "golden-layout": "^2.6.0",
     "mithril": "^2.0.4"
   },
   "devDependencies": {
