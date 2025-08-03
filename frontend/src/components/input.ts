@@ -22,14 +22,36 @@ export const NInputGroup = {
 }
 
 type NDropdownProps = {
-  trigger: "hover",
-  options: any[],
+  trigger: "hover" | "click",
+  options: {
+    label: string,
+    key: string,
+    show?: boolean,
+    icon?: () => any,
+    props?: any,
+  }[],
   on: {select: (key: string | number) => void},
 };
-export const NDropdown = {
-  view(vnode: Vnode<NDropdownProps, any>) {
-    return m("span", vnode.children);
-  }
+export function NDropdown() {
+  let open = false;
+  return {
+    view(vnode: Vnode<NDropdownProps, any>) {
+      const props = vnode.attrs;
+      return m("span", {
+        onclick:     () => {if (props.trigger !== "click") return; open = !open;},
+        onmouseover: () => {if (props.trigger !== "hover") return; open = !open;},
+      }, [
+        vnode.children,
+        m("div", {style: {display: open ? null : "none"}}, props.options.map(opt =>
+          m("div", {
+            onclick: () => {open = false; props.on.select(opt.key);},
+          }, [
+            (opt.icon ?? (() => null))(),
+            opt.label,
+          ]))),
+      ]);
+    },
+  };
 };
 
 // TODO: make generic over value type

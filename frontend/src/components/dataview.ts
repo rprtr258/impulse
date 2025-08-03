@@ -33,7 +33,7 @@ export const NTag = {
 type NIconProps = {
   size?: number,
   color?: string,
-  component: Vnode<any, any>,
+  component: Vnode<any, any> | string,
 };
 export const NIcon = ({
   view(vnode: Vnode<NIconProps, any>) {
