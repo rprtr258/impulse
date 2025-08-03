@@ -6,9 +6,9 @@ import m, {Vnode} from "mithril";
 //   NScrollbar, NSplit,
 //   NDataTable, NEmpty, NIcon, NTooltip,
 // } from "naive-ui";
-import {NScrollbar, NSpace} from "./components/layout";
+import {NScrollbar} from "./components/layout";
 import {Json, NEmpty, NIcon, NTooltip} from "./components/dataview";
-import {NInputGroup} from "./components/input";
+import {NButton, NInput, NInputGroup, NSelect} from "./components/input";
 // import {
 //   CheckSquareOutlined, ClockCircleOutlined,
 //   FieldNumberOutlined, ItalicOutlined, QuestionCircleOutlined,
@@ -17,31 +17,68 @@ import {database} from "../wailsjs/go/models";
 // import {Database} from "./api";
 import EditorSQL from "./EditorSQL";
 import {use_request} from "./store";
+import { Database } from "./api";
 
 type Request = {kind: database.Kind.SQL} & database.SQLRequest;
-type TableBaseColumn = any;
-
-type Props = {
-  id: string,
-}
 
 const NSplit = {
-  view(vnode: Vnode<any, any>) {
-    return m("div", vnode.attrs, vnode.children);
+  view(vnode: Vnode<{}, any>) {
+    const children = vnode.children as Vnode<any, any>[];
+    return m("div", {
+      class: "h100",
+      style: {
+        display: "grid",
+        // "grid-template-columns": "1fr 1fr",
+        // "grid-template-rows": "auto 1fr",
+        "grid-template-rows": "1fr 0px 3fr",
+        "grid-column-gap": ".5em",
+      },
+    }, [children[0], m("hr"), children[1]]);
   },
 }
 
-const NDataTable = {
-  view(vnode: Vnode<any, any>) {
-    return m(Json, vnode.attrs);
+type TableBaseColumn = {
+  key: string,
+  title: (_: TableBaseColumn) => m.Vnode,
+  render: (rowData: any) => any,
+};
+type DataTableProps = {
+  columns: TableBaseColumn[],
+  data: any[],
+  "single-line": false,
+  size: "small",
+  resizable: true,
+  "scroll-x": number,
+}
+const DataTable = {
+  view(vnode: Vnode<DataTableProps, any>) {
+    const {columns, data} = vnode.attrs;
+    const tableBorderStyle = {
+      "table-layout": "fixed",
+      border: "1px solid #888",
+      "border-collapse": "collapse",
+      padding: "3px 5px",
+    };
+    return m("div", {
+      "overflow-y": "scroll",
+      ...vnode.attrs,
+    }, m("table", {style: tableBorderStyle}, [
+      m("thead", {}, [
+        m("tr", {}, columns.map(({key}) =>
+          m("th", {style: tableBorderStyle}, key))),
+      ]),
+      m("tbody", {}, data.map(r =>
+        m("tr", {}, columns.map(c =>
+          m("td", {
+            style: tableBorderStyle,
+          }, c.render(r)))))),
+    ]));
   },
 }
 
 export default function(id: string) {
   return {
-    view(vnode: Vnode<Props, any>) {
-      // const {id} = vnode.attrs;
-
+    view() {
       // {request, response, is_loading, send} =
       const r = use_request<Request, database.SQLResponse>(id);
 
@@ -55,7 +92,7 @@ export default function(id: string) {
           return [];
         }
 
-        return (resp.columns ?? []).map(c => {
+        return (resp.columns ?? []).map((c: string): TableBaseColumn => {
           return {
             key: c,
             title: (_: TableBaseColumn) => {
@@ -79,17 +116,16 @@ export default function(id: string) {
                 default: () => type,
               });
             },
-            render: (rowData: any, rowIndex: number) => {
+            render: (rowData: any) => {
               const v = rowData[c];
               switch (true) {
               case v === null:
-                return "(NULL)"; // TODO: faded
+                return m("span", {style: {color: "grey"}}, "(NULL)");
               case typeof v == "boolean":
                 return v ? "true" : "false";
               case typeof v == "number" || typeof v == "string":
                 return v;
               default:
-                console.log(rowData, rowData[c], rowIndex);
                 return rowData[c];
               }
             },
@@ -116,51 +152,60 @@ export default function(id: string) {
           style: {"justify-content": "center"},
         });
 
-      return m(NSpace, {
-        class: "h100",
-        id: "gavno",
-        header: m(NInputGroup, [
-          // <NSelect
-          //   :options="Object.keys(Database).map(db => ({label: Database[db as keyof typeof Database], value: db}))"
-          //   :value="request.database"
-          //   v-on:update:value="(database: Database) => update_request({database: database})"
-          //   style="width: 10%;"
-          // />
-          // <NInput
-          //   placeholder="DSN"
-          //   :value="request.dsn"
-          //   v-on:input="newValue => update_request({dsn: newValue})"
-          // />
-          // <NButton
-          //   type="primary"
-          //   v-on:click="send()"
-          //   :disabled="is_loading"
-          // >Run</NButton>
-        ]),
-        content: m(NSplit, {class: "h100", direction: "vertical"}, [ // TODO: class="h100" for content
-          m(EditorSQL, {
-            value: r.request.query,
-            on: {update: (query: string) => update_request({query})},
-            class: "h100",
-          }),
-          r.response === null ?
-          m(NEmpty, {
-            description: "Run query or choose one from history.",
-            class: "h100",
-            style: {"justify-content": "center"},
-          }) :
-          m(NScrollbar,
-            m(NDataTable, {
-              columns: columns,
-              data: data,
-              "single-line": false,
-              size: "small",
-              resizable: true,
-              "scroll-x": r.response.columns.length * 200,
-            })
-          ),
-        ]),
-      });
+      return m("div", {
+          class: "h100",
+          id: "gavno",
+        },
+        [
+          m(NInputGroup, {
+            style: {
+              "grid-column": "span 2",
+              display: "grid",
+              "grid-template-columns": "1fr 10fr 1fr",
+            },
+          }, [
+            m(NSelect, {
+              value: r.request.database,
+              options: Object.keys(Database).map(db => ({label: Database[db as keyof typeof Database], value: db})),
+              on: {update: (database: string) => update_request({database: database as Database})},
+              // style: {width: "10%"},
+            }),
+            m(NInput, {
+              placeholder: "DSN",
+              value: r.request.dsn,
+              on: {input: (newValue: string) => update_request({dsn: newValue})},
+            }),
+            m(NButton, {
+              type: "primary",
+              on: {click: () => r.send()},
+              disabled: r.is_loading,
+            }, "Run"),
+          ]),
+          m(NSplit, {}, [
+            m(EditorSQL, {
+              value: r.request.query,
+              on: {update: (query: string) => update_request({query})},
+              class: "h100",
+            }),
+            r.response === null ?
+            m(NEmpty, {
+              description: "Run query or choose one from history.",
+              class: "h100",
+              style: {"justify-content": "center"},
+            }) :
+            // m(NScrollbar,
+              m(DataTable, {
+                columns: columns,
+                data: data,
+                "single-line": false,
+                size: "small",
+                resizable: true,
+                "scroll-x": r.response.columns.length * 200,
+              })
+            // ),
+          ]),
+        ],
+      );
     },
   };
 };
