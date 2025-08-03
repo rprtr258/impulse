@@ -1,64 +1,7 @@
 import m from "mithril";
 import {api, type RequestData, type HistoryEntry} from "./api";
 import {app} from '../wailsjs/go/models';
-
-interface OrderedSet {
-  list: string[],
-  set: Set<string>,
-  length: () => number,
-  has: (key: string) => boolean,
-  index: (key: string) => number | null,
-  add: (key: string) => void,
-  remove: (key: string) => void,
-  removeAt: (index: number) => void,
-  rename: (keyOld: string, keyNew: string) => void,
-}
-
-function orderedMap(...elems: readonly string[]): OrderedSet {
-  elems = elems ?? [];
-  const set = new Set(elems);
-  return {
-    list: [...elems],
-    set,
-    length(): number {
-      return this.list.length;
-    },
-    has(key: string): boolean {
-      return set.has(key);
-    },
-    index(key: string): number | null {
-      const index = this.list.indexOf(key);
-      return index === -1 ? null : index;
-    },
-    add(key: string): void {
-      if (this.has(key)) {
-        return;
-      }
-      this.list.push(key);
-      set.add(key);
-    },
-    remove(key: string): void {
-      const index = this.list.indexOf(key);
-      if (index === -1) {
-        return;
-      }
-      this.removeAt(index);
-    },
-    removeAt(index: number): void {
-      set.delete(this.list[index]);
-      this.list.splice(index, 1);
-    },
-    rename(keyOld, keyNew): void {
-      const index = this.list.indexOf(keyOld);
-      if (index === -1) {
-        return;
-      }
-      this.list[index] = keyNew;
-      set.delete(keyOld);
-      set.add(keyNew);
-    },
-  };
-}
+import { GoldenLayout, LayoutConfig, ResolvedComponentItemConfig, ResolvedRowOrColumnItemConfig, ResolvedStackItemConfig } from "golden-layout";
 
 // TODO: <NNotificationProvider :max="1" placement="bottom-right">
 export function useNotification() {
@@ -71,44 +14,51 @@ export function useNotification() {
 }
 export const notification = useNotification();
 
-const tabs : {value: {
-  map: OrderedSet,
-  index: number,
-}} = {value: {
-  map: orderedMap(),
-  index: -1,
-}};
-
-function updateLocalstorageTabs() {
-  if (store.tabs.value) {
-    localStorage.setItem("tabs", JSON.stringify(store.tabs.value?.map.list ?? []));
-  } else {
-    localStorage.removeItem("tabs");
+let layoutConfig: LayoutConfig = {
+  header: {
+    show: "top",
+    close: "close",
+    maximise: "maximise",
+  },
+  root: {
+    type: "stack",
+    content: [],
+  },
+};
+(() => {
+  const oldTabs = localStorage.getItem("tabs");
+  if (oldTabs !== null) {
+    layoutConfig = LayoutConfig.fromResolved(JSON.parse(oldTabs));
   }
+})();
+export function updateLocalstorageTabs() {
+  const dump = JSON.stringify(store.layout?.saveLayout());
+  localStorage.setItem("tabs", dump);
 }
 
 export function handleCloseTab(id: string) {
-  const v = store.tabs.value;
-  if (v === null) {
-    return;
-  }
-  if (v.map.list.length === 1) {
-    store.clearTabs();
-    return;
-  }
+  console.log("handleCloseTab", id);
+  // const v = store.tabs.value;
+  // if (v === null) {
+  //   return;
+  // }
+  // if (v.map.list.length === 1) {
+  //   store.clearTabs();
+  //   return;
+  // }
 
-  // adjust index
-  const idx = v.map.index(id);
-  if (idx === null) {
-    return;
-  }
-  if (idx <= v.index) {
-    v.index = Math.max(v.index - 1, 0);
-  }
-  v!.map.remove(id);
-  store.tabs.value = {map: v.map, index: v.index};
-  store.selectRequest(v.map.list[v.index]);
-  updateLocalstorageTabs();
+  // // adjust index
+  // const idx = v.map.index(id);
+  // if (idx === null) {
+  //   return;
+  // }
+  // if (idx <= v.index) {
+  //   v.index = Math.max(v.index - 1, 0);
+  // }
+  // v!.map.remove(id);
+  // store.tabs.value = {map: v.map, index: v.index};
+  // store.selectRequest(v.map.list[v.index]);
+  // updateLocalstorageTabs();
 }
 
 export function useStore() {
@@ -140,48 +90,35 @@ export function useStore() {
     requests : {} as Record<string, app.requestPreview>,
     requests2: {} as Record<string, UseRequest<any, any>>,
     load,
-    tabs,
+    layoutConfig,
+    layout: undefined as GoldenLayout | undefined,
     clearTabs() {
-      tabs.value = {
-        map: orderedMap(),
-        index: -1,
-      };
-      updateLocalstorageTabs();
+      this.layout?.clear();
     },
     requestID(): string | null {
-      const tabsValue = tabs.value;
-      if (tabsValue === null) {
+      // const tabsValue = tabs.value;
+      // if (tabsValue === null) {
         return null;
-      }
-      const {map: requestIDs, index} = tabsValue;
-      return requestIDs.list[index] ?? null;
+      // }
+      // const {map: requestIDs, index} = tabsValue;
+      // return requestIDs.list[index] ?? null;
     },
     selectRequest(id: string): void {
-      const tabsValue = tabs.value;
-      if (tabsValue === null) {
-        // no tabs open, create one
-        tabs.value = {
-          map: orderedMap(id),
-          index: 0,
-        };
-        updateLocalstorageTabs();
+      type ConfigNode = ResolvedRowOrColumnItemConfig | ResolvedStackItemConfig | ResolvedComponentItemConfig;
+      function* dfs(c: ConfigNode): Generator<string, void, void> {
+        if (c.type === "component") {
+          yield (c.componentState! as {id: string}).id;
+        } else {
+          for (const child of c.content) {
+            yield* dfs(child);
+          }
+        }
+      }
+      const found = dfs(this.layout?.layoutConfig.root!).find((tabID) => tabID === id);
+      if (found) {
         return;
       }
-
-      const requestIDs = tabsValue.map;
-      const indexNew = requestIDs.index(id);
-      if (indexNew === null) {
-        // tab with such id not found, add new
-        requestIDs.add(id);
-        tabs.value = {
-          map: requestIDs,
-          index: requestIDs.length() - 1,
-        };
-        updateLocalstorageTabs();
-        return;
-      }
-
-      tabsValue.index = indexNew;
+      this.layout?.addItem(panelka(id));
       this.fetch();
     },
     async fetch(): Promise<void> {
@@ -237,6 +174,7 @@ export function useStore() {
       await this.fetch();
     },
     async rename(id: string, newID: string): Promise<void> {
+      console.log("rename", id, newID);
       const res = await api.rename(id, newID);
       if (res.kind === "err") {
         notify(`Could not rename request: ${res.value}`);
@@ -244,11 +182,18 @@ export function useStore() {
       }
 
       this.requests[newID] = Object.assign({}, this.requests[id]);
-      tabs.value?.map.rename(id, newID);
+      // tabs.value?.map.rename(id, newID);
       await this.fetch();
     },
   };
 }
+
+const panelka = (id: string): ComponentItemConfig => ({
+  type: "component",
+  title: id,
+  componentType: "MyComponent",
+  componentState: {id: id} as panelkaState
+});
 
 type UseRequest<Request extends object, Response extends object> = {
   request: Request | null,
@@ -327,20 +272,4 @@ export function use_request<
 export const store = useStore();
 (async () => {
   await store.fetch()
-  const oldTabs = localStorage.getItem("tabs");
-  if (oldTabs !== null) {
-    for (const id of JSON.parse(oldTabs)) {
-      store.selectRequest(id);
-    }
-  }
-
-  if (location.hash !== "#") {
-    const id = decodeURI((location.hash ?? "").slice(1)); // remove '#'
-    if (store.requests[id] === undefined) {
-      location.hash = "";
-      return;
-    }
-
-    store.selectRequest(id);
-  }
 })().then(m.redraw);

@@ -1,8 +1,5 @@
 import m, {VnodeDOM} from "mithril";
-import {
-  LayoutConfig, ComponentItemConfig,
-  GoldenLayout,
-} from "golden-layout";
+import {GoldenLayout} from "golden-layout";
 import {VNodeChild} from "./components";
 import {NDropdown, NInput, NSelect, NButton,} from "./components/input";
 import {NModal, NScrollbar, NSpace, NTabs} from "./components/layout";
@@ -13,7 +10,7 @@ import RequestSQL from "./RequestSQL";
 import RequestGRPC from "./RequestGRPC";
 import RequestJQ from "./RequestJQ";
 import RequestRedis from "./RequestRedis";
-import {store, notification, handleCloseTab, use_request} from "./store";
+import {store, notification, handleCloseTab, use_request, updateLocalstorageTabs} from "./store";
 // import {useBrowserLocation, useLocalStorage, useMagicKeys} from "@vueuse/core";
 import {Method, Kinds, Database} from "./api";
 import {app, database} from "../wailsjs/go/models";
@@ -434,30 +431,6 @@ export default function() {
     return id ? use_request(id).history : [];
   })();
 
-  const panelka = (id: string): ComponentItemConfig => ({
-    type: "component",
-    title: id,
-    componentType: "MyComponent",
-    componentState: {id: id} as panelkaState
-  });
-  const layoutConfig: LayoutConfig = {
-    header: {
-      show: "top",
-      close: "close",
-      maximise: "maximise",
-    },
-    root: {
-      type: "stack",
-      content: [
-        panelka("Postman API/get"),
-        panelka("test-create"),
-        panelka("Sanya/sanya_1"),
-        panelka("test-jq"),
-        // panelka("Sanya/test-sql"),
-      ],
-    },
-  };
-
   let goldenLayout: GoldenLayout;
 
   return {
@@ -468,8 +441,13 @@ export default function() {
 
       const layoutElement = vnode.dom.querySelector("#layoutContainer")!;
       goldenLayout = new GoldenLayout(layoutElement as HTMLElement);
+      goldenLayout.resizeWithContainerAutomatically = true;
       goldenLayout.registerComponentFactoryFunction("MyComponent", (container, state, _) => panelkaFactory(container.element, state as panelkaState));
-      goldenLayout.loadLayout(layoutConfig);
+      goldenLayout.loadLayout(store.layoutConfig);
+      goldenLayout.on("stateChanged", () => {
+        updateLocalstorageTabs();
+      })
+      store.layout = goldenLayout;
     },
     view() {
       return m("div", {style: {height: "100%", width: "100%"}}, [
@@ -620,7 +598,7 @@ export default function() {
                       m(NTree, {
                         "block-line": true,
                         "expand-on-click": true,
-                        "selected-keys": [(store.tabs.value ? store.tabs.value.map.list[store.tabs.value.index] : "")],
+                        "selected-keys": [/*(store.tabs.value ? store.tabs.value.map.list[store.tabs.value.index] : "")*/],
                         "show-line": true,
                         data: treeData(),
                         draggable: true,
@@ -713,13 +691,13 @@ export default function() {
             ]),
           ]),
           m("div", {style: {color: "rgba(255, 255, 255, 0.82)", "background-color": "rgb(16, 16, 20)", overflow: "hidden", },}, [
-            (layoutConfig.root?.content ?? []).length === 0 ? m(NResult, {
-              status: "info",
-              title: "Pick request",
-              description: "Pick request to see it, edit and send and do other fun things.",
-              class: "h100",
-              style: "align-content: center;",
-            }) :
+            // (store.layoutConfig.root?.content ?? []).length === 0 ? m(NResult, {
+            //   status: "info",
+            //   title: "Pick request",
+            //   description: "Pick request to see it, edit and send and do other fun things.",
+            //   class: "h100",
+            //   style: "align-content: center;",
+            // }) :
             m("div", {id: "layoutContainer", style: {height: "100%", width: "100%"}}),
           ]),
         ]),
