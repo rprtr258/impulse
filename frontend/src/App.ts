@@ -1,4 +1,8 @@
-import m from "mithril";
+import m, {VnodeDOM} from "mithril";
+import {
+  LayoutConfig, ComponentItemConfig,
+  GoldenLayout,
+} from "golden-layout";
 import {VNodeChild} from "./components";
 import {NDropdown, NInput, NSelect, NButton,} from "./components/input";
 import {NModal, NScrollbar, NSpace, NTabs} from "./components/layout";
@@ -95,14 +99,6 @@ function rename() {
 }
 
 // TODO: fix editing request headers
-
-const requestKind = () => {
-  const requestID = store.requestID();
-  if (requestID === null) {
-    return null;
-  }
-  return store.requests[requestID].Kind;
-};
 
 const location = {
   hash: document.location.hash,
@@ -410,6 +406,26 @@ const anyModalIsOpen = () => newRequestName !== null || renameID !== null;
 //   commandBarOpenVisible = false;
 // });
 
+type Panelka = {
+  el: HTMLElement;
+}
+
+type panelkaState = {id: string};
+const panelkaFactory = (
+  el: HTMLElement,
+  {id}: panelkaState,
+): Panelka => {
+  switch (store.requests[id].Kind) {
+    case "http" : m.mount(el, RequestHTTP(id));  break;
+    case "sql"  : m.mount(el, RequestSQL(id));   break;
+    case "grpc" : m.mount(el, RequestGRPC(id));  break;
+    case "jq"   : m.mount(el, RequestJQ(id));    break;
+    case "redis": m.mount(el, RequestRedis(id)); break;
+    default: el.innerHTML = `<h2>unknown kind: ${store.requests[id].Kind}</h2>`;
+  }
+  return {el};
+}
+
 export default function() {
   let sidebarTab = "tab-nav-collection";
   // TODO: reverse history order
@@ -417,7 +433,44 @@ export default function() {
     const id = store.requestID();
     return id ? use_request(id).history : [];
   })();
+
+  const panelka = (id: string): ComponentItemConfig => ({
+    type: "component",
+    title: id,
+    componentType: "MyComponent",
+    componentState: {id: id} as panelkaState
+  });
+  const layoutConfig: LayoutConfig = {
+    header: {
+      show: "top",
+      close: "close",
+      maximise: "maximise",
+    },
+    root: {
+      type: "stack",
+      content: [
+        panelka("Postman API/get"),
+        panelka("test-create"),
+        panelka("Sanya/sanya_1"),
+        panelka("test-jq"),
+        // panelka("Sanya/test-sql"),
+      ],
+    },
+  };
+
+  let goldenLayout: GoldenLayout;
+
   return {
+    onupdate(vnode: VnodeDOM<{}, any>) {
+      if (goldenLayout) {
+        return;
+      }
+
+      const layoutElement = vnode.dom.querySelector("#layoutContainer")!;
+      goldenLayout = new GoldenLayout(layoutElement as HTMLElement);
+      goldenLayout.registerComponentFactoryFunction("MyComponent", (container, state, _) => panelkaFactory(container.element, state as panelkaState));
+      goldenLayout.loadLayout(layoutConfig);
+    },
     view() {
       return m("div", {style: {height: "100%", width: "100%"}}, [
         m(Command.Dialog, {
@@ -660,36 +713,14 @@ export default function() {
             ]),
           ]),
           m("div", {style: {color: "rgba(255, 255, 255, 0.82)", "background-color": "rgb(16, 16, 20)", overflow: "hidden", },}, [
-            store.tabs.value.map.length() === 0 ? m(NResult, {
+            (layoutConfig.root?.content ?? []).length === 0 ? m(NResult, {
               status: "info",
               title: "Pick request",
               description: "Pick request to see it, edit and send and do other fun things.",
               class: "h100",
               style: "align-content: center;",
             }) :
-            m(NTabs, {
-              value: store.tabs.value.map.list[store.tabs.value.index],
-              type: "card",
-              size: "small",
-              class: "h100",
-              on: {
-                update: (id: string): void => selectRequest(id),
-                // closable: true,
-                // onclose: handleCloseTab,
-              },
-              tabs: store.tabs.value.map.list.map(id => ({
-                id,
-                name: id,
-                class: "h100",
-                elem:
-                  requestKind() === "http"  ? m(RequestHTTP, {id}) :
-                  requestKind() === "sql"   ? m(RequestSQL,  {id}) :
-                  requestKind() === "grpc"  ? m(RequestGRPC, {id}) :
-                  requestKind() === "jq"    ? m(RequestJQ,   {id}) :
-                  requestKind() === "redis" ? m(RequestRedis,{id}) :
-                  '',
-              })),
-            }),
+            m("div", {id: "layoutContainer", style: {height: "100%", width: "100%"}}),
           ]),
         ]),
       ])

@@ -37,10 +37,10 @@ const NDataTable = {
   },
 }
 
-export default function() {
+export default function(id: string) {
   return {
     view(vnode: Vnode<Props, any>) {
-      const {id} = vnode.attrs;
+      // const {id} = vnode.attrs;
 
       // {request, response, is_loading, send} =
       const r = use_request<Request, database.SQLResponse>(id);

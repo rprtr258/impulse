@@ -9,6 +9,7 @@ import EditorJSON from "./components/EditorJSON";
 import ViewJSON from "./components/ViewJSON";
 import ParamsList from "./components/ParamsList";
 import {use_request} from "./store";
+import Mithril from "mithril";
 
 type Request = {kind: database.Kind.HTTP} & database.HTTPRequest;
 
@@ -37,12 +38,12 @@ function responseBadge(response?: any): VNodeChild {
   }, code ?? "N/A");
 }
 
-export default function() {
+export default function(id: string): Mithril.ComponentTypes<any, any> {
   let requestTab = "tab-req-request";
   let responseTab = "tab-resp-body";
   return {
     view(vnode: Vnode<{id: string}, any>) {
-      const {id} = vnode.attrs;
+      // const {id} = vnode.attrs;
       const r = use_request<Request, database.HTTPResponse>(id);
       if (r.request === null)
         return m(NEmpty, {

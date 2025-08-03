@@ -14,7 +14,7 @@ type Props = {
   id: string,
 };
 
-export default function() {
+export default function(id: string) {
   const methods : {
     service: string,
     methods: string[],
@@ -24,7 +24,7 @@ export default function() {
   let responseTab = "tab-resp-body";
   return {
     view(vnode: Vnode<Props, any>) {
-      const {id} = vnode.attrs;
+      // const {id} = vnode.attrs;
 
       // {request, response, is_loading, update_request, send}
       const r = use_request<Request, database.GRPCResponse>(id);
