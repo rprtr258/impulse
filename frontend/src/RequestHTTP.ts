@@ -1,4 +1,4 @@
-import m, {Vnode} from "mithril";
+import m from "mithril";
 import {database} from '../wailsjs/go/models';
 import {Method as Methods} from "./api";
 import {VNodeChild} from "./components";
@@ -42,7 +42,7 @@ export default function(id: string): Mithril.ComponentTypes<any, any> {
   let requestTab = "tab-req-request";
   let responseTab = "tab-resp-body";
   return {
-    view(vnode: Vnode<{id: string}, any>) {
+    view() {
       // const {id} = vnode.attrs;
       const r = use_request<Request, database.HTTPResponse>(id);
       if (r.request === null)

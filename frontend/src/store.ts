@@ -1,7 +1,7 @@
 import m from "mithril";
 import {api, type RequestData, type HistoryEntry} from "./api";
 import {app} from '../wailsjs/go/models';
-import { GoldenLayout, LayoutConfig, ResolvedComponentItemConfig, ResolvedRowOrColumnItemConfig, ResolvedStackItemConfig } from "golden-layout";
+import { ComponentItemConfig, GoldenLayout, LayoutConfig, ResolvedComponentItemConfig, ResolvedRowOrColumnItemConfig, ResolvedStackItemConfig } from "golden-layout";
 
 // TODO: <NNotificationProvider :max="1" placement="bottom-right">
 export function useNotification() {
@@ -192,7 +192,7 @@ const panelka = (id: string): ComponentItemConfig => ({
   type: "component",
   title: id,
   componentType: "MyComponent",
-  componentState: {id: id} as panelkaState
+  componentState: {id: id} // as panelkaState,
 });
 
 type UseRequest<Request extends object, Response extends object> = {
@@ -254,7 +254,7 @@ export function use_request<
     }
 
     store.requests2[request_id].request = res.value.Request as Request;
-    store.requests2[request_id].history = res.value.History as unknown as HistoryEntry[];
+    store.requests2[request_id].history = res.value.History ?? [] as unknown as HistoryEntry[];
     store.requests2[request_id].response = store.requests2[request_id].history[store.requests2[request_id].history.length - 1]?.response as Response ?? null;
   };
 

@@ -142,6 +142,14 @@ export namespace app {
 
 export namespace database {
 	
+	export enum Kind {
+	    GRPC = "grpc",
+	    HTTP = "http",
+	    MD = "md",
+	    REDIS = "redis",
+	    SQL = "sql",
+	    JQ = "jq",
+	}
 	export enum Database {
 	    POSTGRES = "postgres",
 	    MYSQL = "mysql",
@@ -153,13 +161,6 @@ export namespace database {
 	    NUMBER = "number",
 	    TIME = "time",
 	    BOOLEAN = "boolean",
-	}
-	export enum Kind {
-	    REDIS = "redis",
-	    SQL = "sql",
-	    JQ = "jq",
-	    GRPC = "grpc",
-	    HTTP = "http",
 	}
 	export class KV {
 	    key: string;
@@ -380,6 +381,30 @@ export namespace database {
 	    }
 	}
 	
+	export class MarkdownRequest {
+	    data: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MarkdownRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.data = source["data"];
+	    }
+	}
+	export class MarkdownResponse {
+	    data: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MarkdownResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.data = source["data"];
+	    }
+	}
 	export class RedisRequest {
 	    dsn: string;
 	    query: string;

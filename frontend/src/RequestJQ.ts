@@ -1,4 +1,4 @@
-import m, {Vnode} from "mithril";
+import m from "mithril";
 import {NInput, NButton, NInputGroup} from "./components/input";
 import {NEmpty} from "./components/dataview";
 import ViewJSON from "./components/ViewJSON";
@@ -7,15 +7,10 @@ import {database} from "../wailsjs/go/models";
 import {use_request} from "./store";
 
 type Request = {kind: database.Kind.JQ} & database.JQRequest;
-type Props = {
-  id: string,
-};
 
 export default function(id: string) {
   return {
-    view(vnode: Vnode<Props, any>) {
-      // const {id} = vnode.attrs;
-
+    view() {
       // {request, response, is_loading, update_request, send}
       const r = use_request<Request, database.JQResponse>(id);
 

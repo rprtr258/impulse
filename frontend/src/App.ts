@@ -1,4 +1,4 @@
-import m, {VnodeDOM} from "mithril";
+import m, {ComponentTypes, VnodeDOM} from "mithril";
 import {GoldenLayout} from "golden-layout";
 import {VNodeChild} from "./components";
 import {NDropdown, NInput, NSelect, NButton,} from "./components/input";
@@ -10,6 +10,7 @@ import RequestSQL from "./RequestSQL";
 import RequestGRPC from "./RequestGRPC";
 import RequestJQ from "./RequestJQ";
 import RequestRedis from "./RequestRedis";
+import RequestMD from "./RequestMD";
 import {store, notification, handleCloseTab, use_request, updateLocalstorageTabs} from "./store";
 // import {useBrowserLocation, useLocalStorage, useMagicKeys} from "@vueuse/core";
 import {Method, Kinds, Database} from "./api";
@@ -49,8 +50,8 @@ function useLocalStorage<T>(key: string, init: T): T {
 }
 
 type Kind = typeof Kinds[number];
-let newRequestKind : Kind | null = null;
-let newRequestName : string | null = null;
+let newRequestKind: Kind | null = null;
+let newRequestName: string | null = null;
 function create() {
   newRequestName = new Date().toUTCString();
 
@@ -148,13 +149,13 @@ function drag({node, dragNode, dropPosition}: {
 }
 function badge(req: app.requestPreview): [string, string] {
   switch (req.Kind) {
-  case "http": return [Method[req.SubKind as keyof typeof Method], "lime"];
-  case "sql": return [Database[req.SubKind as keyof typeof Database], "bluewhite"];
-  case "grpc": return ["GRPC", "cyan"];
-  case "jq": return ["JQ", "violet"];
-  case "redis": return ["REDIS", "red"];
+  case database.Kind.HTTP:  return [Method[req.SubKind as keyof typeof Method], "lime"];
+  case database.Kind.SQL:   return [Database[req.SubKind as keyof typeof Database], "bluewhite"];
+  case database.Kind.GRPC:  return ["GRPC", "cyan"];
+  case database.Kind.JQ:    return ["JQ", "violet"];
+  case database.Kind.REDIS: return ["REDIS", "red"];
+  case database.Kind.MD:    return ["MD", "blue"];
   }
-  throw "unreachable";
 }
 function renderSuffix(info: {option: TreeOption}): VNodeChild {
   const option = info.option;
@@ -412,14 +413,16 @@ const panelkaFactory = (
   el: HTMLElement,
   {id}: panelkaState,
 ): Panelka => {
-  switch (store.requests[id].Kind) {
-    case "http" : m.mount(el, RequestHTTP(id));  break;
-    case "sql"  : m.mount(el, RequestSQL(id));   break;
-    case "grpc" : m.mount(el, RequestGRPC(id));  break;
-    case "jq"   : m.mount(el, RequestJQ(id));    break;
-    case "redis": m.mount(el, RequestRedis(id)); break;
-    default: el.innerHTML = `<h2>unknown kind: ${store.requests[id].Kind}</h2>`;
-  }
+  type fn = (id: string) => ComponentTypes;
+  const f = {
+    [database.Kind.HTTP ]: RequestHTTP as fn,
+    [database.Kind.SQL  ]: RequestSQL as fn,
+    [database.Kind.GRPC ]: RequestGRPC as fn,
+    [database.Kind.JQ   ]: RequestJQ as fn,
+    [database.Kind.REDIS]: RequestRedis as fn,
+    [database.Kind.MD   ]: RequestMD as fn,
+  } as {[key in database.Kind]: fn};
+  m.mount(el, f[store.requests[id].Kind](id));
   return {el};
 }
 
@@ -589,7 +592,10 @@ export default function() {
                     ]),
                     m(NSelect, {
                       value: newRequestKind as string,
-                      on: {update: (value: string /*Kind*/) => newRequestKind = value as Kind},
+                      on: {update: (value: string /*Kind*/) => {
+                        newRequestKind = value as Kind;
+                        create();
+                      }},
                       placeholder: "New",
                       clearable: true,
                       options: Kinds.map((kind: database.Kind) => ({label: kind.toUpperCase(), value: kind})),

@@ -43,7 +43,9 @@ export function defaultEditorExtensions(onChange: (doc: string) => void): Extens
     autocompletion(),
     highlightActiveLine(),
     EditorState.transactionFilter.of((tr: Readonly<Transaction>): TransactionSpec => {
-      onChange(tr.newDoc.toString());
+      if (!tr.changes.empty) {
+        onChange(tr.newDoc.toString());
+      }
       return tr;
     }),
   ];

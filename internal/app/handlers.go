@@ -1,6 +1,7 @@
 package app
 
 import (
+	_ "embed"
 	"encoding/json"
 	"net/http"
 	"slices"
@@ -124,6 +125,9 @@ type ResponseNewRequest struct {
 	ID database.RequestID `json:"id"`
 }
 
+//go:embed default.md
+var defaultMarkdown string
+
 func (a *App) Create(
 	id string,
 	kind database.Kind,
@@ -166,6 +170,8 @@ func (a *App) Create(
 			"localhost:6379",
 			`KEYS`,
 		}
+	case database.KindMarkdown:
+		req = database.MarkdownRequest{defaultMarkdown}
 	default:
 		return ResponseNewRequest{}, errors.Errorf("unknown request kind %q", kind)
 	}
@@ -256,6 +262,12 @@ func (a *App) Update(
 			return errors.Wrap(err, "huita 6 request")
 		}
 		requestt = req
+	case database.KindMarkdown:
+		var req database.MarkdownRequest
+		if err := json.Unmarshal(b, &req); err != nil {
+			return errors.Wrap(err, "huita 7 request")
+		}
+		requestt = req
 	default:
 		return errors.Errorf("unknown request kind %q", kind)
 	}
@@ -341,6 +353,11 @@ func (a *App) Perform(requestID string) (historyEntry, error) {
 		}
 	case database.RedisRequest:
 		response, err = sendRedis(a.ctx, request)
+		if err != nil {
+			return nil, errors.Wrapf(err, "send redis request id=%q", requestID)
+		}
+	case database.MarkdownRequest:
+		response, err = sendMarkdown(request)
 		if err != nil {
 			return nil, errors.Wrapf(err, "send redis request id=%q", requestID)
 		}
