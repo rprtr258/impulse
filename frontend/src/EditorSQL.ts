@@ -18,14 +18,18 @@ export default function() {
     onupdate(vnode: VnodeDOM<Props, any>) {
       const {value, on} = vnode.attrs;
 
-      if (editor && value !== editor.state.doc.toString()) {
-        editor.dispatch({
-          changes: {
-            from: 0,
-            to: editor.state.doc.length,
-            insert: value,
-          },
-        });
+      if (editor) {
+        if (value !== editor.state.doc.toString()) {
+          editor.dispatch({
+            changes: {
+              from: 0,
+              to: editor.state.doc.length,
+              insert: value,
+            },
+          });
+        }
+
+        return;
       }
 
       const state = EditorState.create({

@@ -63,7 +63,7 @@ type NSelectProps = {
   value: string,
   options: (SelectOption | {
     type: "group",
-    label: string,
+    label: string, // TODO: generic
     key: string,
     children: SelectOption[],
   })[],
@@ -75,9 +75,9 @@ type NSelectProps = {
   on: {update: (value: string) => void},
 };
 export function NSelect() {
+  let open = false;
+  let current : number | null = null;
   return {
-    open: false,
-    current: null as number | null,
     view(vnode: Vnode<NSelectProps, any>) {
       const props = vnode.attrs;
       // TODO: use groups
@@ -85,7 +85,7 @@ export function NSelect() {
 
       const idx = options.findIndex(v => v.value == props.value);
       if (idx != -1) {
-        this.current = idx;
+        current = idx;
       }
 
       return m("select", {
@@ -93,18 +93,18 @@ export function NSelect() {
         onchange: (e: InputEvent) => {
           const i = parseInt((e.target! as HTMLSelectElement).value);
           const value = options[i].value;
-          this.current = i;
+          current = i;
           props.on.update(value);
         },
       }, [m("option", {
         value: "",
         disabled: true,
-        selected: this.current === null,
+        selected: current === null,
         hidden: true,
       }, props.placeholder)].concat(props.options.map(({label}, i) =>
         m("option", {
           value: i,
-          selected: i == this.current,
+          selected: i == current,
         }, label)
       )));
     }
