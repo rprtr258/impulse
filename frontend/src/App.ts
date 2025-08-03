@@ -160,7 +160,7 @@ function renderSuffix(info: {option: TreeOption}): VNodeChild {
   const option = info.option;
   const id = option.key as string;
   return m(NDropdown, {
-    trigger: "hover",
+    trigger: "click", // "hover",
     on: {select: (key: string | number) => {
       console.log(key);
       // message.info(String(key))
