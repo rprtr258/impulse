@@ -69,12 +69,11 @@ export default function(id: string): Mithril.ComponentTypes<any, any> {
         m(NInputGroup, {style: {
           "grid-column": "span 2",
           display: "grid",
-          "grid-template-columns": "auto 80% auto",
+          "grid-template-columns": "1fr 10fr 1fr",
         }}, [
           m(NSelect, {
             value: r.request.method,
             options: Object.keys(Methods).map(method => ({label: method, value: method})),
-            style: {width: "10%", "min-width": "8em"},
             on: {update: (method: string) => update_request({method})},
           }),
           m(NInput, {
