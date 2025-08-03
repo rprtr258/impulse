@@ -5,11 +5,12 @@ import {json} from "@codemirror/lang-json";
 import {defaultEditorExtensions, defaultExtensions} from "./editor";
 
 type Props = {
-  class?: string,
   value: string | null,
   on: {
     update: (value: string) => void,
   },
+  class?: string,
+  style?: any,
 };
 
 export default function() {
@@ -41,13 +42,17 @@ export default function() {
           } as ChangeSpec,
         });
       }
+      props.on.update(state.doc.toString());
     },
     onremove() {
       editor?.destroy();
     },
     view(vnode: VnodeDOM<Props, any>) {
       const props = vnode.attrs;
-      return m("div", {class: props.class});
+      return m("div", {
+        class: props.class,
+        style: props.style ?? {},
+      });
     },
   };
 }

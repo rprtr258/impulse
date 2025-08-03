@@ -1,4 +1,4 @@
-import m, {Vnode} from "mithril";
+import m from "mithril";
 import {NButton, NInputGroup, NInput} from "./components/input";
 import {NEmpty} from "./components/dataview";
 import ViewJSON from "./components/ViewJSON";
@@ -8,13 +8,9 @@ import {use_request} from "./store";
 
 type Request = {kind: database.Kind.REDIS} & database.RedisRequest;
 
-type Props = {
-  id: string,
-};
-
 export default function(id: string) {
   return {
-    view(vnode: Vnode<Props, any>) {
+    view() {
       // const {id} = vnode.attrs;
       // {request, response, is_loading, update_request, send}
       const r = use_request<Request, database.RedisResponse>(id);

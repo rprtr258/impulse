@@ -368,6 +368,10 @@ func CreateHistoryEntry(
 	Request RequestData,
 	Response ResponseData,
 ) error {
+	if Request.Kind() == KindMarkdown {
+		return nil
+	}
+
 	db.mu.Lock()
 	defer db.mu.Unlock()
 

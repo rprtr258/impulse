@@ -47,6 +47,7 @@ func init() {
 	usePlugin(pluginJQ)
 	usePlugin(pluginGRPC)
 	usePlugin(pluginHTTP)
+	usePlugin(pluginMarkdown)
 
 	for _, plugin := range plugins {
 		AllKinds = append(AllKinds, plugin.kind)

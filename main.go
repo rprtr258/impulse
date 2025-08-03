@@ -26,6 +26,7 @@ func (export) ExportTypes(
 	database.GRPCRequest, database.GRPCResponse,
 	database.JQRequest, database.JQResponse,
 	database.RedisRequest, database.RedisResponse,
+	database.MarkdownRequest, database.MarkdownResponse,
 ) {
 }
 

@@ -6,8 +6,7 @@ import m, {Vnode} from "mithril";
 //   NScrollbar, NSplit,
 //   NDataTable, NEmpty, NIcon, NTooltip,
 // } from "naive-ui";
-import {NScrollbar} from "./components/layout";
-import {Json, NEmpty, NIcon, NTooltip} from "./components/dataview";
+import {NEmpty, NIcon, NTooltip} from "./components/dataview";
 import {NButton, NInput, NInputGroup, NSelect} from "./components/input";
 // import {
 //   CheckSquareOutlined, ClockCircleOutlined,

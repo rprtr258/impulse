@@ -2,7 +2,7 @@ import m, {Vnode} from "mithril";
 import {NInput, NButton, NInputGroup, NSelect} from "./components/input";
 import {NTabs} from "./components/layout";
 import {NTag, NTable, NEmpty} from "./components/dataview";
-import {api, GRPCCodes} from "./api";
+import {GRPCCodes} from "./api";
 import {database} from '../wailsjs/go/models';
 import EditorJSON from "./components/EditorJSON";
 import ViewJSON from "./components/ViewJSON";
@@ -10,9 +10,6 @@ import ParamsList from "./components/ParamsList";
 import {use_request, useNotification} from "./store";
 
 type Request = {kind: database.Kind.GRPC} & database.GRPCRequest;
-type Props = {
-  id: string,
-};
 
 export default function(id: string) {
   const methods : {
@@ -23,9 +20,7 @@ export default function(id: string) {
   let requestTab = "tab-req-request";
   let responseTab = "tab-resp-body";
   return {
-    view(vnode: Vnode<Props, any>) {
-      // const {id} = vnode.attrs;
-
+    view() {
       // {request, response, is_loading, update_request, send}
       const r = use_request<Request, database.GRPCResponse>(id);
       const notification = useNotification();

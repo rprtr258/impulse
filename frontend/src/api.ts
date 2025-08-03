@@ -44,11 +44,12 @@ export const Database: Record<database.Database, string> = {
 export type Database = keyof typeof Database;
 
 export type RequestData =
-  | {kind: database.Kind.HTTP} & database.HTTPRequest
-  | {kind: database.Kind.SQL} & database.SQLRequest
-  | {kind: database.Kind.GRPC} & database.GRPCRequest
-  | {kind: database.Kind.JQ} & database.JQRequest
+  | {kind: database.Kind.HTTP } & database.HTTPRequest
+  | {kind: database.Kind.SQL  } & database.SQLRequest
+  | {kind: database.Kind.GRPC } & database.GRPCRequest
+  | {kind: database.Kind.JQ   } & database.JQRequest
   | {kind: database.Kind.REDIS} & database.RedisRequest
+  | {kind: database.Kind.MD   } & database.MarkdownRequest
 ;
 
 export type Request = {
@@ -57,37 +58,26 @@ export type Request = {
 
 export const Kinds = Object.values(database.Kind);
 export type ResponseData =
-  | {kind: database.Kind.HTTP} & database.HTTPResponse
-  | {kind: database.Kind.SQL} & database.SQLResponse
-  | {kind: database.Kind.GRPC} & database.GRPCResponse
-  | {kind: database.Kind.JQ} & database.JQResponse
+  | {kind: database.Kind.HTTP } & database.HTTPResponse
+  | {kind: database.Kind.SQL  } & database.SQLResponse
+  | {kind: database.Kind.GRPC } & database.GRPCResponse
+  | {kind: database.Kind.JQ   } & database.JQResponse
   | {kind: database.Kind.REDIS} & database.RedisResponse
+  | {kind: database.Kind.MD   } & database.MarkdownResponse
 ;
 
 export type HistoryEntry = {
   sent_at: Date,
   received_at: Date,
-} & ({
-  kind: database.Kind.HTTP,
-  request: database.HTTPRequest,
-  response: database.HTTPResponse,
-} | {
-  kind: database.Kind.SQL,
-  request: database.SQLRequest,
-  response: database.SQLResponse,
-} | {
-  kind: database.Kind.GRPC,
-  request: database.GRPCRequest,
-  response: database.GRPCResponse,
-} | {
-  kind: database.Kind.JQ,
-  request: database.JQRequest,
-  response: database.JQResponse,
-} | {
-  kind: database.Kind.REDIS,
-  request: database.RedisRequest,
-  response: database.RedisResponse,
-})
+} & (
+  {kind: database.Kind.HTTP,  request: database.    HTTPRequest, response: database.    HTTPResponse} |
+  {kind: database.Kind.SQL,   request: database.     SQLRequest, response: database.     SQLResponse} |
+  {kind: database.Kind.GRPC,  request: database.    GRPCRequest, response: database.    GRPCResponse} |
+  {kind: database.Kind.JQ,    request: database.      JQRequest, response: database.      JQResponse} |
+  {kind: database.Kind.REDIS, request: database.   RedisRequest, response: database.   RedisResponse} |
+  {kind: database.Kind.MD,    request: database.MarkdownRequest, response: database.MarkdownResponse} |
+  never
+)
 
 function parseTime(s: string): Date {
   const d = new Date();
@@ -98,7 +88,7 @@ function parseTime(s: string): Date {
 async function wrap<T>(f: () => Promise<T>): Promise<Result<T>> {
   try {
     const res = await f();
-    console.log("FETCH", res);
+    console.log("FETCH", f, res);
     return ok(res);
   } catch (e) {
     return err(String(e));
