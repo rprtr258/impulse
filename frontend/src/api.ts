@@ -97,7 +97,9 @@ function parseTime(s: string): Date {
 
 async function wrap<T>(f: () => Promise<T>): Promise<Result<T>> {
   try {
-    return ok(await f());
+    const res = await f();
+    console.log("FETCH", res);
+    return ok(res);
   } catch (e) {
     return err(String(e));
   }
