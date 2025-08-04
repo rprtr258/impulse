@@ -56,7 +56,7 @@ export function NTabs() {
           )),
           m("div", {
             style: {
-              height: "100%",
+              height: "calc(100% - 4px)", // TODO: какие то ебаные 4 пикселя создают скрол сука ебал рот
               ...tabStyles.content,
               ...tab.style,
             },
@@ -78,7 +78,9 @@ const tabStyles = (() => {
 
   return {
     container: {
-      fontFamily: "Arial, sans-serif"
+      fontFamily: "Arial, sans-serif",
+      display: "grid",
+      "grid-template-rows": "1.8em 1fr",
     },
     header: {
       display: "flex",

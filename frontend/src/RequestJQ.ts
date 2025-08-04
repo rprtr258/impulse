@@ -8,7 +8,10 @@ import {use_request} from "./store";
 
 type Request = {kind: database.Kind.JQ} & database.JQRequest;
 
-export default function(id: string) {
+export default function(
+  id: string,
+  show_request: () => boolean,
+): m.Component<any, any> {
   return {
     view() {
       // {request, response, is_loading, update_request, send}
@@ -27,9 +30,14 @@ export default function(id: string) {
 
       return m("div", {
         class: "h100",
-        style: {display: "grid", "grid-template-columns": "1fr 1fr", "grid-template-rows": "34px 1fr", "grid-column-gap": ".5em"},
+        style: {
+          display: "grid",
+          "grid-template-columns": "1fr 1fr",
+          "grid-template-rows": "34px 1fr",
+          "grid-column-gap": ".5em",
+        },
       }, [
-        m(NInputGroup, {style: {"grid-column": "span 2"}}, [
+        show_request() && m(NInputGroup, {style: {"grid-column": "span 2"}}, [
           m(NInput, {
             placeholder: "JQ query",
             status: jqerror !== null ? "error" : "success",
@@ -43,7 +51,7 @@ export default function(id: string) {
             disabled: r.is_loading,
           }, "Send"),
         ]),
-        m(EditorJSON, {
+        show_request() && m(EditorJSON, {
           class: "h100",
           value: r.request.json,
           on: {update: (json: string) => r.update_request({json})},

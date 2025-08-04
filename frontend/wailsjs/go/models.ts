@@ -142,14 +142,6 @@ export namespace app {
 
 export namespace database {
 	
-	export enum Kind {
-	    GRPC = "grpc",
-	    HTTP = "http",
-	    MD = "md",
-	    REDIS = "redis",
-	    SQL = "sql",
-	    JQ = "jq",
-	}
 	export enum Database {
 	    POSTGRES = "postgres",
 	    MYSQL = "mysql",
@@ -161,6 +153,14 @@ export namespace database {
 	    NUMBER = "number",
 	    TIME = "time",
 	    BOOLEAN = "boolean",
+	}
+	export enum Kind {
+	    REDIS = "redis",
+	    SQL = "sql",
+	    JQ = "jq",
+	    GRPC = "grpc",
+	    HTTP = "http",
+	    MD = "md",
 	}
 	export class KV {
 	    key: string;

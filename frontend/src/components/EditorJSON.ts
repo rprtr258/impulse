@@ -19,6 +19,20 @@ export default function() {
     oncreate(vnode: VnodeDOM<Props, any>) {
       const props = vnode.attrs;
 
+      if (editor) {
+        if (props.value !== editor.state.doc.toString()) {
+          editor.dispatch({
+            changes: {
+              from: 0,
+              to: editor.state.doc.length,
+              insert: props.value,
+            } as ChangeSpec,
+          });
+        }
+
+        return;
+      }
+
       const state = EditorState.create({
         doc: props.value ?? "",
         extensions: [
@@ -32,17 +46,6 @@ export default function() {
         parent: vnode.dom,
         state: state,
       });
-
-      if (props.value !== editor.state.doc.toString()) {
-        editor.dispatch({
-          changes: {
-            from: 0,
-            to: editor.state.doc.length,
-            insert: props.value,
-          } as ChangeSpec,
-        });
-      }
-      props.on.update(state.doc.toString());
     },
     onremove() {
       editor?.destroy();

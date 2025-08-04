@@ -12,10 +12,11 @@ type Props = {
   },
 }
 
-export default function() {
+export default function(): m.Component<Props, any> {
   let editor: EditorView | null = null;
   return {
-    onupdate(vnode: VnodeDOM<Props, any>) {
+    oncreate(vnode: VnodeDOM<Props, any>) {
+      console.log("update", vnode);
       const {value, on} = vnode.attrs;
 
       if (editor) {
@@ -37,9 +38,7 @@ export default function() {
         extensions: [
           ...defaultExtensions,
           ...defaultEditorExtensions(on.update),
-          sql({
-            dialect: PostgreSQL,
-          }),
+          sql({dialect: PostgreSQL}),
         ],
       });
 
@@ -47,6 +46,9 @@ export default function() {
         parent: vnode.dom,
         state: state,
       });
+    },
+    onremove() {
+      editor?.destroy();
     },
     view(vnode: VnodeDOM<Props, any>) {
       const props = vnode.attrs;

@@ -9,7 +9,6 @@ import EditorJSON from "./components/EditorJSON";
 import ViewJSON from "./components/ViewJSON";
 import ParamsList from "./components/ParamsList";
 import {use_request} from "./store";
-import Mithril from "mithril";
 
 type Request = {kind: database.Kind.HTTP} & database.HTTPRequest;
 
@@ -38,7 +37,10 @@ function responseBadge(response?: any): VNodeChild {
   }, code ?? "N/A");
 }
 
-export default function(id: string): Mithril.ComponentTypes<any, any> {
+export default function(
+  id: string,
+  show_request: () => boolean,
+): m.ComponentTypes<any, any> {
   let requestTab = "tab-req-request";
   let responseTab = "tab-resp-body";
   return {
@@ -61,12 +63,12 @@ export default function(id: string): Mithril.ComponentTypes<any, any> {
         class: "h100",
         style: {
           display: "grid",
-          "grid-template-columns": "1fr 1fr",
+          "grid-template-columns": "1fr" + (show_request() ? " 1fr" : ""),
           "grid-template-rows": "auto 1fr",
           "grid-column-gap": ".5em",
         },
       }, [
-        m(NInputGroup, {style: {
+        show_request() && m(NInputGroup, {style: {
           "grid-column": "span 2",
           display: "grid",
           "grid-template-columns": "1fr 10fr 1fr",
@@ -87,7 +89,7 @@ export default function(id: string): Mithril.ComponentTypes<any, any> {
             disabled: r.is_loading,
           }, "Send"),
         ]),
-        m(NTabs, {
+        show_request() && m(NTabs, {
           value: requestTab,
           type: "line",
           size: "small",

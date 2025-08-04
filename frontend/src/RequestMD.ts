@@ -7,7 +7,10 @@ import {api} from "./api";
 
 type Request = {kind: database.Kind.MD} & database.MarkdownRequest;
 
-export default function(id: string) {
+export default function(
+  id: string,
+  show_request: () => boolean,
+): m.ComponentTypes<any, any> {
   return {
     view() {
       // {request, response, is_loading, update_request, send}
@@ -41,11 +44,11 @@ export default function(id: string) {
         class: "h100",
         style: {
           display: "grid",
-          "grid-template-columns": "1fr 1fr",
+          "grid-template-columns": "1fr" + (show_request() ? " 1fr" : ""),
           "grid-column-gap": ".5em",
         },
       }, [
-        m(EditorJSON, { // TODO: editor for markdown
+        show_request() && m(EditorJSON, { // TODO: editor for markdown
           value: r.request.data,
           on: {update: (data: string) => update_request(data)},
           class: "h100",

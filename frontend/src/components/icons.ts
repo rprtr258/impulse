@@ -1,9 +1,9 @@
 import m from "mithril";
 
-const props = () => ({
+const props = (n: number = 1024) => ({
   xmlns: "http://www.w3.org/2000/svg",
   "xmlns:xlink": "http://www.w3.org/1999/xlink",
-  viewBox: "0 0 1024 1024",
+  viewBox: `0 0 ${n} ${n}`,
 });
 
 export function ArrowDownOutlined() {
@@ -51,6 +51,32 @@ export function DoubleRightOutlined() {
       return m("svg", {...props()},
         m("path", {
           d: "M533.2 492.3L277.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H188c-6.7 0-10.4 7.7-6.3 12.9L447.1 512L181.7 851.1A7.98 7.98 0 0 0 188 864h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5zm304 0L581.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H492c-6.7 0-10.4 7.7-6.3 12.9L751.1 512L485.7 851.1A7.98 7.98 0 0 0 492 864h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5z",
+          fill: "currentColor"
+        })
+      );
+    },
+  };
+}
+
+export function Eye() {
+  return {
+    view() {
+      return m("svg", {...props(24)},
+        m("path", {
+          d: "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5s5 2.24 5 5s-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3",
+          fill: "currentColor"
+        })
+      );
+    },
+  };
+}
+
+export function EyeClosed() {
+  return {
+    view() {
+      return m("svg", {...props(24)},
+        m("path", {
+          d: "M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5",
           fill: "currentColor"
         })
       );
