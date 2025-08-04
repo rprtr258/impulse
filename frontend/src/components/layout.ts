@@ -78,7 +78,9 @@ const tabStyles = (() => {
 
   return {
     container: {
-      fontFamily: "Arial, sans-serif"
+      fontFamily: "Arial, sans-serif",
+      display: "grid",
+      "grid-template-rows": "1.8em 1fr",
     },
     header: {
       display: "flex",

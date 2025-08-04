@@ -143,12 +143,12 @@ export namespace app {
 export namespace database {
 	
 	export enum Kind {
-	    GRPC = "grpc",
 	    HTTP = "http",
 	    MD = "md",
 	    REDIS = "redis",
 	    SQL = "sql",
 	    JQ = "jq",
+	    GRPC = "grpc",
 	}
 	export enum Database {
 	    POSTGRES = "postgres",

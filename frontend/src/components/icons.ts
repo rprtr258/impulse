@@ -1,9 +1,12 @@
 import m from "mithril";
+// import {DeleteOutlined, EditOutlined} from "@vicons/antd";
+// import {ContentCopyFilled} from "@vicons/material";
+// import {CopySharp} from "@vicons/ionicons5";
 
-const props = () => ({
+const props = (n: number = 1024) => ({
   xmlns: "http://www.w3.org/2000/svg",
   "xmlns:xlink": "http://www.w3.org/1999/xlink",
-  viewBox: "0 0 1024 1024",
+  viewBox: `0 0 ${n} ${n}`,
 });
 
 export function ArrowDownOutlined() {
@@ -58,6 +61,28 @@ export function DoubleRightOutlined() {
   };
 }
 
-// import {DeleteOutlined, EditOutlined} from "@vicons/antd";
-// import {ContentCopyFilled} from "@vicons/material";
-// import {CopySharp} from "@vicons/ionicons5";
+export function Eye() {
+  return {
+    view() {
+      return m("svg", {...props(24)},
+        m("path", {
+          d: "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5s5 2.24 5 5s-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3s3-1.34 3-3s-1.34-3-3-3",
+          fill: "currentColor"
+        })
+      );
+    },
+  };
+}
+
+export function EyeClosed() {
+  return {
+    view() {
+      return m("svg", {...props(24)},
+        m("path", {
+          d: "M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5",
+          fill: "currentColor"
+        })
+      );
+    },
+  };
+}

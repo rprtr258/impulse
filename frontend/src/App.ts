@@ -1,10 +1,10 @@
 import m, {ComponentTypes, VnodeDOM} from "mithril";
-import {GoldenLayout} from "golden-layout";
+import {ComponentContainer, GoldenLayout, Tab} from "golden-layout";
 import {VNodeChild} from "./components";
 import {NDropdown, NInput, NSelect, NButton,} from "./components/input";
 import {NModal, NScrollbar, NSpace, NTabs} from "./components/layout";
 import {TreeOption, NTree, NList, NListItem, NIcon, NTag, NEmpty, NResult} from "./components/dataview";
-import {DownOutlined, DoubleLeftOutlined, DoubleRightOutlined} from "./components/icons";
+import {DownOutlined, DoubleLeftOutlined, DoubleRightOutlined, Eye, EyeClosed} from "./components/icons";
 import RequestHTTP from "./RequestHTTP";
 import RequestSQL from "./RequestSQL";
 import RequestGRPC from "./RequestGRPC";
@@ -409,11 +409,30 @@ type Panelka = {
 }
 
 type panelkaState = {id: string};
+
 const panelkaFactory = (
-  el: HTMLElement,
+  container: ComponentContainer,
   {id}: panelkaState,
 ): Panelka => {
-  type fn = (id: string) => ComponentTypes;
+ const el = container.element;
+ let show_request = true;
+ container.on("tab", (tab: Tab): void => {
+   const eye = document.createElement("span");
+   m.mount(eye, {view: () => m(NIcon, {
+     component: show_request ? m(Eye) : m(EyeClosed),
+     color: "grey",
+   })});
+   eye.onmouseover = () => eye.style.color = "#ff0000";
+   eye.onmouseout = () => eye.style.color = "grey";
+   eye.title = "Hide request";
+   eye.onclick = () => {
+     show_request = !show_request;
+     eye.title = show_request ? "Hide request" : "Show request";
+     m.redraw();
+   };
+   tab.element.prepend(eye);
+ });
+ type fn = (id: string, show: () => boolean) => ComponentTypes;
   const f = {
     [database.Kind.HTTP ]: RequestHTTP as fn,
     [database.Kind.SQL  ]: RequestSQL as fn,
@@ -422,7 +441,7 @@ const panelkaFactory = (
     [database.Kind.REDIS]: RequestRedis as fn,
     [database.Kind.MD   ]: RequestMD as fn,
   } as {[key in database.Kind]: fn};
-  m.mount(el, f[store.requests[id].Kind](id));
+ m.mount(el, f[store.requests[id].Kind](id, () => show_request));
   return {el};
 }
 
@@ -445,7 +464,7 @@ export default function() {
       const layoutElement = vnode.dom.querySelector("#layoutContainer")!;
       goldenLayout = new GoldenLayout(layoutElement as HTMLElement);
       goldenLayout.resizeWithContainerAutomatically = true;
-      goldenLayout.registerComponentFactoryFunction("MyComponent", (container, state, _) => panelkaFactory(container.element, state as panelkaState));
+      goldenLayout.registerComponentFactoryFunction("MyComponent", (container, state, _) => panelkaFactory(container, state as panelkaState));
       goldenLayout.loadLayout(store.layoutConfig);
       goldenLayout.on("stateChanged", () => {
         updateLocalstorageTabs();

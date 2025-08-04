@@ -16,7 +16,7 @@ import {database} from "../wailsjs/go/models";
 // import {Database} from "./api";
 import EditorSQL from "./EditorSQL";
 import {use_request} from "./store";
-import { Database } from "./api";
+import {Database} from "./api";
 
 type Request = {kind: database.Kind.SQL} & database.SQLRequest;
 
@@ -32,7 +32,11 @@ const NSplit = {
         "grid-template-rows": "1fr 0px 3fr",
         "grid-column-gap": ".5em",
       },
-    }, [children[0], m("hr"), children[1]]);
+    }, [
+      children[0],
+      // m("hr"),
+      children[1],
+    ]);
   },
 }
 
@@ -75,7 +79,10 @@ const DataTable = {
   },
 }
 
-export default function(id: string) {
+export default function(
+  id: string,
+  show_request: () => boolean,
+): m.Component<any, any> {
   return {
     view() {
       // {request, response, is_loading, send} =
@@ -156,7 +163,7 @@ export default function(id: string) {
           id: "gavno",
         },
         [
-          m(NInputGroup, {
+          show_request() && m(NInputGroup, {
             style: {
               "grid-column": "span 2",
               display: "grid",
@@ -181,7 +188,7 @@ export default function(id: string) {
             }, "Run"),
           ]),
           m(NSplit, {}, [
-            m(EditorSQL, {
+            show_request() && m(EditorSQL, {
               value: r.request.query,
               on: {update: (query: string) => update_request({query})},
               class: "h100",
