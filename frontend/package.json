@@ -1,41 +1,22 @@
 {
-  "name": "impulse",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
+  "name": "mithril-app",
+  "version": "0.0.1",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "build-only": "vite build",
-    "type-check": "vue-tsc --build --force",
-    "lint": "eslint . --fix"
+    "dev": "vite --port 5174",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.1",
-    "@codemirror/lang-sql": "^6.8.0",
+    "@codemirror/lang-sql": "^6.9.0",
     "@codemirror/theme-one-dark": "^6.1.2",
-    "@vicons/ionicons5": "^0.13.0",
-    "@vicons/material": "^0.13.0",
-    "@vueuse/core": "^12.0.0",
     "codemirror": "^6.0.1",
-    "naive-ui": "^2.41.0",
-    "vue": "^3.5.12",
-    "vue-command-palette": "^0.2.3"
+    "golden-layout": "^2.6.0",
+    "mithril": "^2.0.4"
   },
   "devDependencies": {
-    "@tsconfig/node20": "^20.1.4",
-    "@types/node": "^22.10.7",
-    "@vicons/antd": "^0.13.0",
-    "@vitejs/plugin-vue": "^5.1.4",
-    "@vue/eslint-config-typescript": "^14.1.1",
-    "@vue/tsconfig": "^0.7.0",
-    "eslint": "^9.13.0",
-    "eslint-plugin-vue": "^9.29.0",
-    "npm-run-all2": "^7.0.1",
-    "sass-embedded": "^1.87.0",
-    "typescript": "~5.7.3",
-    "vite": "^6.0.11",
-    "vue-tsc": "^2.1.6"
+    "@types/mithril": "^2.0.8",
+    "typescript": "^4.4.3",
+    "vite": "^6.0.11"
   }
 }

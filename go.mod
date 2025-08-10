@@ -1,6 +1,8 @@
 module github.com/rprtr258/impulse
 
-go 1.24.0
+go 1.24.4
+
+toolchain go1.24.5
 
 // tool github.com/wailsapp/wails/v2/cmd/wails // TODO: shit not working
 
@@ -10,6 +12,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/golang/protobuf v1.5.4
 	github.com/itchyny/gojq v0.12.17
+	github.com/jchenry/goldmark-pikchr v0.1.0
 	github.com/jhump/protoreflect v1.17.0
 	github.com/kr/pretty v0.3.1
 	github.com/lib/pq v1.10.9
@@ -18,7 +21,14 @@ require (
 	github.com/rprtr258/fun v0.0.31
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/afero v1.12.0
+	github.com/tenkoh/goldmark-img64 v0.1.2
 	github.com/wailsapp/wails/v2 v2.10.2
+	github.com/wyatt915/goldmark-treeblood v0.0.0-20250703044443-8653cf501e18
+	github.com/yuin/goldmark v1.7.13
+	github.com/yuin/goldmark-emoji v1.0.3
+	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
+	go.abhg.dev/goldmark/mermaid v0.5.0
+	go.abhg.dev/goldmark/toc v0.12.0
 	go.nhat.io/aferocopy/v2 v2.0.2
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
@@ -28,19 +38,24 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/ClickHouse/ch-go v0.65.1 // indirect
+	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/bufbuild/protocompile v0.14.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20250121191232-2f005788dc42 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/gebv/pikchr v1.0.2 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/itchyny/timefmt-go v0.1.6 // indirect
@@ -71,6 +86,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.19 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
+	github.com/wyatt915/treeblood v0.1.13 // indirect
 	go.opentelemetry.io/otel v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	golang.org/x/crypto v0.35.0 // indirect

@@ -143,11 +143,12 @@ export namespace app {
 export namespace database {
 	
 	export enum Kind {
-	    GRPC = "grpc",
 	    HTTP = "http",
+	    MD = "md",
 	    REDIS = "redis",
 	    SQL = "sql",
 	    JQ = "jq",
+	    GRPC = "grpc",
 	}
 	export enum Database {
 	    POSTGRES = "postgres",
@@ -380,6 +381,30 @@ export namespace database {
 	    }
 	}
 	
+	export class MarkdownRequest {
+	    data: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MarkdownRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.data = source["data"];
+	    }
+	}
+	export class MarkdownResponse {
+	    data: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MarkdownResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.data = source["data"];
+	    }
+	}
 	export class RedisRequest {
 	    dsn: string;
 	    query: string;

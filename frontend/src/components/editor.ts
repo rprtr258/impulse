@@ -1,4 +1,4 @@
-import type { Extension, Transaction, TransactionSpec} from "@codemirror/state";
+import type {Extension, Transaction, TransactionSpec} from "@codemirror/state";
 import {EditorState} from "@codemirror/state";
 import {EditorView, highlightSpecialChars, keymap, drawSelection, lineNumbers, highlightActiveLineGutter, dropCursor, highlightActiveLine} from "@codemirror/view";
 import {defaultKeymap, historyKeymap, standardKeymap, history, indentMore} from "@codemirror/commands";
@@ -43,7 +43,9 @@ export function defaultEditorExtensions(onChange: (doc: string) => void): Extens
     autocompletion(),
     highlightActiveLine(),
     EditorState.transactionFilter.of((tr: Readonly<Transaction>): TransactionSpec => {
-      onChange(tr.newDoc.toString());
+      if (!tr.changes.empty) {
+        onChange(tr.newDoc.toString());
+      }
       return tr;
     }),
   ];
